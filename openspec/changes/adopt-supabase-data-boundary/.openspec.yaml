@@ -1,0 +1,10 @@
+schema: spec-driven
+created: 2026-07-14
+goal: Move production persistence and file storage behind Supabase with
+  defense-in-depth ownership.
+affected_areas:
+  - database
+  - authentication
+  - file-storage
+  - authorization
+  - deployment
