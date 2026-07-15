@@ -1,0 +1,7 @@
+schema: spec-driven
+created: 2026-07-14
+goal: Introduce repeatable database schema migrations before production rollout.
+affected_areas:
+  - database
+  - deployment
+  - tests

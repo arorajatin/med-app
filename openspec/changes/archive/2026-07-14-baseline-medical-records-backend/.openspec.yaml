@@ -1,0 +1,11 @@
+schema: spec-driven
+created: 2026-07-14
+goal: Record the implemented MVP as the OpenSpec baseline.
+affected_areas:
+  - api
+  - authentication
+  - persistence
+  - file-storage
+  - extraction
+  - medical-memory
+  - appointments

@@ -1,0 +1,9 @@
+schema: spec-driven
+created: 2026-07-14
+goal: Extract real medical documents through a production-ready provider adapter.
+affected_areas:
+  - extraction
+  - ai-provider
+  - privacy
+  - configuration
+  - tests

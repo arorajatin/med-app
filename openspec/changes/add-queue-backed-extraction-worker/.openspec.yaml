@@ -1,0 +1,9 @@
+schema: spec-driven
+created: 2026-07-14
+goal: Process extraction jobs durably outside the HTTP request lifecycle.
+affected_areas:
+  - extraction
+  - worker
+  - queue
+  - deployment
+  - observability

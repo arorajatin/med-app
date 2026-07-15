@@ -1,0 +1,38 @@
+schema: spec-driven
+
+context: |
+  Product: A private-by-default medical records backend for people managing their
+  own and their family members' health information.
+
+  Stack: Python 3.12, FastAPI, Pydantic, SQLAlchemy, Uvicorn, and pytest. Local
+  development uses SQLite, filesystem storage, development auth, and a mock
+  extraction provider. Supabase is the intended production boundary.
+
+  Safety invariants:
+  - Scope every user-owned resource by the authenticated user.
+  - Never expose uploaded medical files through public URLs.
+  - Treat AI extraction as untrusted until a user confirms or edits it.
+  - Build medical memory and appointment context only from reviewed facts.
+  - Keep raw extraction output auditable and separate from normalized fields.
+
+  OpenSpec conventions:
+  - openspec/specs describes behavior that exists in the code today.
+  - openspec/changes contains approved or candidate future work, not current behavior.
+  - openspec/changes/archive preserves completed change history and design rationale.
+  - Capability names are kebab-case and describe stable product behavior.
+
+rules:
+  proposal:
+    - State whether the change affects medical-data privacy, AI trust, or consent.
+    - List explicit non-goals when scope could otherwise expand.
+    - Reuse an existing capability name whenever its requirements are changing.
+  specs:
+    - Write observable behavior and testable outcomes instead of implementation details.
+    - Include negative authorization and failure scenarios for sensitive operations.
+    - Do not claim future infrastructure is already deployed.
+  design:
+    - Preserve the safety invariants from project context or explain any intentional change.
+    - Include migration and rollback decisions for persistence or data-model changes.
+  tasks:
+    - Include automated tests for every changed requirement.
+    - Include a strict OpenSpec validation task before archival.
