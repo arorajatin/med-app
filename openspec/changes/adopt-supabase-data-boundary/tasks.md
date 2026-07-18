@@ -19,3 +19,4 @@
 - [ ] 3.2 Add a checked migration path for existing records and files, if any exist.
 - [ ] 3.3 Verify production mode cannot fall back to SQLite or local filesystem storage.
 - [ ] 3.4 Run the backend test suite, Supabase integration tests, and strict OpenSpec validation.
+- [ ] 3.5 Complete implementation review and finalize `review.md` with the reviewed commit, test evidence, findings, and resume state.

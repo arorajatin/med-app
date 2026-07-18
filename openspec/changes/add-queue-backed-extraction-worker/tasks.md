@@ -19,3 +19,4 @@
 - [ ] 3.3 Add metrics and alerts for dispatch age, queue age, abandoned claims, retries, and failures.
 - [ ] 3.4 Document worker deployment, scaling, pause, drain, recovery, and rollback.
 - [ ] 3.5 Run the backend test suite and strict OpenSpec validation.
+- [ ] 3.6 Complete implementation review and finalize `review.md` with the reviewed commit, test evidence, findings, and resume state.

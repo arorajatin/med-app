@@ -20,6 +20,9 @@ context: |
   - openspec/changes contains approved or candidate future work, not current behavior.
   - openspec/changes/archive preserves completed change history and design rationale.
   - Capability names are kebab-case and describe stable product behavior.
+  - Every active change keeps review and testing progress in review.md.
+  - Before ending a partial review session, update review.md with the reviewed commit,
+    completed scope, test results, open findings, and exact resume point.
 
 rules:
   proposal:
@@ -35,4 +38,5 @@ rules:
     - Include migration and rollback decisions for persistence or data-model changes.
   tasks:
     - Include automated tests for every changed requirement.
+    - Include a final review task that cannot complete until review.md is current.
     - Include a strict OpenSpec validation task before archival.

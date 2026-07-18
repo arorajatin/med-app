@@ -29,8 +29,24 @@ The sequence below reflects current technical dependencies, not a release commit
 1. Propose a kebab-case change with `openspec new change <name>` or the repository-local `openspec-propose` Codex skill.
 2. Review `proposal.md`, delta specs, `design.md`, and `tasks.md` before code changes begin.
 3. Implement from `tasks.md` and mark completed items with `- [x]`.
-4. Run `openspec validate <name> --strict` and the relevant automated tests.
-5. Sync the delta specs into `openspec/specs/`, then archive the completed change.
+4. Keep the change's `review.md` current during code review and testing.
+5. Run `openspec validate <name> --strict` and the relevant automated tests.
+6. Sync the delta specs into `openspec/specs/`, then archive the completed change.
+
+## Review Checkpoints
+
+Every active change has a `review.md` based on [the review checkpoint template](templates/review-checkpoint.md). It is the durable handoff between review sessions; `tasks.md` remains the implementation checklist.
+
+Before stopping a partial review session:
+
+1. Record the exact commit being reviewed so later code drift is visible.
+2. List reviewed files, symbols, requirements, or task numbers.
+3. Record each test command and its result.
+4. Capture unresolved findings with severity and ownership.
+5. State the next file, symbol, scenario, or task where review should resume.
+6. Append a dated session-history entry instead of replacing earlier context.
+
+Set the checkpoint to `Complete` only after review findings are resolved or explicitly accepted, required tests are recorded, and the final review task is checked. Extra `review.md` files are project artifacts: OpenSpec ignores them during spec validation but preserves them with the change when it is archived.
 
 Useful commands:
 

@@ -16,3 +16,4 @@
 - [ ] 3.2 Test production startup against the expected schema without metadata creation.
 - [ ] 3.3 Test downgrade behavior for the initial reversible revision.
 - [ ] 3.4 Run the backend test suite and strict OpenSpec validation.
+- [ ] 3.5 Complete implementation review and finalize `review.md` with the reviewed commit, test evidence, findings, and resume state.

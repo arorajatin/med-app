@@ -19,3 +19,4 @@
 - [ ] 3.3 Verify pending review and consent behavior remain unchanged end to end.
 - [ ] 3.4 Document staging rollout, production enablement, cost controls, and rollback.
 - [ ] 3.5 Run the backend test suite and strict OpenSpec validation.
+- [ ] 3.6 Complete implementation review and finalize `review.md` with the reviewed commit, test evidence, findings, and resume state.
