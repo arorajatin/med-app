@@ -50,7 +50,10 @@ Existing developer databases can be recreated or stamped only after verifying th
 
 Rollback uses the prior application version plus the revision's tested downgrade when the schema change is reversible. Destructive future migrations require their own backup and rollback plan.
 
-## Open Questions
+## Resolved Questions
 
-- Should CI add a temporary Postgres service in this change or in the Supabase boundary change?
-- Should local startup auto-upgrade, or should developers run the same explicit command as production?
+- Postgres migration coverage is deferred to `adopt-supabase-data-boundary`, where a disposable
+  Supabase test environment is already required.
+- Local and production databases use the same explicit migration command. Application and worker
+  startup verify the current revision but never create or upgrade tables; only tests retain a
+  guarded metadata bootstrap helper.

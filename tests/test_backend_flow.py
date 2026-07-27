@@ -2,22 +2,25 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.config import get_settings
-from app.database import Base, configure_database, get_engine, init_db
+from app.database import Base, bootstrap_test_database, configure_database, get_engine
 from app.main import create_app
 
 
 @pytest.fixture()
 def client(tmp_path, monkeypatch):
     get_settings.cache_clear()
+    monkeypatch.setenv("ENVIRONMENT", "test")
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'test.db'}")
     monkeypatch.setenv("LOCAL_STORAGE_ROOT", str(tmp_path / "storage"))
+    monkeypatch.setenv("DEV_AUTH_ENABLED", "true")
     monkeypatch.setenv("EXTRACTION_RUN_INLINE", "true")
     configure_database(f"sqlite:///{tmp_path / 'test.db'}")
     Base.metadata.drop_all(bind=get_engine())
-    init_db()
+    bootstrap_test_database()
     app = create_app()
     with TestClient(app) as test_client:
         yield test_client
+    get_settings.cache_clear()
 
 
 def auth(user_id: str = "user_1") -> dict[str, str]:
