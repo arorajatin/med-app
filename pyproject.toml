@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Private-by-default medical records backend with AI-assisted extraction."
 requires-python = ">=3.12"
 dependencies = [
+    "alembic>=1.14.0",
     "fastapi>=0.115.0",
     "pyjwt[crypto]>=2.10.0",
     "pydantic-settings>=2.6.0",

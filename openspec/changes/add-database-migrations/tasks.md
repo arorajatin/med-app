@@ -1,19 +1,19 @@
 ## 1. Alembic Foundation
 
-- [ ] 1.1 Add Alembic to project dependencies and create its configuration.
-- [ ] 1.2 Wire the migration environment to application settings and SQLAlchemy metadata.
-- [ ] 1.3 Generate and review an initial revision for every current model, index, and constraint.
+- [x] 1.1 Add Alembic to project dependencies and create its configuration.
+- [x] 1.2 Wire the migration environment to application settings and SQLAlchemy metadata.
+- [x] 1.3 Generate and review an initial revision for every current model, index, and constraint.
 
 ## 2. Runtime Integration
 
-- [ ] 2.1 Separate local/test metadata bootstrap from production application startup.
-- [ ] 2.2 Add documented upgrade, current-revision, and downgrade commands.
-- [ ] 2.3 Define the safe stamp or recreation path for existing local SQLite databases.
+- [x] 2.1 Separate local/test metadata bootstrap from production application startup.
+- [x] 2.2 Add documented upgrade, current-revision, and downgrade commands.
+- [x] 2.3 Define the safe stamp or recreation path for existing local SQLite databases.
 
 ## 3. Verification
 
-- [ ] 3.1 Test upgrading an empty database to head and compare it with the model contract.
-- [ ] 3.2 Test production startup against the expected schema without metadata creation.
-- [ ] 3.3 Test downgrade behavior for the initial reversible revision.
-- [ ] 3.4 Run the backend test suite and strict OpenSpec validation.
-- [ ] 3.5 Complete implementation review and finalize `review.md` with the reviewed commit, test evidence, findings, and resume state.
+- [x] 3.1 Test upgrading an empty database to head and compare it with the model contract.
+- [x] 3.2 Test production startup against the expected schema without metadata creation.
+- [x] 3.3 Test downgrade behavior for the initial reversible revision.
+- [x] 3.4 Run the backend test suite and strict OpenSpec validation.
+- [x] 3.5 Complete implementation review and finalize `review.md` with the reviewed commit, test evidence, findings, and resume state.

@@ -2,7 +2,7 @@ import sys
 
 from app.ai.mock_provider import MockExtractor
 from app.config import get_settings
-from app.database import configure_database, get_db, init_db
+from app.database import configure_database, get_db, require_current_database_schema
 from app.models import ExtractionJob
 from app.services.extraction import run_extraction_job
 from app.storage import LocalPrivateStorage
@@ -11,7 +11,8 @@ from app.storage import LocalPrivateStorage
 def run_once() -> int:
     settings = get_settings()
     configure_database(settings.database_url)
-    init_db()
+    if settings.environment != "test":
+        require_current_database_schema()
 
     db = next(get_db())
     try:
@@ -36,4 +37,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
