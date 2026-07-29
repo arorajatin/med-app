@@ -52,7 +52,67 @@ For production auth, set `DEV_AUTH_ENABLED=false` and `SUPABASE_URL=https://<pro
 Authorization: Bearer <supabase-access-token>
 ```
 
-This first Supabase checkpoint only adds JWT verification. Supabase Postgres, private Storage, and RLS policy setup are separate follow-up checkpoints.
+Production relational persistence uses Supabase Postgres with database-enforced ownership. Private
+Supabase Storage remains a separate checkpoint; do not enable production uploads until that adapter
+is configured.
+
+## Production Supabase Postgres
+
+Use separate database credentials for schema migrations and application traffic. The runtime login
+must not be a superuser, own application tables, or have `BYPASSRLS`. Provision it with a generated
+secret through an administrative connection:
+
+```sql
+CREATE ROLE med_app_api
+    WITH LOGIN PASSWORD '<generated-runtime-secret>'
+    NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+GRANT authenticated TO med_app_api;
+```
+
+Apply migrations with the administrative URL, then run the API with the dedicated login:
+
+```bash
+ENVIRONMENT=production \
+DEV_AUTH_ENABLED=false \
+SUPABASE_URL=https://<project-ref>.supabase.co \
+DATABASE_URL='postgresql+psycopg://med_app_api:<encoded-password>@<host>:5432/postgres' \
+MIGRATION_DATABASE_URL='postgresql+psycopg://postgres:<encoded-password>@<host>:5432/postgres' \
+uv run alembic upgrade head
+
+ENVIRONMENT=production \
+DEV_AUTH_ENABLED=false \
+SUPABASE_URL=https://<project-ref>.supabase.co \
+DATABASE_URL='postgresql+psycopg://med_app_api:<encoded-password>@<host>:5432/postgres' \
+uv run uvicorn app.main:app
+```
+
+Production connections require TLS. Prefer Supabase's direct connection for a persistent backend,
+or its session pooler when direct IPv6 connectivity is unavailable. The application fails startup
+if the runtime URL is not PostgreSQL, uses a privileged role, cannot assume `authenticated`, cannot
+resolve `auth.uid()`, lacks forced RLS, or is behind the checked-in Alembic head.
+
+Each authenticated request binds the verified Supabase user ID to every SQLAlchemy transaction.
+Application-level `user_id` filters remain in place; RLS is the defense-in-depth boundary if one is
+omitted. The legacy run-once extraction worker is intentionally disabled in production until the
+queue-backed worker defines an audited, owner-scoped claim path.
+
+### Disposable Supabase database tests
+
+The repository's local Supabase project runs database-only on port `55322`, avoiding the CLI's
+default ports:
+
+```bash
+supabase start -x gotrue,realtime,storage-api,imgproxy,kong,inbucket,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+
+SUPABASE_TEST_DATABASE_URL='postgresql+psycopg://postgres:postgres@127.0.0.1:55322/postgres' \
+uv run pytest tests/test_supabase_postgres.py -q
+
+supabase stop
+```
+
+These tests apply the Alembic schema, create a temporary non-privileged runtime login, verify every
+user-owned table's policies, and prove two-user read/insert/update/delete isolation through a reused
+connection pool.
 
 ## Database Migrations
 

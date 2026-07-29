@@ -1,4 +1,5 @@
 from functools import lru_cache
+from uuid import UUID
 
 from fastapi import Depends, HTTPException, Request, status
 
@@ -77,7 +78,16 @@ def _verify_supabase_jwt(token: str, settings: Settings) -> CurrentUser:
             detail="Supabase access token is missing a subject.",
         )
 
-    return CurrentUser(id=user_id)
+    try:
+        normalized_user_id = str(UUID(user_id))
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Supabase access token subject must be a UUID.",
+        ) from exc
+
+    return CurrentUser(id=normalized_user_id)
+
 
 # definitive method
 # _bearer_token -> extraction method

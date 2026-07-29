@@ -13,8 +13,8 @@ from app.database import Base, bootstrap_test_database, configure_database
 from app.main import create_app
 from app.worker import run_once
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+EXPECTED_HEAD = "20260729_0002"
 
 
 def database_url(path: Path) -> str:
@@ -40,9 +40,7 @@ def assert_schema_matches_metadata(url: str) -> None:
     engine = create_engine(url)
     try:
         inspector = inspect(engine)
-        assert set(inspector.get_table_names()) - {"alembic_version"} == set(
-            Base.metadata.tables
-        )
+        assert set(inspector.get_table_names()) - {"alembic_version"} == set(Base.metadata.tables)
 
         for table_name, table in Base.metadata.tables.items():
             actual_columns = {
@@ -57,12 +55,8 @@ def assert_schema_matches_metadata(url: str) -> None:
                     expected_column.type.compile(dialect=engine.dialect).upper()
                 )
 
-            actual_primary_key = set(
-                inspector.get_pk_constraint(table_name)["constrained_columns"]
-            )
-            expected_primary_key = {
-                column.name for column in table.primary_key.columns
-            }
+            actual_primary_key = set(inspector.get_pk_constraint(table_name)["constrained_columns"])
+            expected_primary_key = {column.name for column in table.primary_key.columns}
             assert actual_primary_key == expected_primary_key
 
             actual_indexes = {
@@ -101,18 +95,17 @@ def test_upgrade_empty_database_to_head_matches_model_contract(tmp_path):
 
     command.upgrade(migration_config(url), "head")
 
-    assert current_revisions(url) == {"20260721_0001"}
+    assert current_revisions(url) == {EXPECTED_HEAD}
     assert_schema_matches_metadata(url)
 
 
-def test_production_api_and_worker_start_at_head_without_metadata_creation(
-    tmp_path, monkeypatch
-):
+def test_local_api_and_worker_start_at_head_without_metadata_creation(tmp_path, monkeypatch):
     url = database_url(tmp_path / "production.db")
     command.upgrade(migration_config(url), "head")
 
-    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv("ENVIRONMENT", "local")
     monkeypatch.setenv("DATABASE_URL", url)
+    monkeypatch.setenv("DEV_AUTH_ENABLED", "true")
     get_settings.cache_clear()
 
     def unexpected_metadata_creation(*args, **kwargs):
@@ -124,17 +117,18 @@ def test_production_api_and_worker_start_at_head_without_metadata_creation(
         assert client.get("/health").json() == {"status": "ok"}
 
     assert run_once() == 0
-    assert current_revisions(url) == {"20260721_0001"}
+    assert current_revisions(url) == {EXPECTED_HEAD}
     get_settings.cache_clear()
 
 
 def test_runtime_startup_rejects_an_unmigrated_database(tmp_path, monkeypatch):
     url = database_url(tmp_path / "unmigrated.db")
-    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv("ENVIRONMENT", "local")
     monkeypatch.setenv("DATABASE_URL", url)
+    monkeypatch.setenv("DEV_AUTH_ENABLED", "true")
     get_settings.cache_clear()
 
-    with pytest.raises(RuntimeError, match=r"current: none; expected: 20260721_0001"):
+    with pytest.raises(RuntimeError, match=rf"current: none; expected: {EXPECTED_HEAD}"):
         with TestClient(create_app()):
             pass
 
@@ -142,12 +136,29 @@ def test_runtime_startup_rejects_an_unmigrated_database(tmp_path, monkeypatch):
 
 
 def test_metadata_bootstrap_is_restricted_to_tests(tmp_path, monkeypatch):
-    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv("ENVIRONMENT", "local")
+    monkeypatch.setenv("DEV_AUTH_ENABLED", "true")
     get_settings.cache_clear()
     configure_database(database_url(tmp_path / "bootstrap.db"))
 
     with pytest.raises(RuntimeError, match="only allowed when ENVIRONMENT=test"):
         bootstrap_test_database()
+
+    get_settings.cache_clear()
+
+
+def test_run_once_worker_fails_closed_in_production(monkeypatch):
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv(
+        "DATABASE_URL",
+        "postgresql+psycopg://med_app_api:secret@db.example.test:5432/postgres",
+    )
+    monkeypatch.setenv("DEV_AUTH_ENABLED", "false")
+    monkeypatch.setenv("SUPABASE_URL", "https://example.supabase.co")
+    get_settings.cache_clear()
+
+    with pytest.raises(RuntimeError, match="run-once worker is disabled in production"):
+        run_once()
 
     get_settings.cache_clear()
 
