@@ -2,7 +2,7 @@ import sys
 
 from app.ai.mock_provider import MockExtractor
 from app.config import get_settings
-from app.database import configure_database, get_db, require_current_database_schema
+from app.database import configure_database, new_database_session, require_current_database_schema
 from app.models import ExtractionJob
 from app.services.extraction import run_extraction_job
 from app.storage import LocalPrivateStorage
@@ -10,11 +10,17 @@ from app.storage import LocalPrivateStorage
 
 def run_once() -> int:
     settings = get_settings()
-    configure_database(settings.database_url)
+    if settings.is_production:
+        raise RuntimeError(
+            "The run-once worker is disabled in production until extraction has an "
+            "audited, owner-scoped queue claim path."
+        )
+
+    configure_database(settings=settings)
     if settings.environment != "test":
         require_current_database_schema()
 
-    db = next(get_db())
+    db = new_database_session()
     try:
         job = db.query(ExtractionJob).filter(ExtractionJob.status == "queued").first()
         if job is None:
