@@ -39,6 +39,16 @@ That change must define:
 
 Graphs use report-linked metric observations, not medical-memory prose.
 
+## Native iOS and Android clients
+
+`apps/ios` and `apps/android` are planned V2 locations and remain unscaffolded in V1. Create a separate OpenSpec change before building either native client so its scope, shared API contract, authentication, privacy controls, and upload behavior are agreed first.
+
+## Email and WhatsApp report ingestion
+
+Email and WhatsApp intake are excluded from V1. Create and approve a separate post-V1 OpenSpec change for each channel before accepting reports through it.
+
+Each future change must decide the user journey, account and source authorization, supported report formats, report grouping, provider and security approach, privacy and residency requirements, consent, profile assignment, provenance, deletion, failure handling, duplicate delivery, and testing. V1 makes no commitment to a provider, inbound-address scheme, phone-linking method, or transport design.
+
 ## Other deferred journeys
 
 - AI-consent revocation and downstream processing policy
@@ -47,4 +57,3 @@ Graphs use report-linked metric observations, not medical-memory prose.
 - A full relationship graph among family members
 - Multiple independent reports in one direct-upload batch
 - Family or clinician sharing
-

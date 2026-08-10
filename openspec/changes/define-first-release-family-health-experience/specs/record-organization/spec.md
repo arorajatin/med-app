@@ -32,20 +32,25 @@ Drive SHALL be able to project the selected profile's completed uploads into mon
 - **AND** order it by upload completion time relative to other undated reports
 
 ### Requirement: Organize completed reports by condition
-Drive SHALL be able to project the selected profile's completed uploads into groups derived only from reviewed conditions linked to each report.
+Drive SHALL be able to project the selected profile's completed uploads into groups derived only from trusted condition links. A trusted condition link SHALL use either a user-attested condition explicitly linked to the report or a confirmed or edited `documented_condition_candidate` extracted from that report. Drive SHALL NOT infer a condition link from medication details, lab observations, symptoms, or general medical knowledge.
 
-#### Scenario: Report has reviewed conditions
-- **WHEN** a completed report is linked to one or more reviewed conditions
+#### Scenario: Report has trusted condition links
+- **WHEN** a completed report is linked to one or more user-attested conditions or confirmed or edited documented-condition candidates
 - **THEN** Drive SHALL include the report in each corresponding virtual condition group
 - **AND** the source report SHALL remain a single private record
 
-#### Scenario: Report has no reviewed condition
-- **WHEN** a completed report has no reviewed condition
+#### Scenario: Report has no trusted condition link
+- **WHEN** a completed report has no trusted condition link
 - **THEN** Drive SHALL include it in an uncategorized group
 
-#### Scenario: Candidate condition is unreviewed
-- **WHEN** a condition candidate has not been confirmed or edited
+#### Scenario: Documented condition is pending or ignored
+- **WHEN** a documented-condition candidate is pending or ignored
 - **THEN** it SHALL NOT create a condition group
+
+#### Scenario: Report evidence only implies a condition
+- **WHEN** medication details, lab observations, symptoms, or general medical knowledge could be associated with a condition but the report has no trusted condition link
+- **THEN** Drive SHALL NOT create that condition group
+- **AND** the report SHALL remain in the uncategorized group for condition organization
 
 ### Requirement: Reflect the current display filename
 Drive SHALL show the current display filename for each report while retaining the source report's original filename outside the organization projection.

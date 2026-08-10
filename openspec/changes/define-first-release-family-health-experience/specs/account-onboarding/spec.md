@@ -59,7 +59,7 @@ The system SHALL automatically create one `self` family profile and SHALL collec
 - **AND** the account SHALL NOT create an additional `self` profile
 
 ### Requirement: Capture account-level AI-processing consent
-The system SHALL present one explicit AI-processing consent choice during onboarding, describing document extraction and use of reviewed personal memory in Chat, and SHALL retain the accepted scope, policy version, and timestamp for the account.
+The system SHALL present one explicit account-level AI-processing consent choice during onboarding, describing document extraction and use of reviewed personal memory in Chat, and SHALL retain the accepted scope, policy version, and timestamp for the account.
 
 #### Scenario: Accept account-level consent
 - **WHEN** the account manager accepts the presented AI-processing terms

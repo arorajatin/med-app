@@ -19,10 +19,9 @@ Create the sole account-manager identity, establish `self`, capture starting hea
 2. The account manager supplies:
    - name;
    - age;
-   - weight;
-   - weight unit in pounds or kilograms;
-   - current medical conditions, including an explicit none response;
-   - current medications, including an explicit none response.
+   - weight with unit in pounds or kilograms;
+   - current medical conditions, including an explicit none response (allow free-text input as well);
+   - current medications, including an explicit none response (allow free-text input as well).
 3. Age and weight retain the date on which they were reported.
 4. Weight retains the entered unit and a normalized value.
 5. Conditions and medications entered directly by the account manager become trusted user-attested memory immediately.

@@ -21,7 +21,7 @@ The account manager SHALL select an owned family profile before starting Chat, a
 - **THEN** the service SHALL respond as though that profile was not found
 
 ### Requirement: Ground personal answers only in trusted memory
-The assistant SHALL use only reviewed or user-attested medical-memory facts for personal claims about the selected profile and SHALL exclude pending candidate memory and unreviewed metric observations.
+The assistant SHALL use only reviewed or user-attested medical-memory facts for personal claims about the selected profile. It SHALL exclude pending or ignored documented-condition candidates, all other pending candidate memory, and unreviewed metric observations.
 
 #### Scenario: Reviewed personal evidence is available
 - **WHEN** a question is supported by trusted memory for the selected profile
@@ -34,8 +34,13 @@ The assistant SHALL use only reviewed or user-attested medical-memory facts for 
 - **AND** it SHALL NOT invent a personal medical fact
 
 #### Scenario: Evidence is awaiting review
-- **WHEN** relevant extracted candidates remain pending or ignored
+- **WHEN** a relevant documented-condition candidate is pending or ignored or another relevant extracted candidate remains pending
 - **THEN** the assistant SHALL NOT use them as trusted personal evidence
+
+#### Scenario: A documented condition was confirmed or edited
+- **WHEN** a documented-condition candidate has been confirmed or edited into trusted memory for the selected profile
+- **THEN** the assistant MAY use the trusted submitted condition value as personal evidence
+- **AND** it SHALL retain a citation to the reviewed memory fact, source report, and source reference that contains the original condition text
 
 ### Requirement: Attribute external information
 The assistant MAY supplement an answer with current external information, but SHALL distinguish it from personal memory and SHALL retain the actual external source links used.
@@ -81,4 +86,3 @@ The observable Chat contract SHALL support changing the configured model and ext
 #### Scenario: Provider configuration is unavailable
 - **WHEN** no supported provider is configured for an enabled Chat environment
 - **THEN** Chat SHALL fail closed without sending private context to an unintended fallback
-

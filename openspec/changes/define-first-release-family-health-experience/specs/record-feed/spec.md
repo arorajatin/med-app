@@ -1,16 +1,16 @@
 ## Purpose
 
-Define the account-wide chronological Feed for browsing completed family reports across every managed profile and ingestion source.
+Define the account-wide chronological Feed for browsing completed web-uploaded family reports across every managed profile.
 
 ## ADDED Requirements
 
 ### Requirement: Aggregate completed uploads across the family
-The Feed SHALL include completed document uploads owned by the account across all managed family profiles and supported ingestion sources.
+The Feed SHALL include completed document uploads submitted through authenticated file-selection or camera routes and owned by the account across all managed family profiles.
 
 #### Scenario: Browse the family Feed
 - **WHEN** the account manager opens Feed
 - **THEN** the system SHALL return completed uploads for `self` and every other owned family profile
-- **AND** every item SHALL identify its assigned profile or `needs assignment` state, ingestion source, display filename, and current processing state
+- **AND** every item SHALL identify its assigned profile or `needs assignment` state, immutable `direct_file` or `camera` source channel, safe source label, display filename, and current processing state
 
 #### Scenario: Upload is incomplete
 - **WHEN** a staged upload has not reached upload-complete state

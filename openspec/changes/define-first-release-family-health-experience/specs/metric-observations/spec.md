@@ -5,12 +5,12 @@ Define auditable, report-linked longitudinal measurements that can be explored s
 ## ADDED Requirements
 
 ### Requirement: Store deterministic measurements automatically
-The system SHALL store deterministic measurement observations from a successfully extracted, profile-resolved report without requiring a medical-memory approval action.
+The system SHALL store literal measurement observations from a successfully extracted, profile-resolved English lab report without requiring a medical-memory approval action.
 
 #### Scenario: Publish a report measurement
 - **WHEN** a resolved report produces a valid deterministic measurement
 - **THEN** the system SHALL create an observation linked to the account, family profile, source report, source field or location, and extraction attempt
-- **AND** the observation SHALL retain the metric identity, original value and unit, normalized value when available, reference range when available, observation date, optional body-system classification, and extraction confidence
+- **AND** the observation SHALL retain the metric identity, original value and unit, normalized value when available, reference range when available, flag when available, observation date, optional body-system classification, extraction confidence, and a validated page/block/text/polygon source reference
 
 #### Scenario: Retry extraction
 - **WHEN** the same extraction attempt is retried or superseded
@@ -27,6 +27,28 @@ Automatically extracted observations SHALL remain explicitly source-linked and u
 #### Scenario: Ground a personal-memory answer
 - **WHEN** Chat retrieves reviewed personal memory
 - **THEN** it SHALL exclude unreviewed metric observations from that evidence set
+
+### Requirement: Keep measurements separate from documented conditions
+The system SHALL treat literal lab measurements and literal conditions written in a report as separate extracted items with independent trust and review state. A measurement, reference range, or abnormal flag SHALL NOT create a condition candidate by itself.
+
+#### Scenario: Lab values do not state a condition
+- **WHEN** a lab report contains a measurement, reference range, or abnormal flag but does not literally name a condition
+- **THEN** the system SHALL store eligible metric observations
+- **AND** it SHALL NOT create a documented-condition candidate from those values, ranges, or flags
+
+#### Scenario: The same report explicitly names a condition
+- **WHEN** a lab report contains both a literal measurement and separate text that literally names a condition
+- **THEN** the system MAY create the measurement as an `unreviewed_extracted` metric observation
+- **AND** it MAY create a separate pending `documented_condition_candidate` containing the exact condition text and its own source reference
+
+#### Scenario: Review a documented condition next to a measurement
+- **WHEN** the account manager confirms or edits a documented-condition candidate from a report that also contains a metric observation
+- **THEN** the condition decision SHALL NOT make the metric observation trusted medical memory
+- **AND** the observation SHALL remain `unreviewed_extracted` unless it is independently corrected or excluded
+
+#### Scenario: Correct or exclude a measurement next to a documented condition
+- **WHEN** the account manager corrects or excludes a metric observation from a report that also contains a documented-condition candidate
+- **THEN** the observation decision SHALL NOT confirm, edit, ignore, or otherwise change the condition candidate
 
 ### Requirement: Correct or exclude an observation
 The account manager SHALL be able to correct or exclude an observation while the system retains the original extracted value and source provenance.

@@ -2,7 +2,7 @@
 
 ## Goal
 
-Browse upload-complete reports through dynamic person, month, and reviewed-condition views.
+Browse upload-complete reports through dynamic person, month, and trusted-condition views.
 
 ## Journey
 
@@ -19,9 +19,10 @@ Browse upload-complete reports through dynamic person, month, and reviewed-condi
 
 - Month groups use confirmed, edited, or user-entered report date.
 - Reports without a trusted report date appear under `Undated`.
-- Condition groups use only reviewed or user-attested conditions linked to reports.
-- An unreviewed condition candidate never creates a group.
-- Reports with no reviewed condition appear under `Uncategorized`.
+- Condition groups use only report-linked user-attested conditions or confirmed or edited `documented_condition_candidate` values.
+- Pending or ignored documented-condition candidates never create a group.
+- Medications, dosages, lab values, ranges, flags, symptoms, and general medical associations never create an inferred condition group.
+- Reports with no qualifying trusted condition appear under `Uncategorized`.
 - One report may appear in multiple condition groups without duplicating its private file.
 
 ## Display names
@@ -31,4 +32,3 @@ Drive shows the current report display filename. A user rename takes precedence 
 ## Exclusions
 
 Incomplete uploads and reports needing profile assignment do not appear in a profile's Drive.
-

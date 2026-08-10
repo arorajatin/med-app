@@ -7,7 +7,7 @@ Answer questions for one selected family member using trusted personal memory an
 ## Journey
 
 1. The account manager opens Chat.
-2. Before starting a conversation, the account manager selects one owned family profile.
+2. Before starting or reopening a conversation, the account manager explicitly selects one owned family profile; the app does not silently default to `self`, even when it is the only profile.
 3. The app starts a new conversation or opens retained history scoped to that profile.
 4. The account manager asks a question.
 5. The assistant retrieves only that person's reviewed or user-attested medical memory.
@@ -21,8 +21,10 @@ Answer questions for one selected family member using trusted personal memory an
 ## Context and trust rules
 
 - One conversation never combines private context from different family profiles.
-- Pending or ignored memory candidates are not personal evidence.
-- Automatically extracted metric observations are not trusted personal-memory evidence in the first release.
+- A confirmed or edited `documented_condition_candidate` may be used as a reviewed condition fact and cites both its source report and the exact source text location. An edited value also preserves the originally documented text in its review provenance.
+- Pending or ignored documented-condition candidates are not personal evidence.
+- Unreviewed metric observations are not trusted personal-memory evidence in the first release.
+- Medications, dosages, lab values, ranges, flags, symptoms, and general medical associations never justify an inferred personal condition.
 - External retrieval minimizes direct personal identifiers and unrelated private medical context.
 - The product contract remains the same when a supported model or retrieval provider changes.
 - A missing provider configuration fails closed rather than sending private context to an unintended fallback.
@@ -36,4 +38,3 @@ Answer questions for one selected family member using trusted personal memory an
 ## First-release boundary
 
 Chat answers questions only. It does not create appointments, reminders, messages, or other side effects.
-

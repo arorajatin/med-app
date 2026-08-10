@@ -2,6 +2,12 @@ version = 1
 revision = 3
 requires-python = ">=3.12"
 
+[manifest]
+members = [
+    "med-app-backend",
+    "med-app-workspace",
+]
+
 [[package]]
 name = "alembic"
 version = "1.18.5"
@@ -436,7 +442,7 @@ wheels = [
 [[package]]
 name = "med-app-backend"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "apps/api" }
 dependencies = [
     { name = "alembic" },
     { name = "fastapi" },
@@ -466,6 +472,11 @@ requires-dist = [
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.32.0" },
 ]
 provides-extras = ["dev"]
+
+[[package]]
+name = "med-app-workspace"
+version = "0.1.0"
+source = { virtual = "." }
 
 [[package]]
 name = "packaging"

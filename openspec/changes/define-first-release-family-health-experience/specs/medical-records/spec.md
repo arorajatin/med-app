@@ -4,7 +4,7 @@
 An authenticated account manager SHALL be able to stage an account-owned ingestion before patient assignment and SHALL be able to list and retrieve completed medical records after they resolve to an owned profile.
 
 #### Scenario: Stage a new ingestion
-- **WHEN** the account manager starts a supported direct or external ingestion
+- **WHEN** the account manager starts a supported file-selection or camera upload through the authenticated web interface
 - **THEN** the service SHALL create an account-owned staged ingestion without requiring a final family profile
 
 #### Scenario: Finalize a resolved record
@@ -22,7 +22,7 @@ An authenticated account manager SHALL be able to stage an account-owned ingesti
 - **THEN** the service SHALL return HTTP 404
 
 ### Requirement: Private file upload
-The service SHALL accept supported source parts for an account-owned ingestion and store them below a stable private account-and-ingestion boundary without returning an internal storage path or requiring a final profile in the object identity.
+The service SHALL accept unencrypted PDF, JPEG, and PNG source parts submitted through the authenticated web interface for an account-owned ingestion and store them below a stable private account-and-ingestion boundary without returning an internal storage path or requiring a final profile in the object identity.
 
 #### Scenario: Successful upload
 - **WHEN** all source parts within the configured limits are accepted for an owned ingestion
@@ -30,7 +30,7 @@ The service SHALL accept supported source parts for an account-owned ingestion a
 - **AND** the response SHALL expose safe file metadata but not an internal storage path
 
 #### Scenario: Oversized upload
-- **WHEN** an upload exceeds the configured maximum byte count
+- **WHEN** a logical document exceeds 15,000,000 bytes or 20 pages/parts, or an image exceeds 10,000,000 bytes or 10,000 pixels in either dimension
 - **THEN** the service SHALL delete or invalidate partial content from that attempt
 - **AND** the service SHALL return HTTP 413
 - **AND** the ingestion SHALL NOT become upload complete
@@ -47,7 +47,6 @@ The service SHALL create an extraction job for an uploaded file only when the ow
 - **WHEN** a file upload completes for an account without accepted AI-processing consent
 - **THEN** the service SHALL store the file privately without creating an extraction job
 - **AND** a direct upload SHALL resolve to the account manager's preselected owned profile
-- **AND** an external ingestion without a preselected profile SHALL remain pending manual assignment
 
 #### Scenario: Upload another document under existing consent
 - **WHEN** an account with accepted consent uploads another document
@@ -56,12 +55,12 @@ The service SHALL create an extraction job for an uploaded file only when the ow
 ## ADDED Requirements
 
 ### Requirement: Stage and complete a logical document upload
-The service SHALL represent file receipt separately from profile assignment, extraction, and review, and SHALL mark an upload complete only after every source part and required file metadata are stored successfully.
+The service SHALL represent file receipt separately from profile assignment, extraction, and review, and SHALL mark an upload complete only after every source part, immutable source-provenance field, and required file metadata are stored successfully.
 
 #### Scenario: Upload one image or PDF
 - **WHEN** a user submits one supported image or PDF and storage completes
 - **THEN** the service SHALL create one complete logical document
-- **AND** the service SHALL retain its account ownership, original filename, source type, and upload completion time
+- **AND** the service SHALL retain its account ownership, original filename, source channel, and upload completion time
 
 #### Scenario: Upload multiple images as one document
 - **WHEN** a user submits an ordered set of supported images as one report
@@ -71,6 +70,15 @@ The service SHALL represent file receipt separately from profile assignment, ext
 #### Scenario: Capture a document with the camera
 - **WHEN** the client submits supported image data captured by a camera
 - **THEN** the service SHALL process it through the same private upload contract as another supported image
+- **AND** the authenticated camera route SHALL stamp `source_channel=camera`
+
+#### Scenario: Select a file directly
+- **WHEN** the client submits a file through the authenticated file-selection route
+- **THEN** that route SHALL stamp `source_channel=direct_file`
+
+#### Scenario: Override the route-controlled source channel
+- **WHEN** a client attempts to supply or change the `source_channel` instead of using the value stamped by the authenticated file-selection or camera route
+- **THEN** the service SHALL reject the request
 
 #### Scenario: A multipart upload is incomplete
 - **WHEN** one or more required parts fail validation or storage
@@ -95,20 +103,32 @@ The service SHALL allow optional descriptive context and a display filename for 
 - **THEN** the service SHALL preserve its original filename for audit
 - **AND** the service MAY use a separate display filename in user-facing views
 
+### Requirement: Retain canonical ingestion source provenance
+Every V1 ingestion source SHALL use `direct_file` or `camera` as stamped by its authenticated web-upload route and SHALL retain immutable account, receipt time, actor ID, source-part ordinal, original filename, detected MIME type, byte count, SHA-256, grouping identity, and authorization basis.
+
+#### Scenario: Complete an ingestion
+- **WHEN** every ordered source part and required provenance field is stored
+- **THEN** the completed source tag and part provenance SHALL become immutable
+
+#### Scenario: Read owned provenance
+- **WHEN** the account manager opens owned report detail
+- **THEN** the service SHALL expose the channel and safe source label
+- **AND** it SHALL NOT expose credentials, authorization details, or internal storage keys
+
 ### Requirement: Resolve the document's family profile safely
-The service SHALL treat the profile selected in Upload as provisional and SHALL use extracted patient identity to select an existing owned profile only when one sufficiently confident, unambiguous match exists.
+The service SHALL treat the profile selected in Upload as provisional and SHALL automatically select an existing owned profile only when source-linked patient evidence exactly matches one normalized full name or explicit alias and no extracted DOB contradicts it.
 
 #### Scenario: Extracted patient matches the selected profile
-- **WHEN** extraction identifies the provisionally selected profile as the single confident match
+- **WHEN** Unicode NFKC, case-folded, trimmed, whitespace-collapsed patient evidence exactly matches only the provisionally selected profile and no extracted DOB contradicts it
 - **THEN** the service SHALL resolve the document to that profile
 
 #### Scenario: Extracted patient matches another owned profile
-- **WHEN** extraction identifies a different existing owned profile as the single confident match
+- **WHEN** normalized patient evidence exactly matches only a different existing owned profile or explicit alias and no extracted DOB contradicts it
 - **THEN** the service SHALL resolve the document to the extracted match
 - **AND** the service SHALL retain the provisional selection and match evidence for audit
 
-#### Scenario: Extracted patient is ambiguous or unmatched
-- **WHEN** no existing owned profile is a single confident match
+#### Scenario: Extracted patient is ambiguous, contradictory, or unmatched
+- **WHEN** no profile matches exactly, multiple profiles match exactly, an extracted DOB contradicts a candidate, or only fuzzy, partial, phonetic, or scored similarity exists
 - **THEN** the service SHALL mark the document as needing profile assignment
 - **AND** the service SHALL NOT publish metric observations or medical-memory facts for that document
 - **AND** the service SHALL NOT create a family profile from extracted output
@@ -134,7 +154,7 @@ The account manager SHALL be able to download, rename, and delete a completed re
 - **WHEN** the account manager confirms deletion of an owned report
 - **THEN** the service SHALL make the source file and report inaccessible immediately
 - **AND** the service SHALL prevent further extraction work
-- **AND** the service SHALL remove or invalidate derived fields, metric observations, medical-memory facts, and private stored content associated only with that report
+- **AND** the service SHALL remove or invalidate sensitive source provenance, raw extraction output, derived fields, metric observations, medical-memory facts, and private stored content associated only with that report
 
 #### Scenario: Manage another account's report
 - **WHEN** a user requests download, rename, or deletion for a report owned by another account
