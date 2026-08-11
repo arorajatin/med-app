@@ -3,10 +3,17 @@ from datetime import UTC, datetime
 from sqlalchemy.orm import Session
 
 from app import models
+from app.ai.condition_safety import (
+    is_condition_shaped_name,
+    is_temporarily_permitted_legacy_field_type,
+)
 from app.schemas import RecordReviewRequest
 from app.services.extraction import parse_iso_date
 
-MEMORY_FIELD_TYPES = {"condition", "medication", "test_result", "follow_up"}
+# Generic condition fields are intentionally excluded. The baseline extractor cannot
+# prove literal source support, so these fields must not become trusted memory even
+# if an older row is submitted for review.
+MEMORY_FIELD_TYPES = {"medication", "test_result", "follow_up"}
 TRUSTED_STATUSES = {"confirmed", "edited"}
 
 
@@ -48,13 +55,18 @@ def apply_record_review(
     _apply_record_metadata(record, db)
     _rebuild_memory_for_record(db, record=record)
 
-    pending_count = (
+    pending_fields = (
         db.query(models.ExtractedField)
         .filter(
             models.ExtractedField.record_id == record.id,
             models.ExtractedField.confirmation_status == "pending",
         )
-        .count()
+        .all()
+    )
+    pending_count = sum(
+        is_temporarily_permitted_legacy_field_type(field.field_type)
+        and not is_condition_shaped_name(field.field_type)
+        for field in pending_fields
     )
     if pending_count == 0:
         record.status = "reviewed"
@@ -112,4 +124,3 @@ def _rebuild_memory_for_record(db: Session, *, record: models.MedicalRecord) -> 
                 occurred_on=record.record_date,
             )
         )
-

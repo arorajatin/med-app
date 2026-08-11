@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app import models
+from app.ai.condition_safety import is_temporarily_permitted_legacy_memory_category
 
 
 def generate_checklist(db: Session, *, appointment: models.Appointment) -> list[models.AppointmentChecklistItem]:
@@ -10,16 +11,20 @@ def generate_checklist(db: Session, *, appointment: models.Appointment) -> list[
         .delete()
     )
 
-    facts = (
+    candidate_facts = (
         db.query(models.MemoryFact)
         .filter(
             models.MemoryFact.user_id == appointment.user_id,
             models.MemoryFact.profile_id == appointment.profile_id,
         )
         .order_by(models.MemoryFact.created_at.desc())
-        .limit(8)
         .all()
     )
+    facts = [
+        fact
+        for fact in candidate_facts
+        if is_temporarily_permitted_legacy_memory_category(fact.category)
+    ][:8]
 
     items: list[models.AppointmentChecklistItem] = []
     for fact in facts:
@@ -63,4 +68,3 @@ def _question_for_fact(fact: models.MemoryFact) -> str:
     if fact.category == "follow_up":
         return f"What follow-up is needed based on the earlier instruction: {fact.title}?"
     return f"What should I ask about {fact.title}?"
-

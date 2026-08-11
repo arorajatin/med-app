@@ -3,6 +3,11 @@ from sqlalchemy.orm import Session
 
 from app import models
 from app.ai.base import Extractor
+from app.ai.condition_safety import (
+    is_condition_shaped_name,
+    is_temporarily_permitted_legacy_field_type,
+    is_temporarily_permitted_legacy_memory_category,
+)
 from app.api.deps import get_extractor, get_storage
 from app.auth import get_current_user
 from app.config import Settings, get_settings
@@ -182,12 +187,18 @@ def get_record_extraction(
         .order_by(models.ExtractionJob.created_at.desc())
         .all()
     )
-    fields = (
+    stored_fields = (
         db.query(models.ExtractedField)
         .filter(models.ExtractedField.user_id == user.id, models.ExtractedField.record_id == record.id)
         .order_by(models.ExtractedField.created_at.asc())
         .all()
     )
+    fields = [
+        field
+        for field in stored_fields
+        if is_temporarily_permitted_legacy_field_type(field.field_type)
+        and not is_condition_shaped_name(field.field_type)
+    ]
     return ExtractionRead(record=record, jobs=jobs, fields=fields)
 
 
@@ -199,16 +210,20 @@ def review_record_extraction(
     user: CurrentUser = Depends(get_current_user),
 ) -> ExtractionRead:
     record = require_record(db, user_id=user.id, record_id=record_id)
-    field_count = (
+    review_fields = (
         db.query(models.ExtractedField)
         .filter(
             models.ExtractedField.user_id == user.id,
             models.ExtractedField.record_id == record.id,
             models.ExtractedField.id.in_([decision.field_id for decision in payload.decisions]),
         )
-        .count()
+        .all()
     )
-    if field_count != len(payload.decisions):
+    if len(review_fields) != len(payload.decisions) or any(
+        not is_temporarily_permitted_legacy_field_type(field.field_type)
+        or is_condition_shaped_name(field.field_type)
+        for field in review_fields
+    ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="One or more review fields do not belong to this record.",
@@ -270,12 +285,20 @@ def get_memory(
     user: CurrentUser = Depends(get_current_user),
 ) -> MemoryRead:
     profile = require_profile(db, user_id=user.id, profile_id=profile_id)
-    facts = (
+    stored_facts = (
         db.query(models.MemoryFact)
-        .filter(models.MemoryFact.user_id == user.id, models.MemoryFact.profile_id == profile.id)
+        .filter(
+            models.MemoryFact.user_id == user.id,
+            models.MemoryFact.profile_id == profile.id,
+        )
         .order_by(models.MemoryFact.created_at.desc())
         .all()
     )
+    facts = [
+        fact
+        for fact in stored_facts
+        if is_temporarily_permitted_legacy_memory_category(fact.category)
+    ]
     return MemoryRead(profile=profile, facts=facts)
 
 
@@ -325,7 +348,7 @@ def get_appointment_checklist(
     user: CurrentUser = Depends(get_current_user),
 ) -> list[models.AppointmentChecklistItem]:
     appointment = require_appointment(db, user_id=user.id, appointment_id=appointment_id)
-    return (
+    items = (
         db.query(models.AppointmentChecklistItem)
         .filter(
             models.AppointmentChecklistItem.user_id == user.id,
@@ -334,6 +357,20 @@ def get_appointment_checklist(
         .order_by(models.AppointmentChecklistItem.created_at.asc())
         .all()
     )
+    source_fact_ids = {item.source_fact_id for item in items if item.source_fact_id}
+    permitted_source_fact_ids = {
+        fact.id
+        for fact in db.query(models.MemoryFact)
+        .filter(models.MemoryFact.id.in_(source_fact_ids))
+        .all()
+        if is_temporarily_permitted_legacy_memory_category(fact.category)
+    }
+    return [
+        item
+        for item in items
+        if (item.is_generic and item.source_fact_id is None)
+        or item.source_fact_id in permitted_source_fact_ids
+    ]
 
 
 @router.post(
@@ -359,4 +396,3 @@ def create_appointment_review(
     db.commit()
     db.refresh(review)
     return review
-

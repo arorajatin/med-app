@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 
 from app import models
 from app.ai.base import Extractor
+from app.ai.condition_safety import enforce_condition_safety
+from app.ai.mock_provider import MockExtractor
 from app.config import Settings
 from app.storage import LocalPrivateStorage
 
@@ -56,6 +58,10 @@ def run_extraction_job(
             mime_type=record_file.mime_type,
             profile_context={"profile_id": record.profile_id},
         )
+        extraction = enforce_condition_safety(
+            extraction,
+            allow_legacy_fields=type(extractor) is MockExtractor,
+        )
 
         job.raw_output = extraction.raw_output
         job.provider = extractor.provider_name
@@ -80,9 +86,9 @@ def run_extraction_job(
         job.failure_reason = None
         job.finished_at = datetime.now(UTC)
         record.status = "extraction_ready"
-    except Exception as exc:  # noqa: BLE001
+    except Exception:  # noqa: BLE001
         job.status = "failed"
-        job.failure_reason = str(exc)
+        job.failure_reason = "extraction_failed"
         job.finished_at = datetime.now(UTC)
         record.status = "extraction_failed"
 
@@ -121,4 +127,3 @@ def parse_iso_date(value: dict | None) -> date | None:
         return date.fromisoformat(raw)
     except ValueError:
         return None
-

@@ -54,30 +54,6 @@ class MockExtractor(Extractor):
                 )
             )
 
-        if "liver" in searchable or "sgpt" in searchable or "sgot" in searchable:
-            fields.append(
-                ExtractedDatum(
-                    field_type="condition",
-                    label="Liver-related finding",
-                    value={"text": "Liver-related finding mentioned in the record"},
-                    normalized_value={"body_system": "liver"},
-                    confidence=0.67,
-                    source_reference="mock:liver_keyword",
-                )
-            )
-
-        if "kidney" in searchable or "creatinine" in searchable:
-            fields.append(
-                ExtractedDatum(
-                    field_type="condition",
-                    label="Kidney-related finding",
-                    value={"text": "Kidney-related finding mentioned in the record"},
-                    normalized_value={"body_system": "kidney"},
-                    confidence=0.67,
-                    source_reference="mock:kidney_keyword",
-                )
-            )
-
         creatinine = self._extract_number_after(text, "creatinine")
         if creatinine is not None:
             fields.append(
@@ -157,4 +133,3 @@ class MockExtractor(Extractor):
     def _extract_number_after(text: str, label: str) -> float | None:
         match = re.search(rf"{label}\D+(\d+(?:\.\d+)?)", text, re.IGNORECASE)
         return float(match.group(1)) if match else None
-
