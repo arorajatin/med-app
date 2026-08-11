@@ -1,3 +1,8 @@
+## 0. Immediate Condition-Safety Baseline
+
+- [x] 0.1 Remove association-based mock condition output; fail closed before persistence for every generic, condition-shaped, or unknown legacy extractor field; prevent legacy condition evidence from current memory, review, and appointment paths; and add keyword, filename, unsafe-provider, and legacy-read regression tests.
+- [ ] 0.2 Before enabling `documented_condition_candidate`, inventory every deployed database for legacy condition-shaped extracted fields, memory facts, and appointment evidence, then apply and verify a migration-backed quarantine or record that no such production data exists.
+
 ## 1. Reconcile Active Change Boundaries
 
 - [ ] 1.1 Implement the reconciled Supabase boundary with `ap-south-1`, stable account-and-ingestion object keys, private download, and RLS for every web-upload source, extraction, and owner-scoped table.
