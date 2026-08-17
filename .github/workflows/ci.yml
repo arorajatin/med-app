@@ -1,0 +1,162 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12.12"
+  UV_VERSION: "0.9.7"
+
+jobs:
+  backend-quality:
+    name: Backend quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - name: Verify dependency lock is current
+        run: uv lock --check
+      - name: Install frozen dependencies
+        run: uv sync --frozen --package med-app-backend --extra dev
+      - name: Ruff lint
+        run: |
+          uv run --frozen --package med-app-backend ruff check --no-cache --ignore I001 apps/api
+          cp -R apps/api "${RUNNER_TEMP}/api-lint"
+          uv run --frozen --package med-app-backend ruff check --no-cache --select I001 --fix "${RUNNER_TEMP}/api-lint"
+          git diff --no-index --exit-code --ignore-blank-lines apps/api "${RUNNER_TEMP}/api-lint"
+      - name: Ruff format
+        run: |
+          cp -R apps/api "${RUNNER_TEMP}/api-format"
+          uv run --frozen --package med-app-backend ruff format --no-cache "${RUNNER_TEMP}/api-format"
+          git diff --no-index --exit-code --ignore-blank-lines apps/api "${RUNNER_TEMP}/api-format"
+      - name: Mypy
+        run: >-
+          uv run --frozen --package med-app-backend
+          mypy --config-file apps/api/pyproject.toml apps/api/app
+      - name: Pytest with branch coverage
+        run: >-
+          uv run --frozen --package med-app-backend
+          pytest -c apps/api/pyproject.toml
+          --cov=app
+          --cov-config=apps/api/pyproject.toml
+          --cov-report=term-missing
+
+  sqlite-migrations:
+    name: SQLite migration round trip
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///${{ runner.temp }}/migration-smoke.db
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - name: Verify dependency lock is current
+        run: uv lock --check
+      - name: Install frozen dependencies
+        run: uv sync --frozen --package med-app-backend --extra dev
+      - name: Upgrade, check, and downgrade SQLite
+        run: |
+          uv run --frozen --package med-app-backend alembic -c apps/api/alembic.ini upgrade head
+          uv run --frozen --package med-app-backend alembic -c apps/api/alembic.ini check
+          uv run --frozen --package med-app-backend alembic -c apps/api/alembic.ini downgrade base
+
+  postgres-migrations:
+    name: PostgreSQL runtime and migration smoke
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: med_app_test
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d med_app_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5432/med_app_test
+      ENVIRONMENT: ci
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - name: Verify dependency lock is current
+        run: uv lock --check
+      - name: Install frozen dependencies
+        run: uv sync --frozen --package med-app-backend --extra dev
+      - name: Exercise PostgreSQL runtime and migration round trip
+        run: |
+          uv run --frozen --package med-app-backend alembic -c apps/api/alembic.ini upgrade head
+          uv run --frozen --package med-app-backend alembic -c apps/api/alembic.ini check
+          uv run --frozen --package med-app-backend python - <<'PY'
+          from fastapi.testclient import TestClient
+
+          from app.main import create_app
+          from app.worker import run_once
+
+          with TestClient(create_app()) as client:
+              response = client.get("/health")
+              response.raise_for_status()
+              if response.json() != {"status": "ok"}:
+                  raise RuntimeError("PostgreSQL API health check returned an unexpected response.")
+
+          processed_jobs = run_once()
+          if not isinstance(processed_jobs, int):
+              raise RuntimeError("PostgreSQL worker startup returned an invalid result.")
+          PY
+          uv run --frozen --package med-app-backend alembic -c apps/api/alembic.ini downgrade base
+
+  openspec:
+    name: OpenSpec strict validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "22"
+          package-manager-cache: false
+      - name: Validate all OpenSpec changes strictly
+        run: npx --yes @fission-ai/openspec@1.6.0 validate --all --strict

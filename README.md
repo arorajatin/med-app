@@ -36,8 +36,12 @@ extraction provider.
 Useful checks:
 
 ```bash
-uv run --package med-app-backend --extra dev pytest -c apps/api/pyproject.toml
-uv run --package med-app-backend alembic -c apps/api/alembic.ini check
+uv lock --check
+uv run --frozen --package med-app-backend ruff check --no-cache --ignore I001 apps/api
+uv run --frozen --package med-app-backend ruff format --no-cache --diff apps/api
+uv run --frozen --package med-app-backend mypy --config-file apps/api/pyproject.toml apps/api/app
+uv run --frozen --package med-app-backend pytest -c apps/api/pyproject.toml --cov=app --cov-config=apps/api/pyproject.toml --cov-report=term-missing
+uv run --frozen --package med-app-backend alembic -c apps/api/alembic.ini check
 uv run --package med-app-backend python -m app.worker once
 npx --yes @fission-ai/openspec@1.6.0 validate --all --strict
 ```
