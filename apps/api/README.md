@@ -33,6 +33,13 @@ uv run --package med-app-backend python -m app.worker once
 API and worker startup verify the current Alembic revision but never create or upgrade runtime
 tables. Test-only metadata bootstrapping remains guarded by `ENVIRONMENT=test`.
 
+## Fresh-schema policy
+
+Revision `20260721_0001` is the only schema revision in this release. Create an empty database and
+run `alembic upgrade head` before starting the API or worker. Databases created by prototype builds
+are outside the supported contract; provision a new database instead of importing or transforming
+prototype rows.
+
 ## Safety defaults
 
 - Uploaded files are never exposed through public URLs.
