@@ -95,11 +95,11 @@ Production persistence/private storage and production extraction use independent
 ## Migration Plan
 
 1. Provision disposable and production Supabase projects in Mumbai plus private buckets, non-bypass roles, KMS keys, and Mumbai Textract staging resources.
-2. Apply expand migrations for account ownership, web-ingestion/provenance tables, RLS policies, stable object metadata, deletion jobs, and retention indexes.
-3. Backfill existing rows with account and ingestion identifiers; copy files into stable keys and verify byte counts and checksums before switching references.
+2. Apply reviewed forward migrations for account ownership, web-ingestion/provenance tables, RLS policies, stable object metadata, deletion jobs, and retention indexes.
+3. Create every source with account and ingestion identifiers; write files to stable keys and verify byte counts and checksums before storing references.
 4. Exercise two-account request and worker access, authenticated API-mediated uploads, signed reads, forward/rollback migrations, provider staging, and deletion reconciliation in non-production.
 5. Enable the base data boundary, then extraction after its additional gates pass.
-6. Remove compatibility columns and old objects only after verification and the rollback window.
+6. Enable each capability only after its schema, isolation, storage, and deletion gates pass.
 
 Rollback disables new entry points and provider dispatch but preserves the Mumbai Supabase data boundary and continues deletion cleanup. Once production data exists in Supabase, rollback must not return to SQLite/local files, relax RLS, reuse profile-bearing keys, or restore purged content.
 

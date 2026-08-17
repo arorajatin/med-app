@@ -9,7 +9,7 @@ Baseline commit: 66e8382799534ed3acc8c0f87eae210f417a8d57
 
 - Reconciled the proposal, design, production-data-boundary delta spec, and implementation tasks with the first-release ingestion, production extraction, and durable worker plans.
 - Fixed the production boundary to Supabase `ap-south-1` (Mumbai), stable account/ingestion/part object keys, account-scoped request and worker RLS, private signed reads, authenticated API-mediated web uploads, direct-to-storage client denial, encrypted Mumbai Textract staging, bounded deletion retention, and independent feature gates.
-- Replaced the stale pending migration prerequisite with the archived `database-schema-management` capability and explicit migration/backfill verification tasks.
+- Replaced the stale pending migration prerequisite with the archived `database-schema-management` capability and explicit fresh-schema verification tasks.
 - No implementation code or infrastructure was reviewed or changed at this checkpoint.
 
 ## Resume From

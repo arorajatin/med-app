@@ -45,13 +45,14 @@ The system SHALL allow a verified registered identity to sign in and the account
 - **THEN** the current session SHALL no longer authorize protected application access
 
 ### Requirement: Complete first-run onboarding
-The system SHALL automatically create one `self` family profile and SHALL collect the account manager's name, age, weight with an entered unit, current conditions, and current medications before onboarding completes.
+The system SHALL automatically create one `self` family profile and SHALL collect the account manager's name, age, weight with an entered unit, current conditions, and current medications before onboarding completes. Age and weight SHALL use the accepted ranges, exact decimal normalization, reported-date display, and non-blocking refresh policy defined for profile health context.
 
 #### Scenario: Complete health context
 - **WHEN** a verified account supplies valid required onboarding data
 - **THEN** the system SHALL complete the `self` profile
 - **AND** weight SHALL retain the entered `lb` or `kg` unit and a normalized value
 - **AND** age and weight SHALL retain the date on which the user reported them
+- **AND** the service SHALL treat their validation and freshness states as non-diagnostic product controls
 
 #### Scenario: Resume incomplete onboarding
 - **WHEN** a verified account has not completed all required onboarding steps

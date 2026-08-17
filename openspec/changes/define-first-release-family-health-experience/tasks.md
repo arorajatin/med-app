@@ -1,7 +1,7 @@
 ## 0. Immediate Condition-Safety Baseline
 
-- [x] 0.1 Remove association-based mock condition output; fail closed before persistence for every generic, condition-shaped, or unknown legacy extractor field; prevent legacy condition evidence from current memory, review, and appointment paths; and add keyword, filename, unsafe-provider, and legacy-read regression tests.
-- [ ] 0.2 Before enabling `documented_condition_candidate`, inventory every deployed database for legacy condition-shaped extracted fields, memory facts, and appointment evidence, then apply and verify a migration-backed quarantine or record that no such production data exists.
+- [x] 0.1 Remove association-based mock condition output; fail closed before persistence for every generic, condition-shaped, or unknown extractor field; expose only permitted baseline fields to memory, review, and appointment paths; and add keyword, filename, unsafe-provider, and unsupported-field regression tests.
+- [x] 0.2 Establish revision `20260721_0001` as the sole fresh-install schema baseline; remove historical-data inventory, transformation, and historical database paths; and verify API and worker startup only at the declared current head.
 
 ## 1. Reconcile Active Change Boundaries
 
@@ -68,11 +68,11 @@
 
 ## 7. Migration and Rollout
 
-- [ ] 7.1 Backfill application accounts for existing authenticated owners and link existing profiles without inferring account-level consent from legacy per-record booleans.
-- [ ] 7.2 Backfill or classify legacy extracted test results and memory facts without silently representing them as verified observations or inferred conditions.
-- [ ] 7.3 Add expand-and-contract compatibility paths and independently controlled feature flags for staged web ingestion, observations, Feed/Drive, production extraction, and Chat.
+- [ ] 7.1 Create application accounts and profiles only through the registration and onboarding flows defined in section 2; do not add historical-data import paths.
+- [ ] 7.2 Verify a fresh database begins without extracted fields or memory facts and that all new derived data enters through the V1 observation and reviewed-memory contracts.
+- [ ] 7.3 Add independently controlled feature flags for staged web ingestion, observations, Feed/Drive, production extraction, and Chat.
 - [ ] 7.4 Verify all new ownership constraints and RLS policies against local and disposable Supabase environments with two-account direct-data tests.
-- [ ] 7.5 Exercise forward migration, compatibility reads, rollback, tombstone cleanup, and re-enable paths without losing private data or audit provenance.
+- [ ] 7.5 Exercise fresh database bootstrap, current-head startup, feature-disable rollback, tombstone cleanup, and re-enable paths without losing private data or audit provenance.
 
 ## 8. Follow-up Roadmap
 

@@ -2,6 +2,8 @@
 
 The backend now resides in `apps/api`, while the V1 user interface resides in `apps/web`. It maps an authenticated subject directly to `user_id`, requires a family profile before record creation, stores AI consent on each record, creates extraction jobs per file, and rebuilds memory by deleting and recreating report-derived facts. It has no application account/onboarding state, staged multi-part web ingestion, patient matching, metric observations, aggregate Feed, dynamic Drive, conversations, private download, or record deletion. Native clients are deferred to separate V2 changes and their future `apps/ios` and `apps/android` homes are not scaffolded in V1.
 
+Baseline commit `8a1e0bd662cc231532c5b91248819e9294c4f8cb` adds a fail-closed condition-safety boundary. The built-in mock may persist only the closed set of baseline non-condition fields; every condition-shaped or unknown field, every field from another extractor implementation, and unrestricted provider raw output are omitted before persistence. Extraction, review, memory, and appointment reads expose only that permitted baseline. This is the current safety boundary, not the source-cited `documented_condition_candidate` contract designed below.
+
 Three active changes own production Postgres/private storage/RLS, the selected production extraction pipeline, and durable queue dispatch. Their planning artifacts are reconciled with this design around Mumbai storage, stable ingestion-based object keys, immutable logical-document attempts, four trust classes, and bounded retention.
 
 ## Goals / Non-Goals
@@ -33,7 +35,9 @@ Three active changes own production Postgres/private storage/RLS, the selected p
 
 Map each verified authentication identity to one application account. Keep Google and email/password identity details in the authentication boundary and never persist passwords in application tables. The account owns profiles and every private derived resource.
 
-Create onboarding progress idempotently and enforce a unique `self` profile per account. Age and weight are reported observations with `reported_at`; weight retains its original value/unit and a normalized kilogram value. Conditions and medications typed by the manager use explicit `user_attested` provenance rather than pretending to originate in a report.
+Create onboarding progress idempotently and enforce a unique `self` profile per account. Age and weight are reported observations with `reported_at`; they are not timeless demographics or clinical assessments. Reported age is a whole number of completed years from 0 through 130 inclusive. Weight accepts a positive decimal in `kg` or `lb` only when its unrounded normalized value is from 0.5 through 500 kilograms inclusive. Retain the entered decimal and unit unchanged. Normalize pounds with the exact conversion `1 lb = 0.45359237 kg` using decimal arithmetic, without binary floating point, intermediate rounding, or independently rounded pound boundaries; presentation rounding never overwrites the stored values.
+
+Display the latest accepted age and weight with their reported dates and never silently increment age or derive either value. A reported age becomes due for a non-blocking refresh one calendar year after `reported_at`; a reported weight becomes due after six calendar months. A stale value remains visible with its reported date and a refresh prompt until replaced by a newly reported value. These deliberately broad limits and cadence are input-quality and recency controls only: the product does not label an accepted value healthy, unhealthy, plausible, or diagnostic. Conditions and medications typed by the manager use explicit `user_attested` provenance rather than pretending to originate in a report.
 
 This leaves room for multiple linked authentication identities without relying on one immutable `login_mode`. The future delegated-access change can introduce household memberships and profile grants without turning a family profile into a login identity.
 
@@ -98,6 +102,8 @@ Use stable/versioned memory facts or explicit supersession instead of destructiv
 
 Every normalized item has at least one `SourceReference` containing source part, logical page, native word or Textract block identifiers, text span, and normalized bounding polygon. Each documented-condition candidate must cite the exact source span that contains the condition itself; a medication name, measurement, abnormal flag, symptom, or generic association is not a valid condition reference. Missing, fabricated, inferred, or unresolved condition text invalidates that candidate. Successful raw native/Textract output and Bedrock response are encrypted, hidden from routine APIs, and retained until report deletion for audit; provider staging copies are deleted promptly.
 
+The baseline gate remains in force until this structured contract, resolvable source-span validation, protected raw-output storage, negative fixtures, and reviewed enablement evidence all land together. The future candidate path must replace the gate atomically with the source-validating contract; widening the baseline field allowlist is prohibited. Generic `condition`, `diagnosis`, and other condition-shaped field types remain invalid.
+
 ### Select the V1 document-processing path deterministically
 
 V1 accepts English-language, unencrypted PDF, JPEG, and PNG documents and extracts only lab reports and prescriptions. Product ceilings are 15,000,000 bytes per logical document, 20 pages or parts, 10,000,000 bytes per image, and 10,000 pixels per image dimension. A valid but unsupported medical-document family remains privately stored with `unsupported_document_type` and publishes no derived data.
@@ -158,26 +164,27 @@ Every new private table receives explicit account ownership, owner-aware foreign
 - Multi-image reports increase upload and retry complexity → finalize an ordered logical document atomically before queue dispatch.
 - External Chat retrieval can leak identifiers or import misinformation → de-identify queries, separate external from personal evidence, retain actual links, and state unsupported conclusions.
 - Hard deletion spans database, queue, storage, and citations → revoke synchronously, purge through idempotent cleanup, and retain only non-PHI tombstones.
-- Age becomes stale and weight changes → retain reported dates and treat both as observations rather than timeless demographics.
+- Age becomes stale and weight changes → retain and display reported dates, prompt after one calendar year or six calendar months respectively, and treat both as user-reported observations rather than timeless demographics or clinical classifications.
 - The change is large and overlaps active infrastructure work → land in dependency slices and update active deltas before their conflicting storage, provider, or queue tasks.
 
 ## Migration Plan
 
-1. Reconcile the three active infrastructure changes with stable ingestion keys, logical-document jobs, classified extraction output, private download, and all new RLS tables.
-2. Add account, consent, unique-`self`, profile health-context, and provenance structures using expand-only migrations.
-3. Backfill one application account for each existing authenticated owner and link existing profiles without automatically inferring account consent from legacy record booleans.
-4. Add staged ingestion and ordered parts; dual-read existing profile-bound records while new uploads use the staged path.
-5. Adapt private storage and queue dispatch to stable logical-document identity.
-6. Add account-local patient matching and block derived publication until assignment resolves.
-7. Add observations, candidate-memory classification, source-cited documented-condition review, stable facts, and retry supersession; migrate existing test-result fields without silently treating them as verified.
-8. Add Feed, Drive, report download/rename/delete, and Chat in independently feature-flagged slices.
-9. Validate `ap-south-1` placement, Bedrock ZDR, provider privacy approval, migration results, owner constraints, RLS, private storage, cleanup, held-out extraction quality, zero inferred condition output, and cross-account isolation before enabling each slice.
-10. After compatibility windows and successful backfills, remove obsolete per-record consent inputs and destructive memory-rebuild paths.
+This change targets fresh installations only. Revision `20260721_0001` is the sole schema baseline for the current release. Databases produced by prototype builds are not supported inputs, and this change adds no row inventory, data import, historical transformation, or parallel historical-data path.
 
-Rollback disables new entry points and provider dispatch, keeps new tables and prior review history intact, and returns reads to the last compatible path. It MUST NOT drop ingested documents, consent evidence, observations, conversations, or audit provenance. Any rollback after deletion begins continues cleanup so tombstoned private content does not become accessible again.
+1. Provision an empty PostgreSQL database in `ap-south-1` and apply the current Alembic head before any API or worker starts.
+2. Reconcile the three active infrastructure changes with stable ingestion keys, logical-document jobs, classified extraction output, private download, and all new RLS tables.
+3. Add account, consent, unique-`self`, profile health-context, and provenance structures through reviewed forward migrations from the sole baseline.
+4. Create accounts, profiles, consent, ingestions, and derived data only through the V1 application flows.
+5. Add staged ingestion and ordered parts as the only document-ingestion persistence path.
+6. Adapt private storage and queue dispatch to stable logical-document identity.
+7. Add account-local patient matching and block derived publication until assignment resolves.
+8. Add observations, candidate-memory classification, source-cited documented-condition review, stable facts, and retry supersession for newly ingested documents.
+9. Add Feed, Drive, report download/rename/delete, and Chat in independently feature-flagged slices.
+10. Validate `ap-south-1` placement, Bedrock ZDR, provider privacy approval, current-head startup, owner constraints, RLS, private storage, cleanup, held-out extraction quality, zero inferred condition output, and cross-account isolation before enabling each slice.
+
+Rollback disables new entry points and provider dispatch while preserving data created by the current schema. Before production launch, a disposable installation may be recreated from the sole baseline. After launch, schema corrections move forward through a reviewed revision; the service never falls back to a build whose declared Alembic head differs from the database. Any rollback after deletion begins continues cleanup so tombstoned private content does not become accessible again.
 
 ## Open Questions
 
 - Which controlled metric/body-system vocabulary should populate optional observation classifications?
 - Which conversational-model and external-retrieval adapters satisfy privacy, retention, latency, and cost constraints?
-- Which product ranges and refresh cadence apply to reported age and weight?

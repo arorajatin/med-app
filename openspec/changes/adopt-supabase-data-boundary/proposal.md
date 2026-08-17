@@ -24,7 +24,7 @@ This change does not add sharing, clinician access, public links, direct-to-stor
 
 ### Modified Capabilities
 
-None. Existing user-facing ownership and upload behavior remain compatible; the first-release change adds the new ingestion and download interfaces that use this boundary.
+None. This change preserves the documented user-facing ownership and upload behavior; the first-release change adds the new ingestion and download interfaces that use this boundary.
 
 ## Impact
 

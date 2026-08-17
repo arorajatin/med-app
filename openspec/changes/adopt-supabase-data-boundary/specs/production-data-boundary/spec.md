@@ -137,10 +137,10 @@ Production capabilities SHALL remain disabled until their migrations, region con
 - **THEN** the base boundary, Mumbai staging/queue controls, provider privacy approval, and Bedrock zero-data-retention eligibility SHALL pass
 - **AND** failure SHALL NOT fall back to mock extraction, privileged data access, cross-region inference, or another provider
 
-#### Scenario: Exercise migration compatibility
-- **WHEN** forward, compatibility, or rollback migrations run against representative private data
+#### Scenario: Exercise fresh-schema migration
+- **WHEN** an empty database is upgraded to the declared head and representative private data is created through current application flows
 - **THEN** checksums and row counts SHALL verify that source objects and protected rows are neither lost nor exposed
-- **AND** rollback SHALL preserve the Mumbai Supabase boundary, RLS, tombstones, and in-progress deletion cleanup
+- **AND** feature-disable rollback SHALL preserve the Mumbai Supabase boundary, RLS, tombstones, and in-progress deletion cleanup
 
 ### Requirement: Local adapter parity
 Local development and tests SHALL retain adapters that implement the same application-facing persistence, private-storage, authorization, stable-key, signed-access, and lifecycle contracts without claiming production residency or provider guarantees.

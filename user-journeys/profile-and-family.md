@@ -8,7 +8,7 @@ Let one account manager maintain `self` and the family profiles whose reports th
 
 1. The account manager opens Profile.
 2. The screen shows account email and image plus `self` and every owned family profile.
-3. Opening a family profile shows its relationship, reported age and weight, trusted major conditions, and current reviewed medications.
+3. Opening a family profile shows its relationship, reported age and weight with their reported dates, trusted major conditions, and current reviewed medications. It does not auto-increment reported age.
 4. The account manager can add another family member with at least a display name and relationship.
 5. Optional starting context includes age, unit-aware weight, current conditions, and current medications.
 6. Conditions and medications entered directly by the account manager become trusted user-attested memory.
@@ -24,6 +24,7 @@ The first release presents an owner-relative family list or tree. It does not mo
 ## Error and access behavior
 
 - Invalid profile health context is rejected without discarding valid saved context.
+- Reported age accepts whole completed years from 0 through 130. Reported weight accepts `kg` or `lb` only when exact decimal normalization (`1 lb = 0.45359237 kg`) produces 0.5 through 500 kilograms; display rounding never changes stored values.
 - Missing and foreign profiles behave as unavailable.
 - A profile cannot be created automatically solely because AI extracted an unfamiliar patient name.
 - The profile never infers a condition from medications, dosages, lab values, ranges, flags, symptoms, or general medical associations.
