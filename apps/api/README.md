@@ -44,5 +44,5 @@ prototype rows.
 
 - Uploaded files are never exposed through public URLs.
 - AI extraction remains untrusted until reviewed.
-- Only confirmed fields enter the current baseline medical memory.
+- Only confirmed or edited permitted fields enter the current baseline medical memory.
 - The mock provider is restricted to development and tests by the future production-boundary work.
