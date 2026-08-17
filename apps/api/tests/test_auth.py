@@ -1,5 +1,4 @@
-from fastapi import FastAPI
-from fastapi import Depends
+from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 
 from app.auth import get_current_user
@@ -37,12 +36,17 @@ def test_dev_auth_accepts_x_user_id():
 
 
 def test_production_auth_requires_bearer_token():
-    client = make_auth_client(Settings(dev_auth_enabled=False, supabase_url="https://demo.supabase.co"))
+    client = make_auth_client(
+        Settings(dev_auth_enabled=False, supabase_url="https://demo.supabase.co")
+    )
 
     response = client.get("/current-user")
 
     assert response.status_code == 401
-    assert response.json()["detail"] == "Missing Supabase access token. Send Authorization: Bearer <jwt>."
+    assert (
+        response.json()["detail"]
+        == "Missing Supabase access token. Send Authorization: Bearer <jwt>."
+    )
 
 
 def test_production_auth_requires_supabase_url():
@@ -51,4 +55,6 @@ def test_production_auth_requires_supabase_url():
     response = client.get("/current-user", headers={"Authorization": "Bearer not-a-real-jwt"})
 
     assert response.status_code == 500
-    assert response.json()["detail"] == "SUPABASE_URL must be configured when DEV_AUTH_ENABLED=false."
+    assert (
+        response.json()["detail"] == "SUPABASE_URL must be configured when DEV_AUTH_ENABLED=false."
+    )
