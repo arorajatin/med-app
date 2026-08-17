@@ -1,6 +1,8 @@
 import json
+import re
 
 import pytest
+from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 
 from app import models
@@ -12,6 +14,7 @@ from app.ai.base import (
     SourceReferenceData,
 )
 from app.api.deps import get_extractor
+from app.api.routes import router
 from app.config import get_settings
 from app.database import Base, bootstrap_test_database, configure_database, get_db, get_engine
 from app.main import create_app
@@ -725,3 +728,61 @@ def test_appointment_review_records_feedback_and_rejects_invalid_ratings(client)
         json={"stars": 9},
     )
     assert rejected.status_code == 422
+
+
+PUBLIC_ROUTES = {("GET", "/health")}
+
+
+def routed_endpoints(app) -> list[tuple[str, str]]:
+    """Every method and path the application serves, taken from its OpenAPI schema."""
+
+    endpoints = sorted(
+        (method.upper(), path)
+        for path, operations in app.openapi()["paths"].items()
+        for method in operations
+    )
+    declared = sorted(
+        (method, route.path)
+        for route in router.routes
+        if isinstance(route, APIRoute)
+        for method in route.methods - {"HEAD", "OPTIONS"}
+    )
+    # Guard against the enumeration silently going empty or missing a route that is
+    # registered but hidden from the schema, which would make the check below vacuous.
+    assert endpoints == declared
+    return endpoints
+
+
+def test_health_is_the_only_unauthenticated_endpoint(client):
+    endpoints = routed_endpoints(client.app)
+    assert PUBLIC_ROUTES <= set(endpoints)
+    assert client.get("/health").status_code == 200
+
+    unguarded = []
+    for method, path in endpoints:
+        if (method, path) in PUBLIC_ROUTES:
+            continue
+        request_path = re.sub(r"\{[^}]+\}", "placeholder-id", path)
+        status_code = client.request(method, request_path).status_code
+        if status_code != 401:
+            unguarded.append(f"{method} {path} -> {status_code}")
+
+    assert not unguarded, "Endpoints reachable without authentication: " + ", ".join(unguarded)
+
+
+def test_unauthenticated_request_creates_no_account(client):
+    """Account provisioning is a side effect of authentication, so it must not run for anonymous callers."""
+
+    assert client.get("/account").status_code == 401
+    assert client.post("/profiles", json={"display_name": "Self"}).status_code == 401
+
+    with next(get_db()) as db:
+        assert db.query(models.Account).count() == 0
+        assert db.query(models.AuthIdentity).count() == 0
+
+    # The same query must see a row once a credential is supplied, otherwise the
+    # assertions above would hold against the wrong database.
+    create_profile(client)
+    with next(get_db()) as db:
+        assert db.query(models.Account).count() == 1
+        assert db.query(models.AuthIdentity).count() == 1

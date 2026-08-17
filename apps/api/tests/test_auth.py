@@ -35,6 +35,25 @@ def test_dev_auth_accepts_x_user_id():
     assert response.json() == {"id": "user_123"}
 
 
+def test_dev_auth_rejects_missing_credentials():
+    client = make_auth_client(Settings(dev_auth_enabled=True))
+
+    response = client.get("/current-user")
+
+    assert response.status_code == 401
+    assert (
+        response.json()["detail"]
+        == "Missing local auth user. Send Authorization: Bearer <user_id>."
+    )
+
+
+def test_dev_auth_rejects_blank_credentials():
+    client = make_auth_client(Settings(dev_auth_enabled=True))
+
+    assert client.get("/current-user", headers={"X-User-Id": ""}).status_code == 401
+    assert client.get("/current-user", headers={"Authorization": "Bearer "}).status_code == 401
+
+
 def test_production_auth_requires_bearer_token():
     client = make_auth_client(
         Settings(dev_auth_enabled=False, supabase_url="https://demo.supabase.co")
