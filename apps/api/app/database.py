@@ -35,6 +35,7 @@ def configure_database(database_url: str | None = None) -> None:
 def get_engine() -> Engine:
     if _engine is None:
         configure_database()
+    assert _engine is not None
     return _engine
 
 

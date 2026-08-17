@@ -40,9 +40,7 @@ def assert_schema_matches_metadata(url: str) -> None:
     engine = create_engine(url)
     try:
         inspector = inspect(engine)
-        assert set(inspector.get_table_names()) - {"alembic_version"} == set(
-            Base.metadata.tables
-        )
+        assert set(inspector.get_table_names()) - {"alembic_version"} == set(Base.metadata.tables)
 
         for table_name, table in Base.metadata.tables.items():
             actual_columns = {
@@ -57,12 +55,8 @@ def assert_schema_matches_metadata(url: str) -> None:
                     expected_column.type.compile(dialect=engine.dialect).upper()
                 )
 
-            actual_primary_key = set(
-                inspector.get_pk_constraint(table_name)["constrained_columns"]
-            )
-            expected_primary_key = {
-                column.name for column in table.primary_key.columns
-            }
+            actual_primary_key = set(inspector.get_pk_constraint(table_name)["constrained_columns"])
+            expected_primary_key = {column.name for column in table.primary_key.columns}
             assert actual_primary_key == expected_primary_key
 
             actual_indexes = {
@@ -105,9 +99,7 @@ def test_upgrade_empty_database_to_head_matches_model_contract(tmp_path):
     assert_schema_matches_metadata(url)
 
 
-def test_production_api_and_worker_start_at_head_without_metadata_creation(
-    tmp_path, monkeypatch
-):
+def test_production_api_and_worker_start_at_head_without_metadata_creation(tmp_path, monkeypatch):
     url = database_url(tmp_path / "production.db")
     command.upgrade(migration_config(url), "head")
 
