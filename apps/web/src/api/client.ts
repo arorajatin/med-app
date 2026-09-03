@@ -1,3 +1,5 @@
+import { readOptionalEnv } from "../env";
+
 const DEFAULT_BASE_URL = "/api";
 
 /** A failed API call, carrying the status and a message safe to show a person. */
@@ -29,7 +31,7 @@ export function setAccessTokenProvider(provider: AccessTokenProvider): void {
 }
 
 export function apiBaseUrl(): string {
-  return import.meta.env.VITE_API_BASE_URL ?? DEFAULT_BASE_URL;
+  return readOptionalEnv(import.meta.env.VITE_API_BASE_URL) ?? DEFAULT_BASE_URL;
 }
 
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
