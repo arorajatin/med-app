@@ -9,7 +9,12 @@ from sqlalchemy import create_engine, inspect
 
 from app import models  # noqa: F401
 from app.config import get_settings
-from app.database import Base, bootstrap_test_database, configure_database
+from app.database import (
+    Base,
+    bootstrap_test_database,
+    configure_database,
+    normalize_database_url,
+)
 from app.main import create_app
 from app.worker import run_once
 
@@ -157,3 +162,22 @@ def test_downgrade_initial_revision_returns_database_to_base(tmp_path):
     finally:
         engine.dispose()
     assert current_revisions(url) == set()
+
+
+@pytest.mark.parametrize(
+    ("configured", "expected"),
+    [
+        ("postgresql://user:pw@host:5432/db", "postgresql+psycopg://user:pw@host:5432/db"),
+        ("postgres://user:pw@host:5432/db", "postgresql+psycopg://user:pw@host:5432/db"),
+        (
+            "postgresql+psycopg://user:pw@host:5432/db",
+            "postgresql+psycopg://user:pw@host:5432/db",
+        ),
+        ("sqlite:///./med_app.db", "sqlite:///./med_app.db"),
+    ],
+    ids=["postgresql", "postgres", "already-explicit", "sqlite"],
+)
+def test_normalize_database_url_names_the_declared_postgres_driver(configured, expected):
+    """A hosted provider's URL must reach psycopg 3 rather than an absent psycopg2."""
+
+    assert normalize_database_url(configured) == expected

@@ -23,10 +23,23 @@ _engine: Engine | None = None
 _SessionLocal: sessionmaker[Session] | None = None
 
 
+# Hosted providers hand out `postgresql://` and `postgres://` connection strings.
+# SQLAlchemy maps both to psycopg2, which this project does not depend on, so name
+# the declared psycopg 3 driver instead of failing on an uninstalled one.
+_POSTGRES_PREFIXES = ("postgresql://", "postgres://")
+
+
+def normalize_database_url(url: str) -> str:
+    for prefix in _POSTGRES_PREFIXES:
+        if url.startswith(prefix):
+            return f"postgresql+psycopg://{url.removeprefix(prefix)}"
+    return url
+
+
 def configure_database(database_url: str | None = None) -> None:
     global _engine, _SessionLocal
 
-    url = database_url or get_settings().database_url
+    url = normalize_database_url(database_url or get_settings().database_url)
     connect_args = {"check_same_thread": False} if url.startswith("sqlite") else {}
     _engine = create_engine(url, connect_args=connect_args)
     _SessionLocal = sessionmaker(bind=_engine, autoflush=False, autocommit=False)
