@@ -827,7 +827,7 @@ def routed_endpoints(app) -> list[tuple[str, str]]:
         (method, route.path)
         for route in router.routes
         if isinstance(route, APIRoute)
-        for method in route.methods - {"HEAD", "OPTIONS"}
+        for method in (route.methods or set()) - {"HEAD", "OPTIONS"}
     )
     # Guard against the enumeration silently going empty or missing a route that is
     # registered but hidden from the schema, which would make the check below vacuous.
