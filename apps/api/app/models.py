@@ -96,6 +96,14 @@ class Profile(Base):
     display_name: Mapped[str] = mapped_column(String(160), nullable=False)
     relationship: Mapped[str] = mapped_column(String(80), default="self", nullable=False)
     sex: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    # An empty condition or medication list creates no fact, so these record that the
+    # account manager answered the question rather than skipped it.
+    conditions_declared_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    medications_declared_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, onupdate=utcnow
@@ -478,6 +486,9 @@ class MemoryFact(Base):
     )
     source_reference_id: Mapped[str | None] = mapped_column(
         ForeignKey("source_references.id"), nullable=True
+    )
+    attested_by_identity_id: Mapped[str | None] = mapped_column(
+        ForeignKey("auth_identities.id"), nullable=True
     )
     provenance: Mapped[str] = mapped_column(String(40), nullable=False)
     category: Mapped[str] = mapped_column(String(80), nullable=False)

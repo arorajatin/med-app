@@ -1,7 +1,7 @@
 # Review Checkpoint
 
-Status: 2A fresh-schema mechanics implemented and locally verified; hosted CI evidence open
-Updated: 2026-09-02
+Status: 2B onboarding, consent capture, and slice feature flags implemented and locally verified; hosted CI evidence open
+Updated: 2026-09-03
 Reviewer: Codex
 Baseline commit: 8a1e0bd662cc231532c5b91248819e9294c4f8cb
 2A implementation state: Current uncommitted worktree; no reviewed implementation commit yet
@@ -17,10 +17,15 @@ Baseline commit: 8a1e0bd662cc231532c5b91248819e9294c4f8cb
 - Locked broad, non-diagnostic age/weight input and freshness policy: age 0–130 whole completed years, weight 0.5–500 normalized kilograms, exact decimal `lb × 0.45359237` conversion, reported-date display, and non-blocking refresh after one calendar year for age and six calendar months for weight.
 - Established revision `20260721_0001` as the sole fresh-install schema for this release. Removed the second revision, audit/inventory services, schema markers, operational evidence workflow, runtime historical-row paths, and their tests.
 - Reviewed the remaining 2A engineering mechanics: declared PostgreSQL driver, frozen dependency lock, Ruff, mypy, branch-coverage, SQLite/PostgreSQL fresh-schema checks, strict OpenSpec CI, and the test-client deprecation fix.
+- Implemented resumable onboarding derived from persisted rows, one reusable `self` profile, explicit empty condition and medication declarations, and user-attested trusted memory (tasks 2.4 and 2.5).
+- Added independently controlled default-off feature flags for web ingestion, extraction, observations, Feed/Drive, and Chat, and gated the shipped surfaces on them.
 
 ## Resume From
 
 - Commit the integrated 2A worktree, review that exact commit, and require hosted CI evidence, including PostgreSQL migration and API/worker startup coverage.
+- Finish task 2.3 registration, verification, sign-in, and sign-out, which onboarding now assumes but does not provide.
+- Keep task 7.3 open until Feed/Drive and Chat exist to enable and disable; their flags are declared but gate no route yet.
+- Keep task 2.7 open until the full authorization, validation, and isolation matrix covers every account-onboarding, family-profile, and access-control requirement.
 - Keep the future condition-candidate path disabled until the structured source contract and literal-span validation land behind default-off controls.
 - No operational database inventory, data review, or row transformation is required for 2A. Provision an empty database and apply the declared current head.
 
@@ -42,13 +47,16 @@ Baseline commit: 8a1e0bd662cc231532c5b91248819e9294c4f8cb
 | 2026-09-02 | `pytest -c apps/api/pyproject.toml --cov=app --cov-report=term-missing` | Pass | 47 tests passed; 89.48% branch coverage exceeded the 84% gate, including the profile-versus-patient-evidence date-of-birth boundary. |
 | 2026-09-02 | SQLite `alembic upgrade head`, `check`, and `downgrade base` | Pass | The amended `20260721_0001` baseline matched model metadata after profile date-of-birth removal and the non-null consent snapshot. |
 | 2026-09-02 | `npx --yes @fission-ai/openspec@1.6.0 validate --all --strict` | Pass | All 11 specs and changes passed. |
+| 2026-09-03 | `ruff check --ignore I001`, `ruff format --diff` on changed files, `mypy --config-file apps/api/pyproject.toml apps/api/app` | Pass | No lint findings; changed files already formatted; no type issues in 24 source files. |
+| 2026-09-03 | `pytest -c apps/api/pyproject.toml --cov=app --cov-report=term` | Pass | 75 tests passed; 93.10% branch coverage exceeded the 84% gate, including onboarding resume, attested memory, and feature-flag cases. |
+| 2026-09-03 | SQLite `alembic upgrade head` and `check` | Pass | The amended `20260721_0001` baseline matched model metadata after the profile declaration timestamps and attested-identity column. |
 | 2026-08-12 | Local live PostgreSQL smoke | Not available | Docker is stopped and no local PostgreSQL server is installed; the hosted CI job runs the fresh-schema upgrade, API/worker startup, check, and teardown. |
 
 ## Open Findings
 
 - Hosted CI has not run for the current uncommitted worktree; a reviewed commit and hosted result remain release evidence.
 - Application accounts and later V1 migrations, production infrastructure, provider contracts, privacy approvals, and later runtime quality gates remain unimplemented and untested.
-- Task 2.8 is complete, but the wider consent work in task 2.6 is not. Onboarding does not yet exist, so nothing forces an account to accept consent before it uploads; the upload route only fails closed when consent is absent. Chat dispatch is not consent-gated either.
+- Task 2.6 remains open. Onboarding now requires consent before it can complete, but an account may still upload as soon as it accepts consent without finishing the remaining steps, and Chat dispatch is not consent-gated because Chat does not exist.
 - Databases created by prototype builds are outside this release contract. If such data must be retained, that requires a separately authorized and designed import project; it is not part of 2A.
 
 ## Session History
@@ -60,3 +68,4 @@ Baseline commit: 8a1e0bd662cc231532c5b91248819e9294c4f8cb
 - 2026-09-02: Applied four product decisions across the planning artifacts. AI processing is never disabled, so consent acceptance gates onboarding and an upload without governing consent is rejected rather than stored. Profiles drop date of birth entirely and keep reported age as their only age context (new task 2.8). Document extraction may retain a source-linked date of birth, but assignment does not use it. An unmatched patient name always becomes `needs_assignment`; a provisional selection never resolves a document on its own.
 - 2026-09-02: Implemented the decisions that touch shipped code. `_receive_ingestion` now rejects an upload with HTTP 403 before storing any bytes when the account has no consent evidence, always creates the extraction job, and never auto-resolves the provisional profile, so explicit assignment is the only path to a record. Removed `Profile.date_of_birth` from the model, schemas, and the `20260721_0001` baseline while retaining `PatientEvidence.date_of_birth` in the extractor contract, persistence model, schema, and API. Made `Ingestion.consent_evidence_id` non-null. Replaced the stored-without-extraction test with a rejection test and synced the living `family-profiles` and `medical-records` specs.
 - 2026-09-02: Resolved review findings by scoping the date-of-birth restriction to profile metadata, explicitly allowing source-linked date of birth in patient evidence, and stating that V1 has neither consent revocation nor account deletion instead of presenting deletion as an available stop-processing control. Added patient-evidence retention coverage; all 47 backend tests, schema checks, static checks, and 11 strict OpenSpec validations pass.
+- 2026-09-03: Implemented the 2B onboarding slice. `GET /account/onboarding` derives progress from the rows each step leaves behind and names the first outstanding step, so status cannot drift from the data. `PUT /account/onboarding/self-profile` creates or reuses the account's one `self` profile, and `POST /profiles` now answers 409 rather than failing on the unique index. `PUT /profiles/{id}/attested-conditions` and `.../attested-medications` declare the complete current set, supersede the previous set, and record an empty declaration as an answered step through new `conditions_declared_at` and `medications_declared_at` columns. Declared entries become `user_attested` memory facts carrying the attesting identity. Memory reads now decide on provenance, not category alone: a condition the account manager typed is trusted while a document-derived condition stays blocked. Added five default-off slice flags and gated upload, assignment, extraction dispatch, the extraction job routes, and observation publication on them.

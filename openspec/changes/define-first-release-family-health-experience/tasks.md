@@ -16,8 +16,8 @@
 - [ ] 2.1 Add migration-backed application accounts, authentication-identity mapping, onboarding progress, versioned consent evidence, and a uniqueness constraint for one `self` profile per account.
 - [ ] 2.2 Add age and reported time plus original/normalized weight and unit fields with validation and migration coverage.
 - [ ] 2.3 Implement Google and email/password registration, email verification, verified sign-in, sign-out, safe retries, and idempotent account activation.
-- [ ] 2.4 Implement resumable onboarding that creates or reuses `self`, captures health context, and records explicit empty conditions or medications.
-- [ ] 2.5 Implement user-attested condition and medication provenance and immediate trusted-memory creation.
+- [x] 2.4 Implement resumable onboarding that creates or reuses `self`, captures health context, and records explicit empty conditions or medications.
+- [x] 2.5 Implement user-attested condition and medication provenance and immediate trusted-memory creation.
 - [ ] 2.6 Implement versioned account-level consent checks and snapshots for extraction and personal-memory Chat dispatch without another consent prompt for each document, condition candidate, or Chat message; require acceptance to complete onboarding, provide no AI-disabled runtime mode, and fail closed when governing consent is absent.
 - [ ] 2.7 Add authorization, validation, duplicate-activation, onboarding-resume, consent-gating, and two-account isolation tests for every requirement in account onboarding, family profiles, and access control.
 - [x] 2.8 Remove date of birth and year of birth from the profile schema, API, and every profile display; keep reported age as the profile's only age context; preserve optional source-linked date of birth in patient evidence without using it for assignment; and cover the boundary with schema and API tests.

@@ -21,7 +21,9 @@ def run_once() -> int:
             return 0
         storage = LocalPrivateStorage(settings)
         extractor = MockExtractor()
-        run_extraction_job(db, job_id=job.id, storage=storage, extractor=extractor)
+        run_extraction_job(
+            db, job_id=job.id, settings=settings, storage=storage, extractor=extractor
+        )
         return 1
     finally:
         db.close()

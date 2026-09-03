@@ -37,13 +37,16 @@ and therefore SHALL NOT be reviewable.
 - **WHEN** an edit decision omits a replacement value, or a non-edit decision supplies one
 - **THEN** the service SHALL reject the request as invalid
 
-### Requirement: Build memory only from reviewed candidates
+### Requirement: Build memory only from reviewed candidates and user-attested entries
 The service SHALL derive trusted medical memory only from confirmed or edited candidate-memory
 items, mapping `prescription_medication` to the `medication` category and
-`prescription_instruction` to the `follow_up` category. Metric observations SHALL never become
-memory facts. Memory reads SHALL return only the `medication`, `test_result`, and `follow_up`
-categories until the source-cited documented-condition contract and its explicit review boundary are
-implemented.
+`prescription_instruction` to the `follow_up` category, and from condition and medication entries the
+account manager typed directly. Metric observations SHALL never become memory facts.
+
+Memory reads SHALL decide on provenance, not category alone. For `user_attested` facts they SHALL
+return the `condition` and `medication` categories. For every other provenance they SHALL return only
+the `medication`, `test_result`, and `follow_up` categories until the source-cited
+documented-condition contract and its explicit review boundary are implemented.
 
 #### Scenario: Review is still pending
 - **WHEN** candidates have been extracted but not reviewed
@@ -55,14 +58,29 @@ implemented.
 - **AND** the fact SHALL retain its source record, source candidate, and source reference identifiers
 - **AND** an edited fact SHALL carry the submitted value while the candidate preserves the original
 
+#### Scenario: The account manager attests a fact
+- **WHEN** the account manager declares a current condition or medication for an owned profile
+- **THEN** the service SHALL create an active memory fact with `user_attested` provenance
+- **AND** the fact SHALL retain the attesting identity, the profile, and the time
+- **AND** the fact SHALL carry no source record, source candidate, or source reference
+
+#### Scenario: A declaration is repeated
+- **WHEN** the account manager declares the current conditions or medications for that profile again
+- **THEN** the declaration SHALL replace the previous set, deactivating the profile's earlier user-attested facts in that category with a supersession time
+- **AND** an empty declaration SHALL record that the account manager reported none without creating a fact
+
 #### Scenario: Measurements stay out of memory
 - **WHEN** an extraction stores metric observations for a record
 - **THEN** those measurements SHALL NOT appear in medical memory regardless of any review decision
 
-#### Scenario: Unsupported memory exists
-- **WHEN** stored memory uses a category outside medication, test result, or follow-up
+#### Scenario: A document-derived condition exists
+- **WHEN** stored memory holds a `condition` fact whose provenance is not `user_attested`
 - **THEN** memory reads SHALL omit that fact
 - **AND** review SHALL NOT recreate it from a condition-shaped candidate, because no such candidate can be persisted
+
+#### Scenario: Unsupported memory exists
+- **WHEN** stored memory uses a category outside those permitted for its provenance
+- **THEN** memory reads SHALL omit that fact
 
 #### Scenario: A prior decision changes
 - **WHEN** a later review changes or ignores a candidate that already produced a fact

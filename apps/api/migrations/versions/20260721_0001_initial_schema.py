@@ -53,6 +53,8 @@ def upgrade() -> None:
         sa.Column("display_name", sa.String(length=160), nullable=False),
         sa.Column("relationship", sa.String(length=80), nullable=False),
         sa.Column("sex", sa.String(length=40), nullable=True),
+        sa.Column("conditions_declared_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("medications_declared_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(
@@ -810,6 +812,7 @@ def upgrade() -> None:
         sa.Column("source_record_id", sa.String(), nullable=True),
         sa.Column("source_candidate_id", sa.String(), nullable=True),
         sa.Column("source_reference_id", sa.String(), nullable=True),
+        sa.Column("attested_by_identity_id", sa.String(), nullable=True),
         sa.Column("provenance", sa.String(length=40), nullable=False),
         sa.Column("category", sa.String(length=80), nullable=False),
         sa.Column("title", sa.String(length=240), nullable=False),
@@ -821,6 +824,10 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["account_id"],
             ["accounts.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["attested_by_identity_id"],
+            ["auth_identities.id"],
         ),
         sa.ForeignKeyConstraint(
             ["profile_id"],

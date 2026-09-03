@@ -18,31 +18,12 @@ from app.ai.base import (
 from app.ai.mock_provider import MockExtractor
 from app.api.deps import get_extractor
 from app.api.routes import router
-from app.config import get_settings
-from app.database import Base, bootstrap_test_database, configure_database, get_db, get_engine
-from app.main import create_app
+from app.database import get_db
 
 
 @pytest.fixture()
 def storage_root(tmp_path):
     return tmp_path / "storage"
-
-
-@pytest.fixture()
-def client(tmp_path, monkeypatch):
-    get_settings.cache_clear()
-    monkeypatch.setenv("ENVIRONMENT", "test")
-    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'test.db'}")
-    monkeypatch.setenv("LOCAL_STORAGE_ROOT", str(tmp_path / "storage"))
-    monkeypatch.setenv("DEV_AUTH_ENABLED", "true")
-    monkeypatch.setenv("EXTRACTION_RUN_INLINE", "true")
-    configure_database(f"sqlite:///{tmp_path / 'test.db'}")
-    Base.metadata.drop_all(bind=get_engine())
-    bootstrap_test_database()
-    app = create_app()
-    with TestClient(app) as test_client:
-        yield test_client
-    get_settings.cache_clear()
 
 
 def auth(user_id: str = "user_1") -> dict[str, str]:

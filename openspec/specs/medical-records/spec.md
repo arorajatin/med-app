@@ -60,6 +60,30 @@ limited to PDF, JPEG, and PNG, and camera capture SHALL accept only images.
 - **WHEN** the service returns an ingestion or its parts
 - **THEN** the response SHALL expose part metadata but SHALL NOT expose the storage bucket or object key
 
+### Requirement: Enable each release slice independently
+Web ingestion, extraction, observation publication, Feed and Drive, and Chat SHALL each be
+controlled by their own setting, every one of which SHALL default to disabled. A disabled slice SHALL
+be indistinguishable from an absent one, and disabling a slice SHALL NOT disable another.
+
+#### Scenario: Request a disabled slice
+- **WHEN** an authenticated owner requests a route belonging to a disabled slice
+- **THEN** the service SHALL return HTTP 404
+- **AND** it SHALL NOT create or change any private row or stored object
+
+#### Scenario: Authentication is still checked first
+- **WHEN** an unauthenticated request reaches a route belonging to a disabled slice
+- **THEN** the service SHALL return HTTP 401, so the response never reveals which slices are enabled
+
+#### Scenario: Ingest while extraction is disabled
+- **WHEN** an owner uploads a supported document while web ingestion is enabled and extraction is disabled
+- **THEN** the service SHALL store the logical document and complete its upload
+- **AND** it SHALL create no extraction job, leaving the ingestion's extraction state `not_requested`
+
+#### Scenario: Extract while observations are disabled
+- **WHEN** an extraction attempt succeeds while observation publication is disabled
+- **THEN** the service SHALL persist its other normalized output
+- **AND** it SHALL publish no metric observation
+
 ### Requirement: Explicit patient assignment
 An ingestion SHALL carry a provisional profile selection that does not by itself resolve the
 patient. A medical record SHALL be created only when the ingestion resolves to a profile the account

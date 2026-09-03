@@ -51,6 +51,18 @@ class ProfileRead(BaseModel):
     updated_at: datetime
 
 
+class SelfProfileUpdate(BaseModel):
+    display_name: str = Field(min_length=1, max_length=160)
+    sex: str | None = Field(default=None, max_length=40)
+
+
+class OnboardingRead(BaseModel):
+    status: str
+    next_step: str | None
+    completed_steps: list[str]
+    self_profile: ProfileRead | None
+
+
 class ProfileHealthContextCreate(BaseModel):
     reported_age: int | None = Field(default=None, ge=0, le=130)
     age_reported_at: datetime | None = None
@@ -307,6 +319,23 @@ class MemoryFactRead(BaseModel):
 
 class MemoryRead(BaseModel):
     profile: ProfileRead
+    facts: list[MemoryFactRead]
+
+
+class AttestedEntry(BaseModel):
+    title: str = Field(min_length=1, max_length=240)
+    details: dict = Field(default_factory=dict)
+
+
+class AttestedMemoryUpdate(BaseModel):
+    """The complete current set. An empty list declares that there are none."""
+
+    entries: list[AttestedEntry] = Field(default_factory=list, max_length=100)
+
+
+class AttestedMemoryRead(BaseModel):
+    category: str
+    declared_at: datetime
     facts: list[MemoryFactRead]
 
 

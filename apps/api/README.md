@@ -40,9 +40,40 @@ run `alembic upgrade head` before starting the API or worker. Databases created 
 are outside the supported contract; provision a new database instead of importing or transforming
 prototype rows.
 
+## Feature flags
+
+Each V1 slice ships behind its own setting, and every flag defaults to `false` so a deployment
+enables only the behavior it has evidence for. Copy the values from [.env.example](../../.env.example)
+for local development.
+
+| Setting | Gates |
+| --- | --- |
+| `FEATURE_WEB_INGESTION_ENABLED` | Direct-file and camera upload, and ingestion assignment |
+| `FEATURE_EXTRACTION_ENABLED` | Extraction job dispatch and the extraction job routes |
+| `FEATURE_OBSERVATIONS_ENABLED` | Publication of extracted metric observations |
+| `FEATURE_FEED_DRIVE_ENABLED` | Feed and Drive, which have no routes yet |
+| `FEATURE_CHAT_ENABLED` | Chat, which has no routes yet |
+
+A disabled slice answers `404`. Authentication still runs first, so an anonymous request is rejected
+with `401` and never learns which slices a deployment runs.
+
+## Onboarding
+
+`GET /account/onboarding` reports progress through `consent`, `self_profile`, `health_context`,
+`conditions`, and `medications`, and names the first step still outstanding so a returning account
+manager resumes where they stopped. Status is derived from the rows each step leaves behind, so it
+cannot drift from the data.
+
+`PUT /account/onboarding/self-profile` creates the account's one `self` profile or updates the
+existing one. `PUT /profiles/{id}/attested-conditions` and `PUT /profiles/{id}/attested-medications`
+declare the complete current set; an empty list records that the account manager reported none.
+Declared entries become trusted memory facts with `user_attested` provenance.
+
 ## Safety defaults
 
 - Uploaded files are never exposed through public URLs.
 - AI extraction remains untrusted until reviewed.
 - Only confirmed or edited permitted fields enter the current baseline medical memory.
+- A condition the account manager typed is trusted; a condition derived from a document is not, and
+  stays hidden until literal source validation exists.
 - The mock provider is restricted to development and tests by the future production-boundary work.
