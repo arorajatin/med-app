@@ -119,7 +119,7 @@ Every normalized item SHALL contain at least one `SourceReference` with source p
 - **THEN** normalization SHALL omit that candidate
 - **AND** other valid normalized items MAY still commit when the complete result passes all validation rules
 
-### Requirement: Separate extraction trust classes
+### Requirement: Explicit extraction trust classes
 The extraction result SHALL preserve literal evidence and SHALL NOT infer a condition, diagnosis, follow-up, or other clinical interpretation in V1. It MAY extract a `documented_condition_candidate` only when a prescription or lab report literally names the condition.
 
 #### Scenario: Extract patient evidence

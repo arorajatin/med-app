@@ -7,7 +7,7 @@ Define the user-owned profiles that separate medical history for the user and th
 ## Requirements
 
 ### Requirement: Create a family profile
-An authenticated user SHALL be able to create a profile with a display name and relationship, plus optional sex metadata. A profile SHALL NOT store or return a date of birth; reported age in profile health context is the only age information stored on the profile. This profile-metadata rule does not prohibit retaining a date of birth found in an uploaded source document as patient evidence.
+An authenticated user SHALL be able to create a profile with a display name and relationship, plus optional sex metadata.
 
 #### Scenario: Valid profile creation
 - **WHEN** an authenticated user submits a non-empty display name and relationship

@@ -26,4 +26,4 @@ None.
 
 ## Impact
 
-Affected areas include `apps/api/app/ai/`, authenticated logical-document assembly, extractor dependency selection, AWS and Bedrock configuration, secrets and IAM policy, extraction transaction boundaries, encrypted raw-result storage, fixtures, monitoring, and operating cost. This change depends on the first-release family-health change for profile assignment and publication behavior, on the queue-worker change for durable dispatch and retry execution, and on the Supabase-boundary change for Mumbai-resident application storage and RLS.
+Affected areas include `apps/api/app/ai/`, authenticated logical-document assembly, extractor dependency selection, AWS and Bedrock configuration, secrets and IAM policy, extraction transaction boundaries, encrypted raw-result storage, fixtures, monitoring, and operating cost. This change depends on the first-release family-health change for the general trust-class, profile-assignment, and publication boundaries, on the queue-worker change for durable dispatch and retry execution, and on the Supabase-boundary change for Mumbai-resident application storage and RLS.
