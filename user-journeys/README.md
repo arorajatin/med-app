@@ -18,7 +18,7 @@ These documents define the agreed first-release experience for one account manag
 - V1 accepts only authenticated web uploads, stamped as `direct_file` or `camera` by `apps/api`.
 - Web upload supports camera capture, one image or PDF, and multiple ordered images as one report.
 - Email and WhatsApp intake are post-V1 ideas that require separate OpenSpec changes before implementation.
-- AI consent is collected once for the account.
+- AI consent is collected once for the account and is required; the first release has no AI-disabled mode.
 - Deterministic report measurements are captured automatically as source-linked observations.
 - Extracted document metadata, prescription candidates, and conditions literally written in a document require review before trusted use.
 - Chat uses reviewed personal memory plus attributed external information and retains history.

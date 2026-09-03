@@ -2,61 +2,103 @@
 
 ## Purpose
 
-Define the human review boundary between untrusted extraction and the medical facts used by the product.
+Define the human review boundary between untrusted extraction candidates and the trusted medical
+facts the product uses.
 
 ## Requirements
 
-### Requirement: Review every extracted field explicitly
-The service SHALL allow an owner to confirm, edit, ignore, or mark incorrect the extracted fields of a record.
+### Requirement: Review every candidate explicitly
+The service SHALL allow an owner to confirm, edit, or ignore the document-metadata candidates and
+candidate-memory items belonging to an owned record, and SHALL keep an immutable review history for
+every decision. Condition-shaped and unsupported items are not persisted by the extraction boundary
+and therefore SHALL NOT be reviewable.
 
-#### Scenario: Confirm a field
-- **WHEN** a user confirms an extracted field belonging to the record
-- **THEN** the field SHALL be marked `confirmed` with a review timestamp
+#### Scenario: Confirm a candidate
+- **WHEN** an owner confirms a candidate belonging to the record
+- **THEN** the candidate's review status SHALL become `confirmed`
+- **AND** the service SHALL append an immutable review entry recording the reviewing identity, the action, and the review time
 
-#### Scenario: Edit a field
-- **WHEN** a user edits an extracted field and supplies a replacement value
-- **THEN** the field SHALL be marked `edited`
-- **AND** the replacement SHALL become both its stored and normalized value
+#### Scenario: Edit a candidate
+- **WHEN** an owner edits a candidate and supplies a replacement value
+- **THEN** the candidate's review status SHALL become `edited`
+- **AND** the service SHALL store the submitted value alongside the preserved original value
 
-#### Scenario: Reject a field
-- **WHEN** a user ignores a field or marks it incorrect
-- **THEN** the field SHALL retain that review outcome
+#### Scenario: Ignore a candidate
+- **WHEN** an owner ignores a candidate
+- **THEN** the candidate's review status SHALL become `ignored`
 - **AND** it SHALL NOT contribute a fact to medical memory
 
-#### Scenario: Review a foreign field
-- **WHEN** any submitted field does not belong to the owned record
+#### Scenario: Review a candidate that does not belong to the record
+- **WHEN** any submitted candidate identifier is not a candidate of the owned record
 - **THEN** the service SHALL reject the complete review request with HTTP 400
+- **AND** it SHALL NOT create or trust a condition fact
 
-### Requirement: Build memory only from trusted fields
-The service SHALL derive medical memory only from confirmed or edited condition, medication, test-result, and follow-up fields.
+#### Scenario: Submit a malformed decision
+- **WHEN** an edit decision omits a replacement value, or a non-edit decision supplies one
+- **THEN** the service SHALL reject the request as invalid
 
-#### Scenario: Extraction is still pending
-- **WHEN** fields have been extracted but not reviewed
-- **THEN** those fields SHALL NOT appear in medical memory
+### Requirement: Build memory only from reviewed candidates
+The service SHALL derive trusted medical memory only from confirmed or edited candidate-memory
+items, mapping `prescription_medication` to the `medication` category and
+`prescription_instruction` to the `follow_up` category. Metric observations SHALL never become
+memory facts. Memory reads SHALL return only the `medication`, `test_result`, and `follow_up`
+categories until the source-cited documented-condition contract and its explicit review boundary are
+implemented.
 
-#### Scenario: Trusted fields are reviewed
-- **WHEN** a condition, medication, test result, or follow-up field is confirmed or edited
-- **THEN** the service SHALL rebuild the record's memory facts from all trusted fields
-- **AND** every fact SHALL retain its source record and source field identifiers
+#### Scenario: Review is still pending
+- **WHEN** candidates have been extracted but not reviewed
+- **THEN** they SHALL NOT appear in medical memory
+
+#### Scenario: A candidate is trusted
+- **WHEN** a prescription medication or instruction candidate is confirmed or edited
+- **THEN** the service SHALL create an active memory fact with `reviewed_candidate` provenance
+- **AND** the fact SHALL retain its source record, source candidate, and source reference identifiers
+- **AND** an edited fact SHALL carry the submitted value while the candidate preserves the original
+
+#### Scenario: Measurements stay out of memory
+- **WHEN** an extraction stores metric observations for a record
+- **THEN** those measurements SHALL NOT appear in medical memory regardless of any review decision
+
+#### Scenario: Unsupported memory exists
+- **WHEN** stored memory uses a category outside medication, test result, or follow-up
+- **THEN** memory reads SHALL omit that fact
+- **AND** review SHALL NOT recreate it from a condition-shaped candidate, because no such candidate can be persisted
 
 #### Scenario: A prior decision changes
-- **WHEN** review changes which fields are trusted for a record
-- **THEN** the service SHALL replace that record's derived memory facts so stale facts do not remain
+- **WHEN** a later review changes or ignores a candidate that already produced a fact
+- **THEN** the service SHALL deactivate the prior fact with a supersession time
+- **AND** a replacement fact SHALL reference the fact it superseded so stale facts do not remain active
 
 ### Requirement: Apply trusted document metadata
-The service SHALL update record metadata only from confirmed or edited document-type and record-date fields.
+The service SHALL update record metadata only from confirmed or edited document-metadata candidates,
+and an explicit user rename SHALL always win over an extracted display name.
 
 #### Scenario: Confirm document metadata
-- **WHEN** a user confirms or edits an extracted document type or valid ISO record date
+- **WHEN** an owner confirms or edits an extracted document type or valid ISO record date
 - **THEN** the service SHALL apply that value to the record
 
+#### Scenario: Ignore document metadata
+- **WHEN** an owner ignores a document-metadata candidate
+- **THEN** the service SHALL leave the record's corresponding value untrusted and unchanged
+
+#### Scenario: The user has renamed the report
+- **WHEN** a trusted display-name candidate is applied to a record the user has already renamed
+- **THEN** the service SHALL keep the user's display name
+
 ### Requirement: Complete record review
-The service SHALL mark a record as reviewed only after none of its extracted fields remain pending.
+The service SHALL derive a record's review state from the candidate-memory items currently persisted
+for its ingestion, and SHALL treat review as complete once none of them remain pending.
+Document-metadata candidates and metric observations SHALL NOT block completion.
 
-#### Scenario: Some fields remain pending
-- **WHEN** a review request leaves one or more record fields pending
-- **THEN** the record SHALL NOT move to `reviewed`
+#### Scenario: Some candidate memory remains pending
+- **WHEN** a review request leaves one or more of the record's memory candidates pending
+- **THEN** the ingestion's review state SHALL remain `pending`
 
-#### Scenario: All fields have decisions
-- **WHEN** every extracted field for a record has a non-pending review status
-- **THEN** the record status SHALL become `reviewed`
+#### Scenario: All candidate memory has decisions
+- **WHEN** every memory candidate for the record has a non-pending review status
+- **THEN** the ingestion's review state SHALL become `reviewed`
+
+#### Scenario: A document produces no candidate memory
+- **WHEN** an extraction retains no memory candidates for an ingestion
+- **THEN** the ingestion's review state SHALL be `not_required`
+- **AND** unsupported provider output SHALL NOT prevent review completion

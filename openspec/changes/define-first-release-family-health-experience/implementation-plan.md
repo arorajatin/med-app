@@ -12,16 +12,19 @@ criteria are complete.
 2. Allow only known baseline non-condition field types through the extraction persistence boundary.
    Omit generic `condition`, `diagnosis`, `documented_condition_candidate`, and every unknown field
    type until the structured V1 contract exists.
-3. Exclude legacy generic condition fields from trusted-memory rebuilding and downstream appointment
-   evidence.
+3. Expose only permitted reviewed memory to downstream appointment evidence.
 4. Add regression cases for medication-only text, lab values/ranges/flags, symptoms, organ words,
    filenames, explicit diagnosis labels without source validation, and unknown provider field types.
-5. If production data exists, inventory and quarantine legacy condition rows and their derived memory
-   before enabling the new candidate path. Complete that backfill under task 7.2.
 
-Exit gate: no current extractor output can create or restore a trusted condition fact.
+Implementation state at baseline `8a1e0bd662cc231532c5b91248819e9294c4f8cb`: all four items are
+implemented and regression-covered. The boundary permits only the built-in mock's closed set of
+baseline non-condition fields, strips unrestricted provider raw output, rejects review of unsupported
+rows, excludes condition memory and appointment evidence, and reports provider failures with a
+generic code. It does not implement the future source-cited `documented_condition_candidate` path.
 
-This safety slice supports tasks 4.11 and 7.2 but does not complete either broad task.
+The database contract begins from an empty database at Alembic revision `20260721_0001`. Prototype
+database contents are not an input to this plan, so 2A contains no inventory, row transformation,
+second schema revision, or deployment-data gate.
 
 ## 1. Lock the V1 condition policy
 
@@ -43,18 +46,48 @@ rules, audit history, and fail-closed behavior.
 
 ## 2. Add release controls and the core data boundary
 
+### 2A. Close the safety and engineering preflight
+
+1. Establish Alembic revision `20260721_0001` as the sole schema baseline for fresh installations.
+   Remove historical-data inventory, row transformation, and historical database paths.
+2. Keep the living deployed-behavior specs reconciled with the `8a1e0bd` fail-closed gate, while the
+   active delta specs continue to describe the eventual literal source-cited contract.
+3. Lock and document the non-diagnostic profile-input policy for later implementation: reported age
+   is a whole number from 0 through 130 completed years; weight is a decimal `kg` or `lb` value whose
+   exact normalized value is 0.5 through 500 kilograms. Retain original value/unit, normalize pounds
+   with exact decimal multiplication by `0.45359237`, and never apply binary floating point or
+   intermediate rounding. Always display the reported date, never auto-increment age, and issue
+   non-blocking refresh prompts after one calendar year for age and six calendar months for weight
+   without hiding stale values or assigning a clinical label.
+4. Add and lock a supported PostgreSQL driver so PostgreSQL startup and migration checks do not rely
+   on an undeclared transitive or machine-global package.
+5. Establish CI for frozen dependency synchronization, formatting/lint, type checks, tests with the
+   agreed coverage gate, fresh-schema migration plus current-head verification and downgrade
+   rehearsal, and strict validation of every OpenSpec spec and change.
+6. Resolve the Starlette/httpx test-client deprecation and establish a green static-check baseline so
+   later slices can distinguish regressions from inherited warnings.
+
+2A exit gate: the sole fresh-install schema is explicit, no historical database paths remain, the
+ranges and cadence above are reflected in specs and journeys, PostgreSQL startup is covered, and the
+complete preflight CI suite passes from a frozen dependency state.
+
+### 2B. Add release controls and foundation schema
+
 1. Add independently controlled feature flags for web ingestion, extraction, observations,
-   Feed/Drive, and Chat (task 7.3 foundation). Keep task 7.3 open until expand-and-contract
-   compatibility paths exist across all slices.
+   Feed/Drive, and Chat (task 7.3 foundation). Keep task 7.3 open until all slices can be enabled and
+   disabled independently.
 2. Implement application accounts, authentication-identity mapping, onboarding progress, consent
    evidence, and one unique `self` profile (task 2.1).
-3. Add reported age and unit-aware weight fields with migration coverage (task 2.2).
+3. Add decimal-safe reported age and unit-aware weight fields, original and normalized values,
+   `reported_at`, freshness computation, and migration coverage for the locked 2A policy (task 2.2).
+   Reported age remains the only age context; the profile carries no date of birth and no year of
+   birth, while extracted document evidence may retain a source-linked date of birth (task 2.8).
 4. Add ingestion aggregates, ordered parts, lifecycle states, assignment evidence, consent snapshots,
    and stable object identities (task 3.1).
-5. Backfill existing owners into accounts without inventing consent (task 7.1).
+5. Create accounts and profiles only through new registration and onboarding flows (task 7.1).
 
-Exit gate: forward migration succeeds, two accounts remain isolated, and all unfinished features are
-off by default.
+Exit gate: a fresh-schema migration succeeds, two accounts remain isolated, and all unfinished
+features are off by default.
 
 ## 3. Scaffold the V1 web client and API contract
 
@@ -95,8 +128,10 @@ no AI provider is called.
    retries, and idempotent account activation (task 2.3).
 2. Implement resumable onboarding, idempotent `self` creation, health context, and explicit empty
    conditions/medications (task 2.4).
-3. Capture versioned account-level AI consent once and snapshot it on extraction work. Keep task 2.6
-   open until personal-memory Chat dispatch is also consent-gated.
+3. Capture versioned account-level AI consent once and snapshot it on extraction work. Acceptance is
+   required to finish onboarding and there is no AI-disabled mode, so an upload without governing
+   consent is rejected rather than stored. Keep task 2.6 open until personal-memory Chat dispatch is
+   also consent-gated.
 4. Add browser-camera uploads with route-stamped `camera` provenance (finish task 3.2).
 5. Add ordered multi-image logical documents (task 3.3).
 6. Finish upload cleanup and the relevant task 3.8 test matrix.
@@ -112,7 +147,7 @@ email, WhatsApp, iOS, and Android remain absent.
    native word or Textract block IDs, and normalized polygon.
 3. Define the `documented_condition_candidate` memory subtype with original literal text, pending
    status, attempt identity, and immutable source provenance.
-4. Use a deterministic fake provider first. Keep the generic legacy `condition` type prohibited.
+4. Use a deterministic fake provider first. Keep generic `condition` fields prohibited.
 5. Dispatch only upload-complete, consented logical documents as attempt-aware jobs (task 3.5).
 6. Validate the complete normalized result before inserting any derived row.
 
@@ -145,8 +180,10 @@ has an exact resolvable source span.
 
 1. Add profile-alias persistence/management, then implement Unicode NFKC/case-folded exact full-name
    and explicit-alias matching (task 1.5).
-2. Resolve only one account-local match with no contradictory DOB (task 3.6).
-3. Send unmatched, ambiguous, fuzzy-only, or contradictory results to `needs_assignment`.
+2. Resolve only one account-local name or alias match; ignore any date-of-birth evidence because the
+   profile does not store a date of birth (task 3.6).
+3. Send unmatched, ambiguous, and fuzzy-only results to `needs_assignment`. A provisional selection
+   alone never resolves a document.
 4. Add manual assignment without creating an AI-generated profile and publish eligible staged data
    after resolution (task 3.7).
 5. Publish no profile-scoped observation or candidate before assignment resolves.
@@ -173,7 +210,8 @@ profile.
    appointment, Drive, and Chat citation consumers preserve supersession correctly.
 8. Mark record review complete only when no memory candidate remains pending; observations never
    block completion (task 4.10).
-9. Quarantine or classify legacy extracted values and memory (task 7.2).
+9. Verify that all derived data created on the fresh schema enters through the V1 observation and
+   reviewed-memory contracts (task 7.2).
 
 Exit gate: pending or ignored conditions cannot reach memory, appointments, Drive, or Chat; confirmed
 or edited candidates retain full audit provenance.
@@ -243,6 +281,6 @@ records the exact release commit.
 ## Outside the V1 critical path
 
 Tasks 8.1 through 8.6 are follow-up proposals. Delegated family access, interactive metric charts,
-email, WhatsApp, iOS, Android, consent revocation, Chat actions, and account export/deletion must remain
+email, WhatsApp, iOS, Android, Chat actions, and account export/deletion must remain
 separate from the V1 implementation path. Before archiving this active change, either complete those
 proposal-only tasks or move them into separately tracked roadmap changes so V1 completion is honest.

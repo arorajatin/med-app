@@ -1,10 +1,12 @@
 from sqlalchemy.orm import Session
 
 from app import models
-from app.ai.condition_safety import is_temporarily_permitted_legacy_memory_category
+from app.ai.condition_safety import is_permitted_memory_category
 
 
-def generate_checklist(db: Session, *, appointment: models.Appointment) -> list[models.AppointmentChecklistItem]:
+def generate_checklist(
+    db: Session, *, appointment: models.Appointment
+) -> list[models.AppointmentChecklistItem]:
     (
         db.query(models.AppointmentChecklistItem)
         .filter(models.AppointmentChecklistItem.appointment_id == appointment.id)
@@ -14,23 +16,20 @@ def generate_checklist(db: Session, *, appointment: models.Appointment) -> list[
     candidate_facts = (
         db.query(models.MemoryFact)
         .filter(
-            models.MemoryFact.user_id == appointment.user_id,
+            models.MemoryFact.account_id == appointment.account_id,
             models.MemoryFact.profile_id == appointment.profile_id,
+            models.MemoryFact.is_active.is_(True),
         )
         .order_by(models.MemoryFact.created_at.desc())
         .all()
     )
-    facts = [
-        fact
-        for fact in candidate_facts
-        if is_temporarily_permitted_legacy_memory_category(fact.category)
-    ][:8]
+    facts = [fact for fact in candidate_facts if is_permitted_memory_category(fact.category)][:8]
 
     items: list[models.AppointmentChecklistItem] = []
     for fact in facts:
         question = _question_for_fact(fact)
         item = models.AppointmentChecklistItem(
-            user_id=appointment.user_id,
+            account_id=appointment.account_id,
             profile_id=appointment.profile_id,
             appointment_id=appointment.id,
             question=question,
@@ -42,7 +41,7 @@ def generate_checklist(db: Session, *, appointment: models.Appointment) -> list[
 
     if not items:
         item = models.AppointmentChecklistItem(
-            user_id=appointment.user_id,
+            account_id=appointment.account_id,
             profile_id=appointment.profile_id,
             appointment_id=appointment.id,
             question="Are there any symptoms, medicines, or test reports I should keep tracking after this visit?",

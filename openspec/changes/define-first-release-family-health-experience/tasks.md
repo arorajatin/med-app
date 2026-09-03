@@ -1,7 +1,7 @@
 ## 0. Immediate Condition-Safety Baseline
 
-- [x] 0.1 Remove association-based mock condition output; fail closed before persistence for every generic, condition-shaped, or unknown legacy extractor field; prevent legacy condition evidence from current memory, review, and appointment paths; and add keyword, filename, unsafe-provider, and legacy-read regression tests.
-- [ ] 0.2 Before enabling `documented_condition_candidate`, inventory every deployed database for legacy condition-shaped extracted fields, memory facts, and appointment evidence, then apply and verify a migration-backed quarantine or record that no such production data exists.
+- [x] 0.1 Remove association-based mock condition output; fail closed before persistence for every generic, condition-shaped, or unknown extractor field; expose only permitted baseline fields to memory, review, and appointment paths; and add keyword, filename, unsafe-provider, and unsupported-field regression tests.
+- [x] 0.2 Establish revision `20260721_0001` as the sole fresh-install schema baseline; remove historical-data inventory, transformation, and historical database paths; and verify API and worker startup only at the declared current head.
 
 ## 1. Reconcile Active Change Boundaries
 
@@ -9,7 +9,7 @@
 - [ ] 1.2 Implement the reconciled production-extraction contract with pdfplumber, Textract, Bedrock Mistral Large 3, four output classes, required source references, and zero-data-retention preflight.
 - [ ] 1.3 Implement the reconciled queue-worker contract so one claimed job targets one immutable logical document and atomic attempt, including ordered multi-image input and Textract callbacks.
 - [ ] 1.4 Enforce PDF/JPEG/PNG input, 15,000,000-byte logical-document, 20-page/part, 10,000,000-byte image, and 10,000-pixel image-dimension ceilings with stable safe failures.
-- [ ] 1.5 Implement Unicode NFKC/case-folded exact full-name or explicit-alias matching with contradictory-DOB and ambiguous-match blocking; do not add fuzzy automatic matching.
+- [ ] 1.5 Implement Unicode NFKC/case-folded exact full-name or explicit-alias matching with ambiguous-match blocking; do not match on date of birth and do not add fuzzy automatic matching.
 
 ## 2. Accounts, Onboarding, Profiles, and Consent
 
@@ -18,8 +18,9 @@
 - [ ] 2.3 Implement Google and email/password registration, email verification, verified sign-in, sign-out, safe retries, and idempotent account activation.
 - [ ] 2.4 Implement resumable onboarding that creates or reuses `self`, captures health context, and records explicit empty conditions or medications.
 - [ ] 2.5 Implement user-attested condition and medication provenance and immediate trusted-memory creation.
-- [ ] 2.6 Implement versioned account-level consent checks and snapshots for extraction and personal-memory Chat dispatch without another consent prompt for each document, condition candidate, or Chat message.
+- [ ] 2.6 Implement versioned account-level consent checks and snapshots for extraction and personal-memory Chat dispatch without another consent prompt for each document, condition candidate, or Chat message; require acceptance to complete onboarding, provide no AI-disabled runtime mode, and fail closed when governing consent is absent.
 - [ ] 2.7 Add authorization, validation, duplicate-activation, onboarding-resume, consent-gating, and two-account isolation tests for every requirement in account onboarding, family profiles, and access control.
+- [x] 2.8 Remove date of birth and year of birth from the profile schema, API, and every profile display; keep reported age as the profile's only age context; preserve optional source-linked date of birth in patient evidence without using it for assignment; and cover the boundary with schema and API tests.
 
 ## 3. Staged Logical Document Ingestion
 
@@ -28,9 +29,9 @@
 - [ ] 3.3 Implement ordered multi-image assembly that finalizes exactly one logical document atomically.
 - [ ] 3.4 Implement optional user context, immutable original filename, mutable display filename, upload completion, and safe partial-upload cleanup.
 - [ ] 3.5 Adapt extraction dispatch so only upload-complete logical documents with accepted consent create one attempt-aware job.
-- [ ] 3.6 Implement account-local patient matching in which exactly one normalized full-name or explicit-alias match with no contradictory DOB replaces the provisional selection and every other result becomes `needs_assignment`.
+- [ ] 3.6 Implement account-local patient matching in which exactly one normalized full-name or explicit-alias match replaces the provisional selection and every other result, including no match, becomes `needs_assignment`.
 - [ ] 3.7 Implement manual pending-assignment resolution without AI-created profiles and publish derived data only after assignment resolves.
-- [ ] 3.8 Add supported, multipart, partial, MIME-sniffing, encrypted, corrupt, oversized, route-controlled source-channel, client-override rejection, no-consent, exact-match, contradictory-DOB, ambiguous, manual-resolution, authorization, and retry tests for every medical-record and ingestion requirement.
+- [ ] 3.8 Add supported, multipart, partial, MIME-sniffing, encrypted, corrupt, oversized, route-controlled source-channel, client-override rejection, absent-consent rejection, exact-match, unmatched, ambiguous, manual-resolution, authorization, and retry tests for every medical-record and ingestion requirement.
 
 ## 4. Extraction, Observations, and Reviewed Memory
 
@@ -68,11 +69,11 @@
 
 ## 7. Migration and Rollout
 
-- [ ] 7.1 Backfill application accounts for existing authenticated owners and link existing profiles without inferring account-level consent from legacy per-record booleans.
-- [ ] 7.2 Backfill or classify legacy extracted test results and memory facts without silently representing them as verified observations or inferred conditions.
-- [ ] 7.3 Add expand-and-contract compatibility paths and independently controlled feature flags for staged web ingestion, observations, Feed/Drive, production extraction, and Chat.
+- [ ] 7.1 Create application accounts and profiles only through the registration and onboarding flows defined in section 2; do not add historical-data import paths.
+- [ ] 7.2 Verify a fresh database begins without extracted fields or memory facts and that all new derived data enters through the V1 observation and reviewed-memory contracts.
+- [ ] 7.3 Add independently controlled feature flags for staged web ingestion, observations, Feed/Drive, production extraction, and Chat.
 - [ ] 7.4 Verify all new ownership constraints and RLS policies against local and disposable Supabase environments with two-account direct-data tests.
-- [ ] 7.5 Exercise forward migration, compatibility reads, rollback, tombstone cleanup, and re-enable paths without losing private data or audit provenance.
+- [ ] 7.5 Exercise fresh database bootstrap, current-head startup, feature-disable rollback, tombstone cleanup, and re-enable paths without losing private data or audit provenance.
 
 ## 8. Follow-up Roadmap
 
@@ -81,7 +82,7 @@
 - [ ] 8.3 Propose post-V1 email ingestion in a separate OpenSpec change; decide provider, account/address linking, sender authorization, spoofing and replay protection, attachment grouping, provenance, consent, assignment, deletion, retention, and India-residency controls there rather than in V1.
 - [ ] 8.4 Propose post-V1 WhatsApp ingestion covering provider approval, account/phone linking, webhook authentication, sender authorization, consent, message grouping, encrypted phone provenance, idempotency, and India-residency review.
 - [ ] 8.5 Propose V2 native clients under `apps/ios` and `apps/android`, including authentication, generated API contracts, upload/camera UX, local-data security, and profile isolation; do not scaffold them in V1.
-- [ ] 8.6 Record separate follow-up changes for AI-consent revocation, Chat actions/reminders, account export/deletion, and any full family-relationship graph.
+- [ ] 8.6 Record separate follow-up changes for Chat actions/reminders, account export/deletion and post-acceptance processing controls, and any full family-relationship graph.
 
 ## 9. Verification and Review
 

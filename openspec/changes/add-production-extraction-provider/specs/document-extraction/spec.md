@@ -86,8 +86,10 @@ The adapter SHALL convert native text or Textract output into a provider-neutral
 The normalized production contract SHALL classify each supported item as `patient_evidence`, `document_metadata_candidate`, `metric_observation`, or `memory_candidate` and SHALL apply the corresponding publication boundary. A `memory_candidate` MAY use subtype `documented_condition_candidate` only when the cited prescription or lab-report text literally names the condition. The adapter SHALL NOT infer a condition or diagnosis from medication details, lab observations, symptoms, or general medical knowledge.
 
 #### Scenario: Extract patient evidence
-- **WHEN** a document contains a literal patient name and optional DOB or patient identifier
+- **WHEN** a document contains a literal patient name and may also contain a patient identifier or date of birth
 - **THEN** the adapter SHALL return source-linked `patient_evidence` for account-local assignment only
+- **AND** patient evidence MAY retain the source-linked date of birth when it is present
+- **AND** the date of birth SHALL NOT be copied to a profile or used for automatic assignment
 - **AND** the evidence SHALL remain untrusted medical data
 
 #### Scenario: Extract document metadata
@@ -128,11 +130,11 @@ The normalized production contract SHALL classify each supported item as `patien
 Automatic profile assignment SHALL use source-linked patient evidence only after extraction and SHALL match only profiles and explicit aliases owned by the same account.
 
 #### Scenario: Resolve one exact match
-- **WHEN** Unicode NFKC normalization, whitespace normalization, and case folding produce exactly one full-name or explicit-alias match and extracted DOB does not contradict that profile
+- **WHEN** Unicode NFKC normalization, whitespace normalization, and case folding produce exactly one full-name or explicit-alias match
 - **THEN** the logical document MAY resolve automatically to that owned profile
 
-#### Scenario: Evidence is ambiguous or contradictory
-- **WHEN** there is no exact match, more than one exact match, or an extracted DOB contradicts the only name match
+#### Scenario: Evidence is ambiguous or unmatched
+- **WHEN** there is no exact match or more than one exact match
 - **THEN** assignment SHALL become `needs_assignment`
 - **AND** no profile-scoped observation or memory candidate SHALL publish automatically
 

@@ -1,126 +1,229 @@
 from datetime import UTC, datetime
 
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app import models
-from app.ai.condition_safety import (
-    is_condition_shaped_name,
-    is_temporarily_permitted_legacy_field_type,
-)
-from app.schemas import RecordReviewRequest
+from app.schemas import RecordReviewRequest, ReviewCandidateDecision
+from app.services.common import recalculate_review_state
 from app.services.extraction import parse_iso_date
 
-# Generic condition fields are intentionally excluded. The baseline extractor cannot
-# prove literal source support, so these fields must not become trusted memory even
-# if an older row is submitted for review.
-MEMORY_FIELD_TYPES = {"medication", "test_result", "follow_up"}
 TRUSTED_STATUSES = {"confirmed", "edited"}
 
 
 def apply_record_review(
     db: Session,
     *,
-    user_id: str,
+    account_id: str,
+    reviewer_identity_id: str,
     record: models.MedicalRecord,
     review: RecordReviewRequest,
 ) -> models.MedicalRecord:
-    decision_by_id = {decision.field_id: decision for decision in review.decisions}
-    fields = (
-        db.query(models.ExtractedField)
-        .filter(
-            models.ExtractedField.record_id == record.id,
-            models.ExtractedField.user_id == user_id,
-            models.ExtractedField.id.in_(decision_by_id.keys()),
-        )
-        .all()
+    metadata_decisions = {
+        decision.candidate_id: decision
+        for decision in review.decisions
+        if decision.candidate_type == "metadata"
+    }
+    memory_decisions = {
+        decision.candidate_id: decision
+        for decision in review.decisions
+        if decision.candidate_type == "memory"
+    }
+    metadata = _load_metadata_candidates(
+        db, account_id=account_id, record_id=record.id, candidate_ids=set(metadata_decisions)
     )
+    memory = _load_memory_candidates(
+        db, account_id=account_id, record_id=record.id, candidate_ids=set(memory_decisions)
+    )
+    if len(metadata) != len(metadata_decisions) or len(memory) != len(memory_decisions):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="One or more review candidates do not belong to this record.",
+        )
 
-    now = datetime.now(UTC)
-    for field in fields:
-        decision = decision_by_id[field.id]
-        if decision.action == "confirm":
-            field.confirmation_status = "confirmed"
-        elif decision.action == "edit":
-            field.confirmation_status = "edited"
-            if decision.value is not None:
-                field.value = decision.value
-                field.normalized_value = decision.value
-        elif decision.action == "ignore":
-            field.confirmation_status = "ignored"
-        elif decision.action == "incorrect":
-            field.confirmation_status = "incorrect"
-        field.reviewed_at = now
+    reviewed_at = datetime.now(UTC)
+    for metadata_candidate in metadata:
+        _review_metadata_candidate(
+            db,
+            candidate=metadata_candidate,
+            decision=metadata_decisions[metadata_candidate.id],
+            reviewer_identity_id=reviewer_identity_id,
+            reviewed_at=reviewed_at,
+        )
+    for memory_candidate in memory:
+        _review_memory_candidate(
+            db,
+            candidate=memory_candidate,
+            decision=memory_decisions[memory_candidate.id],
+            reviewer_identity_id=reviewer_identity_id,
+            reviewed_at=reviewed_at,
+        )
 
     db.flush()
-    _apply_record_metadata(record, db)
-    _rebuild_memory_for_record(db, record=record)
-
-    pending_fields = (
-        db.query(models.ExtractedField)
-        .filter(
-            models.ExtractedField.record_id == record.id,
-            models.ExtractedField.confirmation_status == "pending",
-        )
-        .all()
-    )
-    pending_count = sum(
-        is_temporarily_permitted_legacy_field_type(field.field_type)
-        and not is_condition_shaped_name(field.field_type)
-        for field in pending_fields
-    )
-    if pending_count == 0:
-        record.status = "reviewed"
-
+    _apply_record_metadata(db, record=record)
+    _update_memory_review_state(db, record=record)
     db.commit()
     db.refresh(record)
     return record
 
 
-def _apply_record_metadata(record: models.MedicalRecord, db: Session) -> None:
-    trusted_fields = (
-        db.query(models.ExtractedField)
+def _load_metadata_candidates(
+    db: Session, *, account_id: str, record_id: str, candidate_ids: set[str]
+) -> list[models.DocumentMetadataCandidate]:
+    if not candidate_ids:
+        return []
+    return (
+        db.query(models.DocumentMetadataCandidate)
         .filter(
-            models.ExtractedField.record_id == record.id,
-            models.ExtractedField.confirmation_status.in_(TRUSTED_STATUSES),
+            models.DocumentMetadataCandidate.account_id == account_id,
+            models.DocumentMetadataCandidate.record_id == record_id,
+            models.DocumentMetadataCandidate.id.in_(candidate_ids),
         )
         .all()
     )
-    for field in trusted_fields:
-        value = field.normalized_value or field.value
-        if field.field_type == "document_type":
-            record.record_type = value.get("text")
-        elif field.field_type == "record_date":
-            record.record_date = parse_iso_date(value)
 
 
-def _rebuild_memory_for_record(db: Session, *, record: models.MedicalRecord) -> None:
-    (
+def _load_memory_candidates(
+    db: Session, *, account_id: str, record_id: str, candidate_ids: set[str]
+) -> list[models.MemoryCandidate]:
+    if not candidate_ids:
+        return []
+    return (
+        db.query(models.MemoryCandidate)
+        .filter(
+            models.MemoryCandidate.account_id == account_id,
+            models.MemoryCandidate.record_id == record_id,
+            models.MemoryCandidate.id.in_(candidate_ids),
+        )
+        .all()
+    )
+
+
+def _review_metadata_candidate(
+    db: Session,
+    *,
+    candidate: models.DocumentMetadataCandidate,
+    decision: ReviewCandidateDecision,
+    reviewer_identity_id: str,
+    reviewed_at: datetime,
+) -> None:
+    candidate.review_status = _review_status(decision)
+    candidate.submitted_value = decision.value if decision.action == "edit" else None
+    db.add(
+        models.DocumentMetadataReview(
+            account_id=candidate.account_id,
+            candidate_id=candidate.id,
+            reviewer_identity_id=reviewer_identity_id,
+            action=decision.action,
+            submitted_value=decision.value,
+            reviewed_at=reviewed_at,
+        )
+    )
+
+
+def _review_memory_candidate(
+    db: Session,
+    *,
+    candidate: models.MemoryCandidate,
+    decision: ReviewCandidateDecision,
+    reviewer_identity_id: str,
+    reviewed_at: datetime,
+) -> None:
+    candidate.review_status = _review_status(decision)
+    candidate.submitted_value = decision.value if decision.action == "edit" else None
+    db.add(
+        models.MemoryCandidateReview(
+            account_id=candidate.account_id,
+            candidate_id=candidate.id,
+            reviewer_identity_id=reviewer_identity_id,
+            action=decision.action,
+            submitted_value=decision.value,
+            reviewed_at=reviewed_at,
+        )
+    )
+
+    prior_facts = (
         db.query(models.MemoryFact)
-        .filter(models.MemoryFact.source_record_id == record.id, models.MemoryFact.user_id == record.user_id)
-        .delete()
-    )
-
-    trusted_fields = (
-        db.query(models.ExtractedField)
         .filter(
-            models.ExtractedField.record_id == record.id,
-            models.ExtractedField.field_type.in_(MEMORY_FIELD_TYPES),
-            models.ExtractedField.confirmation_status.in_(TRUSTED_STATUSES),
+            models.MemoryFact.source_candidate_id == candidate.id,
+            models.MemoryFact.is_active.is_(True),
         )
         .all()
     )
-    for field in trusted_fields:
-        details = field.normalized_value or field.value
-        db.add(
-            models.MemoryFact(
-                user_id=record.user_id,
-                profile_id=record.profile_id,
-                source_record_id=record.id,
-                source_field_id=field.id,
-                category=field.field_type,
-                title=field.label,
-                details=details,
-                body_system=details.get("body_system"),
-                occurred_on=record.record_date,
-            )
+    if decision.action == "ignore":
+        for fact in prior_facts:
+            fact.is_active = False
+            fact.superseded_at = reviewed_at
+        return
+
+    category = _memory_category(candidate.subtype)
+    if category is None or candidate.profile_id is None or candidate.record_id is None:
+        return
+    value = decision.value if decision.action == "edit" else candidate.original_value
+    source_reference = (
+        db.query(models.SourceReference)
+        .filter(models.SourceReference.memory_candidate_id == candidate.id)
+        .order_by(models.SourceReference.id.asc())
+        .first()
+    )
+    new_fact = models.MemoryFact(
+        account_id=candidate.account_id,
+        profile_id=candidate.profile_id,
+        source_record_id=candidate.record_id,
+        source_candidate_id=candidate.id,
+        source_reference_id=source_reference.id if source_reference else None,
+        provenance="reviewed_candidate",
+        category=category,
+        title=candidate.label,
+        details=value,
+    )
+    db.add(new_fact)
+    db.flush()
+    for fact in prior_facts:
+        fact.is_active = False
+        fact.superseded_by_id = new_fact.id
+        fact.superseded_at = reviewed_at
+
+
+def _review_status(decision: ReviewCandidateDecision) -> str:
+    return {"confirm": "confirmed", "edit": "edited", "ignore": "ignored"}[decision.action]
+
+
+def _memory_category(subtype: str) -> str | None:
+    if subtype == "prescription_medication":
+        return "medication"
+    if subtype == "prescription_instruction":
+        return "follow_up"
+    if subtype == "documented_condition_candidate":
+        return "condition"
+    return None
+
+
+def _apply_record_metadata(db: Session, *, record: models.MedicalRecord) -> None:
+    ingestion = db.query(models.Ingestion).filter(models.Ingestion.id == record.ingestion_id).one()
+    trusted = (
+        db.query(models.DocumentMetadataCandidate)
+        .filter(
+            models.DocumentMetadataCandidate.record_id == record.id,
+            models.DocumentMetadataCandidate.review_status.in_(TRUSTED_STATUSES),
         )
+        .all()
+    )
+    for candidate in trusted:
+        value = candidate.submitted_value or candidate.original_value
+        if candidate.metadata_type == "document_type":
+            record.record_type = value.get("text")
+        elif candidate.metadata_type == "record_date":
+            record.record_date = parse_iso_date(value)
+        elif candidate.metadata_type == "issuer":
+            record.issuer_name = value.get("text")
+        elif candidate.metadata_type == "display_filename" and not ingestion.user_renamed:
+            display_filename = value.get("text")
+            if isinstance(display_filename, str) and display_filename:
+                record.display_filename = display_filename
+                ingestion.display_filename = display_filename
+
+
+def _update_memory_review_state(db: Session, *, record: models.MedicalRecord) -> None:
+    ingestion = db.query(models.Ingestion).filter(models.Ingestion.id == record.ingestion_id).one()
+    recalculate_review_state(db, ingestion=ingestion)

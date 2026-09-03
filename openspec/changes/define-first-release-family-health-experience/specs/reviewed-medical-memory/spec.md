@@ -109,4 +109,4 @@ The service SHALL mark the memory-review portion of a record complete only after
 ### Requirement: Review every extracted field explicitly
 **Reason**: Extraction now separates automatic deterministic observations from semantic candidate-memory items, so requiring one review rule for every field would conflate metric tracking with trusted medical memory.
 
-**Migration**: Existing extracted fields SHALL be classified as deterministic observations or candidate-memory items. Existing review decisions SHALL be retained, and only candidate-memory items SHALL continue through the explicit memory-review workflow.
+**Migration**: Fresh installations store new observations and candidate-memory items in their separate contracts; no historical field conversion is part of this release.

@@ -8,14 +8,14 @@ The current user-journey drafts describe the application's tabs and a partial up
 - Keep the first release single-manager: one authenticated account owns and manages every family profile. Record delegated family-member login and self-upload as a roadmap follow-up.
 - Expand document intake through the authenticated web app to camera capture, a single image or PDF, and a multi-image document, with immutable `direct_file` or `camera` provenance.
 - Deliver the V1 client from `apps/web` against the backend in `apps/api`; reserve unscaffolded `apps/ios` and `apps/android` homes for separate V2 native-client changes.
-- Require Upload and Chat to begin with a selected family profile while allowing exactly matched extracted patient evidence to select a different existing profile. Ambiguous, contradictory, or unmatched identity remains pending and cannot update metrics or memory.
+- Require Upload and Chat to begin with a selected family profile while allowing exactly matched extracted patient evidence to select a different existing profile. Ambiguous or unmatched identity remains pending and cannot update metrics or memory.
 - Separate deterministic lab measurements from medical memory. Measurements are stored automatically as untrusted, source-linked observations. Literal prescription medication and instruction candidates require explicit review. A lab report or prescription may also produce a `documented_condition_candidate` only when the submitted document literally states the condition and the extraction cites that exact text and location. V1 never deduces a condition from a medication, measurement, reference range, symptom, or general medical association. A documented condition becomes trusted memory only after the account manager confirms or edits it.
 - Add a two-mode aggregate Feed ordered by upload date or report date and include only documents whose upload completed.
 - Add person-scoped dynamic Drive organization by month or condition, with date-sorted reports and rename support.
 - Add provider-neutral, profile-scoped Chat grounded in reviewed memory, with conversation history and external-source links when outside information is used.
 - Add authenticated download, display-name rename, and cascading deletion for owned reports and their derived data.
 - Add complete user-journey documents for the first-release app shell and each primary flow.
-- **BREAKING** Replace per-record AI-processing consent selection with an account-level consent captured during onboarding and snapshotted on each ingestion.
+- **BREAKING** Replace per-record AI-processing consent selection with an account-level consent captured during onboarding and snapshotted on each ingestion. Accepting it is required to complete onboarding; the first release has no mode that runs with AI processing disabled.
 
 Explicit non-goals for this change:
 

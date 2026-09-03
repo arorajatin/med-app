@@ -1,7 +1,7 @@
 ## 1. Persistence and Regional Infrastructure
 
 - [ ] 1.1 Add immutable authenticated `direct_file`/`camera` logical-document manifest/version, governing account-level consent snapshot, and ordered source-part persistence, plus extraction job generation, numbered attempt, persisted internal phase, claim token/lease, provider callback, active-result, safe-failure, transactional outbox, and cleanup/tombstone state.
-- [ ] 1.2 Add a migration that backfills each existing one-file record as a one-part manifest without dispatching duplicate work, and enforce uniqueness for outbox events, continuation events, successful attempt results, and the active job generation.
+- [ ] 1.2 Add fresh-schema manifest, generation, attempt, and outbox persistence, and enforce uniqueness for outbox events, continuation events, successful attempt results, and the active job generation.
 - [ ] 1.3 Provision customer-KMS-encrypted extraction and Textract-callback SQS Standard queues with four-day retention, 14-day dead-letter queues, an SNS callback topic, Mumbai staging/output buckets with a 24-hour lifecycle, restricted service roles, and aggregate CloudWatch dashboards/alerts, all in `ap-south-1`.
 - [ ] 1.4 Add startup validation that fails production closed for any non-Mumbai queue, topic, worker, bucket, key, log group, database, replica/failover target, inline/fake dispatcher, mock provider, or invalid ZDR/provider configuration.
 

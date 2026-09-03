@@ -51,7 +51,6 @@ Each future change must decide the user journey, account and source authorizatio
 
 ## Other deferred journeys
 
-- AI-consent revocation and downstream processing policy
 - Chat-created actions, reminders, or appointments
 - Account export, retention controls, and account deletion
 - A full relationship graph among family members

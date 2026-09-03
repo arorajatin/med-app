@@ -123,8 +123,10 @@ Every normalized item SHALL contain at least one `SourceReference` with source p
 The extraction result SHALL preserve literal evidence and SHALL NOT infer a condition, diagnosis, follow-up, or other clinical interpretation in V1. It MAY extract a `documented_condition_candidate` only when a prescription or lab report literally names the condition.
 
 #### Scenario: Extract patient evidence
-- **WHEN** a document contains a literal patient name and optional DOB or patient identifier
+- **WHEN** a document contains a literal patient name and may also contain a patient identifier or date of birth
 - **THEN** extraction SHALL return it as source-linked `patient_evidence` for account-local matching only
+- **AND** patient evidence MAY retain the source-linked date of birth when it is present
+- **AND** the date of birth SHALL NOT be copied to a profile or used for automatic assignment
 
 #### Scenario: Extract document metadata
 - **WHEN** a document contains a literal report date, issuer, document type, or evidence for a display name
@@ -185,11 +187,11 @@ The account manager SHALL be able to confirm, edit, or ignore each owned `docume
 Patient matching SHALL compare source-linked patient evidence only with normalized full names and explicit aliases of profiles owned by the ingestion account.
 
 #### Scenario: Exactly one profile matches
-- **WHEN** Unicode NFKC, case-folded, trimmed, whitespace-collapsed patient name exactly equals one owned profile name or explicit alias and no extracted DOB contradicts it
+- **WHEN** Unicode NFKC, case-folded, trimmed, whitespace-collapsed patient name exactly equals one owned profile name or explicit alias
 - **THEN** that profile SHALL be the automatic assignment result
 
 #### Scenario: Matching is unsafe
-- **WHEN** zero or multiple profiles match exactly, an extracted DOB contradicts the candidate, or only fuzzy, phonetic, partial, or scored similarity exists
+- **WHEN** zero or multiple profiles match exactly, or only fuzzy, phonetic, partial, or scored similarity exists
 - **THEN** automatic matching SHALL return unresolved
 - **AND** the document SHALL become `needs_assignment`
 
