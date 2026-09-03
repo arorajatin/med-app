@@ -1,6 +1,6 @@
 # Review Checkpoint
 
-Status: 2B onboarding, consent capture, and slice feature flags implemented and locally verified; hosted CI evidence open
+Status: 2B onboarding and the web onboarding client implemented and locally verified; hosted CI evidence open
 Updated: 2026-09-03
 Reviewer: Codex
 Baseline commit: 8a1e0bd662cc231532c5b91248819e9294c4f8cb
@@ -19,6 +19,8 @@ Baseline commit: 8a1e0bd662cc231532c5b91248819e9294c4f8cb
 - Reviewed the remaining 2A engineering mechanics: declared PostgreSQL driver, frozen dependency lock, Ruff, mypy, branch-coverage, SQLite/PostgreSQL fresh-schema checks, strict OpenSpec CI, and the test-client deprecation fix.
 - Implemented resumable onboarding derived from persisted rows, one reusable `self` profile, explicit empty condition and medication declarations, and user-attested trusted memory (tasks 2.4 and 2.5).
 - Added independently controlled default-off feature flags for web ingestion, extraction, observations, Feed/Drive, and Chat, and gated the shipped surfaces on them.
+- Selected React, TypeScript, and Vite for `apps/web`, scaffolded the client, and added a CI job that type checks, lints, tests, and builds it from a locked dependency set.
+- Implemented the sign-up and onboarding journey in the client, driven by `GET /account/onboarding` so the resume point comes from the service rather than a client-side counter, and recorded the remaining web work as tasks 10.5 through 10.15.
 
 ## Resume From
 
@@ -26,6 +28,8 @@ Baseline commit: 8a1e0bd662cc231532c5b91248819e9294c4f8cb
 - Finish task 2.3 registration, verification, sign-in, and sign-out, which onboarding now assumes but does not provide.
 - Keep task 7.3 open until Feed/Drive and Chat exist to enable and disable; their flags are declared but gate no route yet.
 - Keep task 2.7 open until the full authorization, validation, and isolation matrix covers every account-onboarding, family-profile, and access-control requirement.
+- Publish the backend OpenAPI document and generate or validate the typed client under `contracts/` (task 10.6). Until then `apps/web/src/api/types.ts` mirrors `apps/api/app/schemas.py` by hand and can drift silently.
+- Add a profile health-context read endpoint (task 10.7). The client cannot show a previously recorded age and weight on a resumed session because no endpoint returns them.
 - Keep the future condition-candidate path disabled until the structured source contract and literal-span validation land behind default-off controls.
 - No operational database inventory, data review, or row transformation is required for 2A. Provision an empty database and apply the declared current head.
 
@@ -50,6 +54,8 @@ Baseline commit: 8a1e0bd662cc231532c5b91248819e9294c4f8cb
 | 2026-09-03 | `ruff check --ignore I001`, `ruff format --diff` on changed files, `mypy --config-file apps/api/pyproject.toml apps/api/app` | Pass | No lint findings; changed files already formatted; no type issues in 24 source files. |
 | 2026-09-03 | `pytest -c apps/api/pyproject.toml --cov=app --cov-report=term` | Pass | 75 tests passed; 93.10% branch coverage exceeded the 84% gate, including onboarding resume, attested memory, and feature-flag cases. |
 | 2026-09-03 | SQLite `alembic upgrade head` and `check` | Pass | The amended `20260721_0001` baseline matched model metadata after the profile declaration timestamps and attested-identity column. |
+| 2026-09-03 | `npm run typecheck`, `npm run lint`, `npm run test`, `npm run build` in `apps/web` | Pass | No type or lint findings; 34 tests across 6 files passed; the production build succeeded. |
+| 2026-09-03 | Live onboarding journey against a local API on a fresh SQLite database | Pass | Consent, self profile, age and weight, an attested condition, and an explicit empty medication declaration drove onboarding from `not_started` to `completed`, and the attested condition read back with `user_attested` provenance. |
 | 2026-08-12 | Local live PostgreSQL smoke | Not available | Docker is stopped and no local PostgreSQL server is installed; the hosted CI job runs the fresh-schema upgrade, API/worker startup, check, and teardown. |
 
 ## Open Findings
@@ -57,6 +63,8 @@ Baseline commit: 8a1e0bd662cc231532c5b91248819e9294c4f8cb
 - Hosted CI has not run for the current uncommitted worktree; a reviewed commit and hosted result remain release evidence.
 - Application accounts and later V1 migrations, production infrastructure, provider contracts, privacy approvals, and later runtime quality gates remain unimplemented and untested.
 - Task 2.6 remains open. Onboarding now requires consent before it can complete, but an account may still upload as soon as it accepts consent without finishing the remaining steps, and Chat dispatch is not consent-gated because Chat does not exist.
+- The web client's sign-in screen accepts a bearer token directly because task 2.3 has no registration, verification, or sign-in endpoints yet. This is a development affordance, not the V1 journey, and task 10.5 tracks replacing it.
+- The client's weight range check uses binary floating point, while the service uses exact decimal arithmetic. The service remains the authority, so a value at the exact boundary may be reported differently by the two; the client's job is only to catch obvious mistakes early.
 - Databases created by prototype builds are outside this release contract. If such data must be retained, that requires a separately authorized and designed import project; it is not part of 2A.
 
 ## Session History
@@ -69,3 +77,4 @@ Baseline commit: 8a1e0bd662cc231532c5b91248819e9294c4f8cb
 - 2026-09-02: Implemented the decisions that touch shipped code. `_receive_ingestion` now rejects an upload with HTTP 403 before storing any bytes when the account has no consent evidence, always creates the extraction job, and never auto-resolves the provisional profile, so explicit assignment is the only path to a record. Removed `Profile.date_of_birth` from the model, schemas, and the `20260721_0001` baseline while retaining `PatientEvidence.date_of_birth` in the extractor contract, persistence model, schema, and API. Made `Ingestion.consent_evidence_id` non-null. Replaced the stored-without-extraction test with a rejection test and synced the living `family-profiles` and `medical-records` specs.
 - 2026-09-02: Resolved review findings by scoping the date-of-birth restriction to profile metadata, explicitly allowing source-linked date of birth in patient evidence, and stating that V1 has neither consent revocation nor account deletion instead of presenting deletion as an available stop-processing control. Added patient-evidence retention coverage; all 47 backend tests, schema checks, static checks, and 11 strict OpenSpec validations pass.
 - 2026-09-03: Implemented the 2B onboarding slice. `GET /account/onboarding` derives progress from the rows each step leaves behind and names the first outstanding step, so status cannot drift from the data. `PUT /account/onboarding/self-profile` creates or reuses the account's one `self` profile, and `POST /profiles` now answers 409 rather than failing on the unique index. `PUT /profiles/{id}/attested-conditions` and `.../attested-medications` declare the complete current set, supersede the previous set, and record an empty declaration as an answered step through new `conditions_declared_at` and `medications_declared_at` columns. Declared entries become `user_attested` memory facts carrying the attesting identity. Memory reads now decide on provenance, not category alone: a condition the account manager typed is trusted while a document-derived condition stays blocked. Added five default-off slice flags and gated upload, assignment, extraction dispatch, the extraction job routes, and observation publication on them.
+- 2026-09-03: Selected React, TypeScript, and Vite and built the web onboarding journey against the new endpoints. The wizard opens at `next_step` and re-reads onboarding state after each step, so a reload or a corrected earlier answer resumes from the service's own view. Client validation mirrors the age, weight, and declaration rules while the service stays authoritative and its `detail` message is shown on rejection. Verified the request shapes against a live API on a fresh database, not only against mocked responses. Added a `web-quality` CI job and recorded the remaining client work, including the generated-client drift check and the missing health-context read endpoint, as tasks 10.5 through 10.15.

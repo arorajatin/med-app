@@ -90,3 +90,21 @@
 - [ ] 9.2 Run the complete unit, API, migration, worker, web-upload-contract, provider-contract, private-storage, RLS, and end-to-end journey test suites and record results in `review.md`.
 - [x] 9.3 Run strict change and all-change OpenSpec validation after reconciliation and resolve every validation finding.
 - [ ] 9.4 Complete final privacy, AI-trust, consent, deletion, cross-profile isolation, and rollback review; this task SHALL remain incomplete until `review.md` contains the reviewed commit, scope, test results, resolved or accepted findings, and final resume or completion state.
+
+## 10. V1 Web Client
+
+- [x] 10.1 Scaffold `apps/web` on a selected framework with type checking, linting, unit tests, a production build, and a CI job that runs all four from a locked dependency set.
+- [x] 10.2 Implement the resumable onboarding journey: consent acceptance, the one `self` profile, age and weight with the entered unit, and explicit condition and medication declarations including an explicit empty answer, driven by `GET /account/onboarding` rather than a client-side step counter.
+- [x] 10.3 Mirror the backend's age, weight, and declaration validation rules in the client so a person sees a problem before a round trip, while the service remains the authority and its rejection message is shown.
+- [x] 10.4 Establish and end a session, restore it on reload, and sign out and clear it when the API rejects the credential.
+- [ ] 10.5 Replace registration, verification, and sign-in with the real flows once task 2.3 lands; the current screen accepts a bearer token directly because no registration endpoint exists.
+- [ ] 10.6 Publish the backend OpenAPI document, generate or validate a typed client under `contracts/`, and add a drift check so the hand-mirrored types in `src/api/types.ts` cannot silently diverge.
+- [ ] 10.7 Add a profile health-context read endpoint and show the latest recorded age and weight with their reported dates on a resumed session, including the non-blocking refresh prompt.
+- [ ] 10.8 Implement family-profile creation and browsing screens.
+- [ ] 10.9 Implement every upload mode and its error states, including direct file, camera capture, ordered multi-image documents, and the size, type, and consent rejections.
+- [ ] 10.10 Implement Feed, pending-assignment resolution, and processing state.
+- [ ] 10.11 Implement the review screens with exact source display, including document metadata, prescription candidates, and documented-condition `confirm`, `edit`, or `ignore`.
+- [ ] 10.12 Implement observation retrieval and correction, Drive projections, and report rename, download, and delete.
+- [ ] 10.13 Implement Chat with retained history, personal and external citation attribution, and profile selection.
+- [ ] 10.14 Add web end-to-end tests that run against a live backend, covering the onboarding journey, upload, review, and two-account isolation.
+- [ ] 10.15 Complete an accessibility pass covering keyboard operation, focus management, form labelling, and error announcement across every screen.
