@@ -2,7 +2,7 @@
 
 ## Goal
 
-Create the sole account-manager identity, establish `self`, capture starting health context, and record one account-level AI-processing decision.
+Create the sole account-manager identity, establish `self`, capture starting health context, and record the required account-level AI-processing acceptance.
 
 ## Sign-up
 
@@ -26,7 +26,7 @@ Create the sole account-manager identity, establish `self`, capture starting hea
 4. Weight follows the validation, normalization, and storage rules in the [Profile and Family Management Journey](profile-and-family.md#error-and-access-behavior).
 5. Age and weight are always shown with their reported dates.
 6. Conditions and medications entered directly by the account manager become trusted user-attested memory immediately.
-7. The system presents one account-level AI-processing consent choice covering document extraction and reviewed-memory Chat.
+7. The system presents the account-level AI-processing terms covering document extraction and reviewed-memory Chat. Acceptance is required, because every first-release capability depends on AI processing.
 8. The accepted consent scope, policy version, and time are retained.
 9. Completed onboarding lands in Feed.
 
@@ -34,10 +34,9 @@ Create the sole account-manager identity, establish `self`, capture starting hea
 
 - Retrying or resuming onboarding reuses the existing `self` profile.
 - Fractional or out-of-range age and weight that violates the shared profile rules keep the person on the relevant step with a correction message. These are broad input-quality limits, not clinical judgements.
-- If AI processing is not accepted, private profiles and stored documents remain available, but extraction and personal-memory Chat provider calls remain disabled.
-- AI-consent revocation after acceptance is not part of the first release.
+- Declining the AI-processing terms leaves onboarding incomplete; the first release has no mode that runs with AI processing disabled.
+- AI-consent revocation and account deletion are not part of the first release. V1 provides no post-acceptance stop-processing control.
 
 ## First-release boundary
 
 Only the account manager authenticates. `self` and other family profiles are medical contexts, not additional login identities.
-

@@ -37,7 +37,6 @@ class ConsentRead(BaseModel):
 class ProfileCreate(BaseModel):
     display_name: str = Field(min_length=1, max_length=160)
     relationship: str = Field(default="self", min_length=1, max_length=80)
-    date_of_birth: date | None = None
     sex: str | None = Field(default=None, max_length=40)
 
 
@@ -47,7 +46,6 @@ class ProfileRead(BaseModel):
     id: str
     display_name: str
     relationship: str
-    date_of_birth: date | None
     sex: str | None
     created_at: datetime
     updated_at: datetime

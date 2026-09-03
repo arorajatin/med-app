@@ -9,8 +9,9 @@ assignment, and private file storage for medical records.
 
 ### Requirement: Account-level AI-processing consent
 The service SHALL record versioned consent evidence for an account and SHALL snapshot the accepted
-consent on each ingestion. A document SHALL be sent for extraction only when the account has
-accepted consent, and the service SHALL NOT prompt for consent again for each document.
+consent on every ingestion. Accepted consent SHALL be a precondition for uploading, because every
+capability depends on AI processing, and the service SHALL NOT prompt for consent again for each
+document.
 
 #### Scenario: Accept consent
 - **WHEN** an account manager submits a policy version and accepted scope
@@ -23,8 +24,8 @@ accepted consent, and the service SHALL NOT prompt for consent again for each do
 
 #### Scenario: Ingest without accepted consent
 - **WHEN** a document is uploaded and the account has no accepted consent
-- **THEN** the service SHALL store the document without creating an extraction job
-- **AND** the ingestion's extraction state SHALL remain `not_requested`
+- **THEN** the service SHALL reject the upload with HTTP 403
+- **AND** the service SHALL NOT store the ingestion, its parts, or any file content
 
 ### Requirement: Staged logical document ingestion
 The service SHALL accept a logical document as one to twenty ordered immutable source parts through

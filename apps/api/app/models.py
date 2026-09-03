@@ -95,7 +95,6 @@ class Profile(Base):
     account_id: Mapped[str] = mapped_column(ForeignKey("accounts.id"), index=True, nullable=False)
     display_name: Mapped[str] = mapped_column(String(160), nullable=False)
     relationship: Mapped[str] = mapped_column(String(80), default="self", nullable=False)
-    date_of_birth: Mapped[date | None] = mapped_column(Date, nullable=True)
     sex: Mapped[str | None] = mapped_column(String(40), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(
@@ -154,8 +153,8 @@ class Ingestion(Base):
     resolved_profile_id: Mapped[str | None] = mapped_column(
         ForeignKey("profiles.id"), index=True, nullable=True
     )
-    consent_evidence_id: Mapped[str | None] = mapped_column(
-        ForeignKey("consent_evidence.id"), index=True, nullable=True
+    consent_evidence_id: Mapped[str] = mapped_column(
+        ForeignKey("consent_evidence.id"), index=True, nullable=False
     )
     resolved_by_identity_id: Mapped[str | None] = mapped_column(
         ForeignKey("auth_identities.id"), nullable=True

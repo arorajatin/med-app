@@ -80,6 +80,8 @@ complete preflight CI suite passes from a frozen dependency state.
    evidence, and one unique `self` profile (task 2.1).
 3. Add decimal-safe reported age and unit-aware weight fields, original and normalized values,
    `reported_at`, freshness computation, and migration coverage for the locked 2A policy (task 2.2).
+   Reported age remains the only age context; the profile carries no date of birth and no year of
+   birth, while extracted document evidence may retain a source-linked date of birth (task 2.8).
 4. Add ingestion aggregates, ordered parts, lifecycle states, assignment evidence, consent snapshots,
    and stable object identities (task 3.1).
 5. Create accounts and profiles only through new registration and onboarding flows (task 7.1).
@@ -126,8 +128,10 @@ no AI provider is called.
    retries, and idempotent account activation (task 2.3).
 2. Implement resumable onboarding, idempotent `self` creation, health context, and explicit empty
    conditions/medications (task 2.4).
-3. Capture versioned account-level AI consent once and snapshot it on extraction work. Keep task 2.6
-   open until personal-memory Chat dispatch is also consent-gated.
+3. Capture versioned account-level AI consent once and snapshot it on extraction work. Acceptance is
+   required to finish onboarding and there is no AI-disabled mode, so an upload without governing
+   consent is rejected rather than stored. Keep task 2.6 open until personal-memory Chat dispatch is
+   also consent-gated.
 4. Add browser-camera uploads with route-stamped `camera` provenance (finish task 3.2).
 5. Add ordered multi-image logical documents (task 3.3).
 6. Finish upload cleanup and the relevant task 3.8 test matrix.
@@ -176,8 +180,10 @@ has an exact resolvable source span.
 
 1. Add profile-alias persistence/management, then implement Unicode NFKC/case-folded exact full-name
    and explicit-alias matching (task 1.5).
-2. Resolve only one account-local match with no contradictory DOB (task 3.6).
-3. Send unmatched, ambiguous, fuzzy-only, or contradictory results to `needs_assignment`.
+2. Resolve only one account-local name or alias match; ignore any date-of-birth evidence because the
+   profile does not store a date of birth (task 3.6).
+3. Send unmatched, ambiguous, and fuzzy-only results to `needs_assignment`. A provisional selection
+   alone never resolves a document.
 4. Add manual assignment without creating an AI-generated profile and publish eligible staged data
    after resolution (task 3.7).
 5. Publish no profile-scoped observation or candidate before assignment resolves.
@@ -275,6 +281,6 @@ records the exact release commit.
 ## Outside the V1 critical path
 
 Tasks 8.1 through 8.6 are follow-up proposals. Delegated family access, interactive metric charts,
-email, WhatsApp, iOS, Android, consent revocation, Chat actions, and account export/deletion must remain
+email, WhatsApp, iOS, Android, Chat actions, and account export/deletion must remain
 separate from the V1 implementation path. Before archiving this active change, either complete those
 proposal-only tasks or move them into separately tracked roadmap changes so V1 completion is honest.

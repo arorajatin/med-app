@@ -545,16 +545,18 @@ async def _receive_ingestion(
         )
 
     context = _account_context(db, user=user, settings=settings)
-    profile = None
     if provisional_profile_id is not None:
-        profile = require_profile(
-            db, account_id=context.account.id, profile_id=provisional_profile_id
-        )
+        require_profile(db, account_id=context.account.id, profile_id=provisional_profile_id)
     consent = latest_consent(db, account_id=context.account.id)
+    if consent is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This account has not accepted AI processing, which every feature requires.",
+        )
     ingestion = models.Ingestion(
         account_id=context.account.id,
         provisional_profile_id=provisional_profile_id,
-        consent_evidence_id=consent.id if consent else None,
+        consent_evidence_id=consent.id,
         source_channel=source_channel,
         display_filename=display_filename,
         user_context=user_context,
@@ -609,23 +611,9 @@ async def _receive_ingestion(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=str(exc)
         ) from exc
 
-    record = None
-    job = None
-    if consent is None:
-        if profile is not None:
-            record = resolve_ingestion_assignment(
-                db,
-                ingestion=ingestion,
-                profile=profile,
-                resolver_identity_id=context.identity.id,
-            )
-        else:
-            ingestion.assignment_state = "needs_assignment"
-            db.commit()
-    else:
-        job = create_extraction_job(db, settings=settings, ingestion=ingestion)
-        if settings.extraction_run_inline:
-            job = run_extraction_job(db, job_id=job.id, storage=storage, extractor=extractor)
+    job = create_extraction_job(db, settings=settings, ingestion=ingestion)
+    if settings.extraction_run_inline:
+        job = run_extraction_job(db, job_id=job.id, storage=storage, extractor=extractor)
 
     for part in parts:
         db.refresh(part)
@@ -634,7 +622,7 @@ async def _receive_ingestion(
         {
             "ingestion": ingestion,
             "parts": parts,
-            "record": record,
+            "record": None,
             "extraction_job": job,
         }
     )

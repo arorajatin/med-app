@@ -36,17 +36,17 @@ The service SHALL accept unencrypted PDF, JPEG, and PNG source parts submitted t
 - **AND** the ingestion SHALL NOT become upload complete
 
 ### Requirement: Explicit AI-processing consent
-The service SHALL create an extraction job for an uploaded file only when the owning account has accepted the current AI-processing consent, and SHALL snapshot the accepted consent version on the ingestion without asking again for each document.
+The service SHALL create an extraction job for every upload-complete logical document under the owning account's accepted AI-processing consent, and SHALL snapshot the accepted consent version on the ingestion without asking again for each document. Accepted consent SHALL be a precondition for uploading, and the service SHALL fail closed rather than retain a document that has no governing consent.
 
 #### Scenario: Upload under accepted account consent
 - **WHEN** a file upload completes for an account with accepted AI-processing consent
 - **THEN** the service SHALL record the governing consent version on the ingestion
 - **AND** the service SHALL create an extraction job for that file or logical multi-image document
 
-#### Scenario: Upload without accepted account consent
-- **WHEN** a file upload completes for an account without accepted AI-processing consent
-- **THEN** the service SHALL store the file privately without creating an extraction job
-- **AND** a direct upload SHALL resolve to the account manager's preselected owned profile
+#### Scenario: Upload from an account without accepted consent
+- **WHEN** an upload is attempted for an account that has not accepted AI-processing consent
+- **THEN** the service SHALL reject the upload with HTTP 403
+- **AND** the service SHALL NOT retain any part of that upload
 
 #### Scenario: Upload another document under existing consent
 - **WHEN** an account with accepted consent uploads another document
@@ -116,19 +116,19 @@ Every V1 ingestion source SHALL use `direct_file` or `camera` as stamped by its 
 - **AND** it SHALL NOT expose credentials, authorization details, or internal storage keys
 
 ### Requirement: Resolve the document's family profile safely
-The service SHALL treat the profile selected in Upload as provisional and SHALL automatically select an existing owned profile only when source-linked patient evidence exactly matches one normalized full name or explicit alias and no extracted DOB contradicts it.
+The service SHALL treat the profile selected in Upload as provisional and SHALL automatically select an existing owned profile only when source-linked patient evidence exactly matches one normalized full name or explicit alias. Patient evidence MAY carry a source-linked date of birth from the document, but assignment SHALL ignore it because profiles do not store date of birth. The provisional selection alone SHALL NOT resolve a document.
 
 #### Scenario: Extracted patient matches the selected profile
-- **WHEN** Unicode NFKC, case-folded, trimmed, whitespace-collapsed patient evidence exactly matches only the provisionally selected profile and no extracted DOB contradicts it
+- **WHEN** Unicode NFKC, case-folded, trimmed, whitespace-collapsed patient evidence exactly matches only the provisionally selected profile
 - **THEN** the service SHALL resolve the document to that profile
 
 #### Scenario: Extracted patient matches another owned profile
-- **WHEN** normalized patient evidence exactly matches only a different existing owned profile or explicit alias and no extracted DOB contradicts it
+- **WHEN** normalized patient evidence exactly matches only a different existing owned profile or explicit alias
 - **THEN** the service SHALL resolve the document to the extracted match
 - **AND** the service SHALL retain the provisional selection and match evidence for audit
 
-#### Scenario: Extracted patient is ambiguous, contradictory, or unmatched
-- **WHEN** no profile matches exactly, multiple profiles match exactly, an extracted DOB contradicts a candidate, or only fuzzy, partial, phonetic, or scored similarity exists
+#### Scenario: Extracted patient is ambiguous or unmatched
+- **WHEN** no profile matches exactly, multiple profiles match exactly, or only fuzzy, partial, phonetic, or scored similarity exists
 - **THEN** the service SHALL mark the document as needing profile assignment
 - **AND** the service SHALL NOT publish metric observations or medical-memory facts for that document
 - **AND** the service SHALL NOT create a family profile from extracted output

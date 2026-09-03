@@ -24,6 +24,7 @@ The first release presents an owner-relative family list or tree. It does not mo
 ## Error and access behavior
 
 - Invalid profile health context is rejected without discarding valid saved context.
+- A profile never asks for, stores, or displays a date of birth. Reported age is the only age context.
 - Reported age accepts whole completed years from 0 through 130. Reported weight accepts `kg` or `lb` only when exact decimal normalization (`1 lb = 0.45359237 kg`) produces 0.5 through 500 kilograms; display rounding never changes stored values.
 - Missing and foreign profiles behave as unavailable.
 - A profile cannot be created automatically solely because AI extracted an unfamiliar patient name.

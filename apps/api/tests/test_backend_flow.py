@@ -1,5 +1,6 @@
 import json
 import re
+from datetime import date
 
 import pytest
 from fastapi.routing import APIRoute
@@ -11,8 +12,10 @@ from app.ai.base import (
     DocumentMetadataDatum,
     Extractor,
     MemoryCandidateDatum,
+    PatientEvidenceDatum,
     SourceReferenceData,
 )
+from app.ai.mock_provider import MockExtractor
 from app.api.deps import get_extractor
 from app.api.routes import router
 from app.config import get_settings
@@ -53,7 +56,9 @@ def create_profile(client: TestClient, *, user: str = "user_1", name: str = "Sel
         json={"display_name": name, "relationship": "self"},
     )
     assert response.status_code == 201
-    return response.json()
+    profile = response.json()
+    assert "date_of_birth" not in profile
+    return profile
 
 
 def accept_consent(client: TestClient, *, user: str = "user_1") -> dict:
@@ -121,6 +126,8 @@ def ingest_and_assign(client: TestClient, *, content: bytes, profile_id: str) ->
 
 
 def test_upload_extract_review_and_memory_flow_does_not_infer_a_condition(client):
+    """The full review flow stores supported facts without inferring a medical condition."""
+
     profile = create_profile(client)
     accept_consent(client)
 
@@ -176,6 +183,8 @@ def test_upload_extract_review_and_memory_flow_does_not_infer_a_condition(client
 
 
 def test_metric_observations_never_become_memory_facts(client):
+    """Extracted measurements remain observations and never become trusted memory facts."""
+
     profile = create_profile(client)
     accept_consent(client)
 
@@ -194,7 +203,51 @@ def test_metric_observations_never_become_memory_facts(client):
     assert memory["facts"] == []
 
 
+def test_extracted_date_of_birth_is_retained_as_patient_evidence(client, monkeypatch):
+    """An extracted birth date is kept as patient evidence but not exposed on the profile."""
+
+    def extract_document(self, **kwargs):
+        del self, kwargs
+        reference = SourceReferenceData(
+            part_ordinal=0,
+            logical_page=1,
+            text_span="Date of birth: 1980-05-04",
+            bounding_polygon=[[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]],
+        )
+        return DocumentExtraction(
+            document_type="lab_report",
+            raw_output={},
+            processing_method="native_text",
+            routing_reason="test_patient_evidence",
+            patient_evidence=[
+                PatientEvidenceDatum(
+                    extracted_name="Self",
+                    normalized_name="self",
+                    confidence=0.99,
+                    source_references=[reference],
+                    date_of_birth=date(1980, 5, 4),
+                )
+            ],
+        )
+
+    monkeypatch.setattr(MockExtractor, "extract_document", extract_document)
+    profile = create_profile(client)
+    accept_consent(client)
+
+    record, extraction = ingest_and_assign(
+        client,
+        content=b"Lab report for Self. Date of birth: 1980-05-04",
+        profile_id=profile["id"],
+    )
+
+    assert record["profile_id"] == profile["id"]
+    assert extraction["patient_evidence"][0]["date_of_birth"] == "1980-05-04"
+    assert "date_of_birth" not in profile
+
+
 def test_retry_does_not_duplicate_candidates_or_active_observations(client):
+    """Retrying extraction replaces pending results without creating active duplicates."""
+
     profile = create_profile(client)
     accept_consent(client)
 
@@ -258,6 +311,8 @@ def test_retry_does_not_duplicate_candidates_or_active_observations(client):
 
 
 def test_retry_preserves_reviewed_decisions(client):
+    """Retrying extraction keeps confirmed candidates and their existing memory facts."""
+
     profile = create_profile(client)
     accept_consent(client)
 
@@ -304,6 +359,8 @@ def test_retry_preserves_reviewed_decisions(client):
 
 
 def test_user_cannot_access_another_users_profile(client):
+    """A user cannot read a profile owned by another account."""
+
     profile = create_profile(client, user="owner", name="Owner")
 
     response = client.get(f"/profiles/{profile['id']}", headers=auth("other"))
@@ -311,6 +368,8 @@ def test_user_cannot_access_another_users_profile(client):
 
 
 def test_appointment_checklist_uses_confirmed_memory(client):
+    """Appointment checklists use confirmed memory facts to create relevant questions."""
+
     profile = create_profile(client)
     accept_consent(client)
 
@@ -344,6 +403,8 @@ def test_appointment_checklist_uses_confirmed_memory(client):
 
 
 def test_untrusted_condition_memory_is_hidden_from_reads_and_appointments(client):
+    """Untrusted condition facts stay hidden from memory and appointment checklists."""
+
     profile = create_profile(client)
     account = client.get("/account", headers=auth()).json()
 
@@ -417,6 +478,8 @@ def test_untrusted_condition_memory_is_hidden_from_reads_and_appointments(client
 
 
 def test_unsafe_provider_condition_output_never_reaches_persistence(client, storage_root):
+    """Unsafe condition output from an extractor is filtered before it can be persisted."""
+
     class UnsafeExtractor(Extractor):
         # A provider name alone must not grant access to the temporary mock-only path.
         provider_name = "mock"
@@ -531,6 +594,8 @@ def test_unsafe_provider_condition_output_never_reaches_persistence(client, stor
 
 
 def test_provider_exception_text_is_not_persisted_or_returned(client):
+    """Sensitive provider exception text is neither stored nor returned to the caller."""
+
     class RaisingExtractor(Extractor):
         provider_name = "unsafe-test"
 
@@ -572,6 +637,8 @@ def test_provider_exception_text_is_not_persisted_or_returned(client):
 
 
 def test_hidden_unsupported_condition_does_not_block_review_completion(client):
+    """A filtered unsupported condition does not prevent valid candidates from being reviewed."""
+
     profile = create_profile(client)
     accept_consent(client)
 
@@ -612,6 +679,8 @@ def test_hidden_unsupported_condition_does_not_block_review_completion(client):
 
 
 def test_ignored_candidate_leaves_no_trusted_memory(client):
+    """Ignoring a previously confirmed candidate removes its active trusted memory fact."""
+
     profile = create_profile(client)
     accept_consent(client)
 
@@ -658,27 +727,38 @@ def test_ignored_candidate_leaves_no_trusted_memory(client):
     assert memory["facts"] == []
 
 
-def test_upload_without_consent_is_stored_without_extraction(client):
+def test_upload_without_accepted_consent_is_rejected(client, storage_root):
+    """Uploading without consent is rejected before database or file storage is changed."""
+
     profile = create_profile(client)
 
-    upload = upload_document(
-        client,
-        content=b"Lab report 2026-06-01 creatinine 1.2",
-        profile_id=profile["id"],
+    response = client.post(
+        "/ingestions/direct-file",
+        headers=auth(),
+        files={
+            "uploads": (
+                "report.pdf",
+                b"Lab report 2026-06-01 creatinine 1.2",
+                "application/pdf",
+            )
+        },
+        data={"provisional_profile_id": profile["id"]},
     )
 
-    assert upload["extraction_job"] is None
-    assert upload["ingestion"]["extraction_state"] == "not_requested"
-    assert upload["ingestion"]["assignment_state"] == "resolved"
-    assert upload["record"] is not None
+    assert response.status_code == 403
 
-    extraction = client.get(f"/records/{upload['record']['id']}/extraction", headers=auth()).json()
-    assert extraction["jobs"] == []
-    assert extraction["observations"] == []
-    assert extraction["memory_candidates"] == []
+    db = next(get_db())
+    try:
+        assert db.query(models.Ingestion).count() == 0
+        assert db.query(models.IngestionPart).count() == 0
+    finally:
+        db.close()
+    assert list(storage_root.rglob("*")) == []
 
 
 def test_another_account_cannot_read_an_owned_ingestion(client):
+    """Another account cannot read records, extraction results, or jobs for an ingestion."""
+
     profile = create_profile(client)
     accept_consent(client)
     upload = upload_document(
@@ -704,6 +784,8 @@ def test_another_account_cannot_read_an_owned_ingestion(client):
 
 
 def test_appointment_review_records_feedback_and_rejects_invalid_ratings(client):
+    """Appointment reviews save valid feedback and reject ratings outside the allowed range."""
+
     profile = create_profile(client)
     appointment = client.post(
         "/appointments",
@@ -754,6 +836,8 @@ def routed_endpoints(app) -> list[tuple[str, str]]:
 
 
 def test_health_is_the_only_unauthenticated_endpoint(client):
+    """The health check is public while every other API endpoint requires authentication."""
+
     endpoints = routed_endpoints(client.app)
     assert PUBLIC_ROUTES <= set(endpoints)
     assert client.get("/health").status_code == 200

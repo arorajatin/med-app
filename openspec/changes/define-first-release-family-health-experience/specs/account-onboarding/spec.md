@@ -60,7 +60,7 @@ The system SHALL automatically create one `self` family profile and SHALL collec
 - **AND** the account SHALL NOT create an additional `self` profile
 
 ### Requirement: Capture account-level AI-processing consent
-The system SHALL present one explicit account-level AI-processing consent choice during onboarding, describing document extraction and use of reviewed personal memory in Chat, and SHALL retain the accepted scope, policy version, and timestamp for the account.
+The system SHALL present the account-level AI-processing terms during onboarding, describing document extraction and use of reviewed personal memory in Chat, and SHALL retain the accepted scope, policy version, and timestamp for the account. Acceptance SHALL be required to complete onboarding, and the first release SHALL NOT provide a mode in which an account operates with AI processing disabled.
 
 #### Scenario: Accept account-level consent
 - **WHEN** the account manager accepts the presented AI-processing terms
@@ -68,9 +68,9 @@ The system SHALL present one explicit account-level AI-processing consent choice
 
 #### Scenario: Do not accept account-level consent
 - **WHEN** the account manager does not accept the presented AI-processing terms
-- **THEN** the account and private profiles MAY remain available
-- **AND** document ingestion SHALL NOT dispatch AI extraction
-- **AND** Chat SHALL NOT send personal medical memory to an AI provider
+- **THEN** onboarding SHALL remain incomplete
+- **AND** the system SHALL NOT admit the account to Upload, Feed, Drive, or Chat
+- **AND** the system SHALL NOT dispatch AI extraction or send personal medical memory to an AI provider
 
 ### Requirement: One manager owns the first-release family space
 The first release SHALL allow only the authenticated account manager to create and manage profiles and reports in that account's family space.

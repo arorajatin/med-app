@@ -21,17 +21,17 @@ Capture one medical report through the authenticated V1 web app, store it privat
 9. The service privately stores every validated source part, and the web app displays upload progress using safe report metadata.
 10. The report becomes upload complete only after every part is durable.
 11. The completed upload becomes eligible for Feed.
-12. If account-level AI consent is accepted, one logical-document extraction begins in the background without another consent prompt.
+12. One logical-document extraction begins in the background under the account-level AI consent accepted during onboarding, without another consent prompt.
 
 Direct-to-storage client uploads are prohibited; authenticated API-mediated web uploads are the supported V1 upload path. Email, inbound aliases, external connectors, and other non-web ingestion paths are outside V1.
 
 ## Patient detection and assignment
 
-1. Extraction identifies patient-name evidence from the report or prescription.
+1. Extraction identifies patient-name evidence from the report or prescription and may retain a source-linked date of birth when the document contains one. The date of birth is not copied to a profile or used for matching.
 2. Matching considers only profiles and aliases owned by the account.
-3. Exactly one normalized full-name or explicit-alias match with no contradictory DOB becomes the report's selected profile, even when it differs from the provisional selection.
+3. Exactly one normalized full-name or explicit-alias match becomes the report's selected profile, even when it differs from the provisional selection.
 4. The app shows when extracted patient evidence changed the assignment.
-5. When zero or multiple profiles match exactly, DOB contradicts the match, or only partial/fuzzy similarity exists, the report becomes `Needs assignment`.
+5. When zero or multiple profiles match exactly, or only partial/fuzzy similarity exists, the report becomes `Needs assignment`. The provisional selection alone never resolves the report.
 6. The account manager resolves the item to an existing profile.
 7. The system never creates a family profile solely from extracted output.
 8. Metrics and candidate memory do not publish until assignment resolves.

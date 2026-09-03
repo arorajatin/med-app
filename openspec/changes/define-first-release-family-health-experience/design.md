@@ -41,11 +41,15 @@ Display the latest accepted age and weight with their reported dates and never s
 
 This leaves room for multiple linked authentication identities without relying on one immutable `login_mode`. The future delegated-access change can introduce household memberships and profile grants without turning a family profile into a login identity.
 
+### Identify a profile without a date of birth
+
+A family profile carries no date of birth and no year of birth. Reported age with its `reported_at` date is the only age context stored on the profile. That is enough for profile display and for understanding the person's health information, and it keeps a directly identifying date out of profile metadata. Uploaded source documents and source-linked patient evidence may still retain a date of birth. Patient matching uses names and explicit aliases only.
+
 ### Store versioned account consent and snapshot it on AI work
 
 Store consent evidence with account, actor, accepted scope, policy version, and timestamp. The presented scope covers document extraction and sending reviewed personal memory to Chat. Every ingestion and conversation provider request references the governing consent evidence without presenting another consent prompt.
 
-The absence of accepted consent prevents provider dispatch but does not prevent private file storage. Web uploads without extraction resolve to their user-selected profile. Revocation behavior is deliberately deferred, while the schema remains capable of adding a later revocation timestamp and policy.
+Acceptance is a precondition for completing onboarding, so every account that can upload carries governing consent evidence and the product has no AI-disabled mode. The service still fails closed: an ingestion attempt without governing consent is rejected rather than stored unprocessed. Revocation behavior is deliberately deferred, while the schema remains capable of adding a later revocation timestamp and policy.
 
 ### Stage ingestion before creating a profile-bound report
 
@@ -70,11 +74,11 @@ Use stable account plus ingestion/record object keys, not provisional profile ID
 
 ### Treat direct-upload selection as provisional patient context
 
-Extraction emits literal patient-name evidence with optional DOB or patient identifier, confidence, and a required source reference. Matching runs only against profiles and explicit aliases owned by the same account:
+Extraction emits literal patient-name evidence with an optional patient identifier, optional date of birth when present in the document, confidence, and a required source reference. The extracted date of birth remains document evidence; it is not copied to a profile and is not an assignment input. Matching runs only against profiles and explicit aliases owned by the same account:
 
 - Normalize candidate and stored names with Unicode NFKC, case-folding, trimming, and whitespace collapse without dropping name tokens.
-- One exact full-name or explicit-alias match resolves only when exactly one owned profile matches and no extracted DOB contradicts that profile, even if it differs from the direct-upload selection.
-- No exact match, more than one exact match, or contradictory DOB becomes `needs_assignment`.
+- One exact full-name or explicit-alias match resolves only when exactly one owned profile matches, even if it differs from the direct-upload selection.
+- No exact match or more than one exact match becomes `needs_assignment`. The provisional selection alone never resolves a document.
 - The system never queries other accounts or creates a family profile solely from extracted output.
 
 Retain the provisional selection, extracted value, confidence, match version, resolved profile, and resolver for audit. Publish observations and candidate memory only after assignment resolves. Future correction or reassignment must move every profile-scoped derived row transactionally and rebuild active projections.
@@ -157,7 +161,7 @@ Every new private table receives explicit account ownership, owner-aware foreign
 
 ## Risks / Trade-offs
 
-- Incorrect patient matching could place medical data under the wrong person → require exactly one normalized full-name or explicit-alias match inside the account with no contradictory DOB, retain evidence, block publication otherwise, and support audited correction.
+- Incorrect patient matching could place medical data under the wrong person → require exactly one normalized full-name or explicit-alias match inside the account, retain evidence, block publication otherwise, and support audited correction.
 - OCR-derived numeric values can still be wrong → label observations unreviewed, retain page/source evidence, allow correction/exclusion, and exclude them from memory and Chat.
 - OCR or model output could invent or misread a documented condition → require the condition words themselves in a resolvable source span, label the item as extracted from the document, require explicit confirmation or edit, and forbid medication-to-condition or lab-value-to-condition deductions.
 - Account-level consent could be interpreted more broadly over time → version the scope and snapshot it on every provider-bound operation.

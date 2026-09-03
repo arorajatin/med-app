@@ -70,7 +70,7 @@ Every normalized item has one or more `SourceReference` values containing the so
 
 The normalized contract contains exactly these V1 classes:
 
-1. `patient_evidence`: literal patient name and optional DOB or patient identifier, used only by account-local assignment.
+1. `patient_evidence`: literal patient name, optional patient identifier, and optional source-linked date of birth, used by account-local assignment only for the name or alias match. A date of birth is retained as document evidence but is not copied to a profile or used for assignment.
 2. `document_metadata_candidate`: report date, issuer or provider, document type, and display-name suggestions. These require user review before becoming trusted metadata.
 3. `metric_observation`: literal lab analyte, decimal or categorical value, unit, reference range, flag, and observation date. These may publish automatically only after profile assignment resolves and remain `unreviewed_extracted`, correctable, and excluded from trusted memory.
 4. `memory_candidate`: either literal prescription medication/instruction fields or a `documented_condition_candidate` containing condition text literally written in the prescription or lab report. These begin pending and require explicit review before trusted memory publication.
@@ -81,7 +81,7 @@ The adapter omits unavailable or unsupported values instead of inferring them. I
 
 ### Keep identity resolution deterministic and local
 
-The provider returns source-linked `patient_evidence`; a local service performs assignment only against profiles and explicit aliases owned by the same account. V1 normalization uses Unicode NFKC, surrounding and repeated whitespace normalization, and case folding. Automatic assignment requires exactly one exact full-name or explicit-alias match and no contradictory extracted DOB. No match, multiple matches, or contradictory DOB becomes `needs_assignment`. Fuzzy, phonetic, confidence-only, and cross-account matching are prohibited.
+The provider returns source-linked `patient_evidence`; a local service performs assignment only against profiles and explicit aliases owned by the same account. V1 normalization uses Unicode NFKC, surrounding and repeated whitespace normalization, and case folding. Automatic assignment requires exactly one exact full-name or explicit-alias match. No match or multiple matches becomes `needs_assignment`. Fuzzy, phonetic, confidence-only, and cross-account matching are prohibited.
 
 ### Commit one complete attempt or nothing
 
