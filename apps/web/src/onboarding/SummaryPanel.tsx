@@ -12,14 +12,12 @@ import { STEP_LABELS } from "./steps";
 import type { OnboardingStep } from "../api/types";
 
 interface SummaryPanelProps {
-  token: string;
   onboarding: OnboardingRead;
   healthContext: ProfileHealthContextRead | null;
   onEditStep: (step: OnboardingStep) => void;
 }
 
 export function SummaryPanel({
-  token,
   onboarding,
   healthContext,
   onEditStep,
@@ -32,7 +30,7 @@ export function SummaryPanel({
       return;
     }
     let cancelled = false;
-    getMemory(token, profile.id)
+    getMemory(profile.id)
       .then((memory) => {
         if (cancelled) {
           return;
@@ -48,7 +46,7 @@ export function SummaryPanel({
     return () => {
       cancelled = true;
     };
-  }, [token, profile]);
+  }, [profile]);
 
   return (
     <section className="panel">

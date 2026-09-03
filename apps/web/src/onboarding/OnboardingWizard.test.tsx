@@ -9,7 +9,7 @@ afterEach(() => {
 });
 
 function renderWizard(onUnauthenticated = vi.fn()) {
-  render(<OnboardingWizard token="user_1" onUnauthenticated={onUnauthenticated} />);
+  render(<OnboardingWizard onUnauthenticated={onUnauthenticated} />);
   return onUnauthenticated;
 }
 

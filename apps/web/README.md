@@ -6,9 +6,9 @@ medications.
 
 ## Stack
 
-React 19 with TypeScript, built by Vite. Vitest and Testing Library cover the flow. There is no
-router or data-fetching library yet; the onboarding wizard is driven by the backend's own
-`GET /account/onboarding` state.
+React 19 with TypeScript, built by Vite, with `@supabase/supabase-js` for sign-in. Vitest and
+Testing Library cover the flow. There is no router or data-fetching library yet; the onboarding
+wizard is driven by the backend's own `GET /account/onboarding` state.
 
 ## Setup
 
@@ -40,10 +40,27 @@ npm run build
 
 ## Signing in
 
-Registration, Google sign-in, and email verification are still backend work (task 2.3 in the
-first-release change). Until they exist, the sign-in screen takes the bearer token the API expects:
-with `DEV_AUTH_ENABLED=true` that is any user id you choose, and each id gets its own account;
-otherwise it is a Supabase access token. The token is kept in `localStorage`.
+Google is the only way in. Supabase Auth brokers the OAuth exchange, the browser receives a Supabase
+access token, and the API verifies that token's signature, issuer, audience, and expiry against the
+project's published keys before mapping its subject to an application account.
+
+The flow uses PKCE, so an authorization code comes back on the redirect and is exchanged for a
+session; no access token is ever placed in the URL. The Supabase client persists and refreshes the
+session, and every API request asks it for a current token rather than reusing one captured earlier.
+
+Set up before it works:
+
+1. Copy [.env.example](.env.example) to `.env` and fill in `VITE_SUPABASE_URL` and
+   `VITE_SUPABASE_ANON_KEY`. Both are publishable and ship in the bundle.
+2. In the Supabase dashboard, enable the Google provider under Authentication, Providers, and give
+   it a Google OAuth client ID and secret from the Google Cloud console.
+3. Add the app's origin, such as `http://localhost:5173`, to Authentication, URL Configuration,
+   Redirect URLs. The client asks to return to `window.location.origin`.
+4. Run the backend with `DEV_AUTH_ENABLED=false` so it verifies real Supabase tokens.
+
+Development authentication is for backend work only. With `DEV_AUTH_ENABLED=true` the API takes the
+bearer value as a literal user id, so a Supabase token would become the account key and every token
+refresh would look like a different person.
 
 ## How onboarding works
 
@@ -69,6 +86,8 @@ a generated client once `contracts/` publishes one from the backend's OpenAPI do
 
 ## Known gaps
 
+- Email and password registration, verification, and sign-in are not built. Google is the only
+  supported method, so the account-onboarding requirement covering email identities is unmet.
 - The API has no read endpoint for profile health context, so a resumed session cannot show the age
   and weight recorded in an earlier visit. The summary offers to record them again instead.
 - Feed, Upload, Drive, and Chat are not built here yet; onboarding ends on a summary.

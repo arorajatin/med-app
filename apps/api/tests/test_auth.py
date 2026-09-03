@@ -79,6 +79,10 @@ def make_auth_client(settings: Settings) -> TestClient:
     def current_user_real(user: CurrentUser = Depends(get_current_user)):
         return {"id": user.id}
 
+    @app.get("/identity")
+    def identity(user: CurrentUser = Depends(get_current_user)):
+        return user.model_dump()
+
     app.dependency_overrides[get_settings] = lambda: settings
     return TestClient(app)
 
@@ -256,3 +260,63 @@ def test_production_auth_rejects_malformed_token():
 
     assert response.status_code == 401
     assert response.json() == {"detail": INVALID_TOKEN_DETAIL}
+
+
+def test_production_auth_carries_google_sign_in_provenance(monkeypatch, signing_material):
+    """A Google sign-in reports the verified address and the method that proved it."""
+
+    algorithm, private_key, jwk = signing_material
+    install_jwks(monkeypatch, jwk)
+    token = sign_token(
+        private_key,
+        algorithm,
+        jwk["kid"],
+        email="asha@example.com",
+        app_metadata={"provider": "google", "providers": ["google"]},
+    )
+
+    response = make_auth_client(production_settings()).get(
+        "/identity", headers={"Authorization": f"Bearer {token}"}
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "id": "user_123",
+        "email": "asha@example.com",
+        "upstream_provider": "google",
+    }
+
+
+def test_production_auth_ignores_user_writable_metadata(monkeypatch, signing_material):
+    """`user_metadata` is writable by the account holder, so it never proves anything."""
+
+    algorithm, private_key, jwk = signing_material
+    install_jwks(monkeypatch, jwk)
+    token = sign_token(
+        private_key,
+        algorithm,
+        jwk["kid"],
+        user_metadata={"provider": "google", "email": "attacker@example.com"},
+    )
+
+    response = make_auth_client(production_settings()).get(
+        "/identity", headers={"Authorization": f"Bearer {token}"}
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"id": "user_123", "email": None, "upstream_provider": None}
+
+
+def test_production_auth_tolerates_a_malformed_app_metadata_claim(monkeypatch, signing_material):
+    """A token without the usual claim shapes still authenticates on its subject."""
+
+    algorithm, private_key, jwk = signing_material
+    install_jwks(monkeypatch, jwk)
+    token = sign_token(private_key, algorithm, jwk["kid"], email="", app_metadata="not-an-object")
+
+    response = make_auth_client(production_settings()).get(
+        "/identity", headers={"Authorization": f"Bearer {token}"}
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"id": "user_123", "email": None, "upstream_provider": None}

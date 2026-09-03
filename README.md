@@ -52,8 +52,13 @@ Run web commands from `apps/web`. The dev server proxies `/api` to a backend run
 
 ```bash
 npm install
+cp .env.example .env   # then fill in the Supabase URL and anon key
 npm run dev
 ```
+
+Sign-in is Google through Supabase Auth, so the backend must run with `DEV_AUTH_ENABLED=false` and
+the Supabase project must have the Google provider enabled. See
+[apps/web/README.md](apps/web/README.md) for the full setup.
 
 Useful checks:
 

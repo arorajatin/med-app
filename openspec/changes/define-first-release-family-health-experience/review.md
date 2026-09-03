@@ -1,6 +1,6 @@
 # Review Checkpoint
 
-Status: 2B onboarding and the web onboarding client implemented and locally verified; hosted CI evidence open
+Status: 2B onboarding, the web onboarding client, and Google sign-in implemented and locally verified; hosted CI evidence open
 Updated: 2026-09-03
 Reviewer: Codex
 Baseline commit: 8a1e0bd662cc231532c5b91248819e9294c4f8cb
@@ -21,6 +21,8 @@ Baseline commit: 8a1e0bd662cc231532c5b91248819e9294c4f8cb
 - Added independently controlled default-off feature flags for web ingestion, extraction, observations, Feed/Drive, and Chat, and gated the shipped surfaces on them.
 - Selected React, TypeScript, and Vite for `apps/web`, scaffolded the client, and added a CI job that type checks, lints, tests, and builds it from a locked dependency set.
 - Implemented the sign-up and onboarding journey in the client, driven by `GET /account/onboarding` so the resume point comes from the service rather than a client-side counter, and recorded the remaining web work as tasks 10.5 through 10.15.
+- Implemented Google sign-in through Supabase Auth with PKCE, session restore, background token refresh, and sign-out, and removed the development token entry so the client has one way in.
+- Retained verified identity provenance, reading the upstream sign-in method and email only from provider-controlled token claims, while keeping the account key on the stable authentication subject.
 
 ## Resume From
 
@@ -30,6 +32,7 @@ Baseline commit: 8a1e0bd662cc231532c5b91248819e9294c4f8cb
 - Keep task 2.7 open until the full authorization, validation, and isolation matrix covers every account-onboarding, family-profile, and access-control requirement.
 - Publish the backend OpenAPI document and generate or validate the typed client under `contracts/` (task 10.6). Until then `apps/web/src/api/types.ts` mirrors `apps/api/app/schemas.py` by hand and can drift silently.
 - Add a profile health-context read endpoint (task 10.7). The client cannot show a previously recorded age and weight on a resumed session because no endpoint returns them.
+- Enable the Google provider and register the client's redirect URLs in the Supabase project. Task 2.3's remaining email and password registration, verification, and sign-in are still unimplemented, and task 10.16 tracks their client screens.
 - Keep the future condition-candidate path disabled until the structured source contract and literal-span validation land behind default-off controls.
 - No operational database inventory, data review, or row transformation is required for 2A. Provision an empty database and apply the declared current head.
 
@@ -56,6 +59,9 @@ Baseline commit: 8a1e0bd662cc231532c5b91248819e9294c4f8cb
 | 2026-09-03 | SQLite `alembic upgrade head` and `check` | Pass | The amended `20260721_0001` baseline matched model metadata after the profile declaration timestamps and attested-identity column. |
 | 2026-09-03 | `npm run typecheck`, `npm run lint`, `npm run test`, `npm run build` in `apps/web` | Pass | No type or lint findings; 34 tests across 6 files passed; the production build succeeded. |
 | 2026-09-03 | Live onboarding journey against a local API on a fresh SQLite database | Pass | Consent, self profile, age and weight, an attested condition, and an explicit empty medication declaration drove onboarding from `not_started` to `completed`, and the attested condition read back with `user_attested` provenance. |
+| 2026-09-03 | `pytest -c apps/api/pyproject.toml`, SQLite `alembic upgrade head` and `check` | Pass | 81 backend tests passed at 92.72% branch coverage, including Google provenance claims and the rejection of account-holder-written metadata; the amended baseline matched model metadata after the identity provenance columns. |
+| 2026-09-03 | `npm run typecheck`, `npm run lint`, `npm run test`, `npm run build` in `apps/web` | Pass | No type or lint findings; 47 tests across 7 files passed; the production build succeeded. |
+| 2026-09-03 | Google redirect against the live Supabase project | Not available | `GET /auth/v1/settings` reports the Google provider disabled for the project, so the provider exchange cannot be exercised until it is enabled in the dashboard. |
 | 2026-08-12 | Local live PostgreSQL smoke | Not available | Docker is stopped and no local PostgreSQL server is installed; the hosted CI job runs the fresh-schema upgrade, API/worker startup, check, and teardown. |
 
 ## Open Findings
@@ -63,7 +69,9 @@ Baseline commit: 8a1e0bd662cc231532c5b91248819e9294c4f8cb
 - Hosted CI has not run for the current uncommitted worktree; a reviewed commit and hosted result remain release evidence.
 - Application accounts and later V1 migrations, production infrastructure, provider contracts, privacy approvals, and later runtime quality gates remain unimplemented and untested.
 - Task 2.6 remains open. Onboarding now requires consent before it can complete, but an account may still upload as soon as it accepts consent without finishing the remaining steps, and Chat dispatch is not consent-gated because Chat does not exist.
-- The web client's sign-in screen accepts a bearer token directly because task 2.3 has no registration, verification, or sign-in endpoints yet. This is a development affordance, not the V1 journey, and task 10.5 tracks replacing it.
+- Google sign-in is unverified end to end. The target Supabase project reports the Google provider disabled, so the redirect cannot yet complete; enabling it needs dashboard access and a Google OAuth client. Everything either side of the provider exchange is implemented and covered by tests.
+- Email and password identities remain unimplemented, so the account-onboarding requirement covering them and its verification-pending behavior is unmet. The project still accepts email sign-ups directly through Supabase; consider disabling that provider while Google is the only supported route.
+- Development authentication treats the bearer value as a literal user id, so running the web client against `DEV_AUTH_ENABLED=true` would key an account on a raw access token and mint a new account on every refresh. The environment sample and both READMEs now say so; the service does not detect the mismatch itself.
 - The client's weight range check uses binary floating point, while the service uses exact decimal arithmetic. The service remains the authority, so a value at the exact boundary may be reported differently by the two; the client's job is only to catch obvious mistakes early.
 - Databases created by prototype builds are outside this release contract. If such data must be retained, that requires a separately authorized and designed import project; it is not part of 2A.
 
@@ -78,3 +86,4 @@ Baseline commit: 8a1e0bd662cc231532c5b91248819e9294c4f8cb
 - 2026-09-02: Resolved review findings by scoping the date-of-birth restriction to profile metadata, explicitly allowing source-linked date of birth in patient evidence, and stating that V1 has neither consent revocation nor account deletion instead of presenting deletion as an available stop-processing control. Added patient-evidence retention coverage; all 47 backend tests, schema checks, static checks, and 11 strict OpenSpec validations pass.
 - 2026-09-03: Implemented the 2B onboarding slice. `GET /account/onboarding` derives progress from the rows each step leaves behind and names the first outstanding step, so status cannot drift from the data. `PUT /account/onboarding/self-profile` creates or reuses the account's one `self` profile, and `POST /profiles` now answers 409 rather than failing on the unique index. `PUT /profiles/{id}/attested-conditions` and `.../attested-medications` declare the complete current set, supersede the previous set, and record an empty declaration as an answered step through new `conditions_declared_at` and `medications_declared_at` columns. Declared entries become `user_attested` memory facts carrying the attesting identity. Memory reads now decide on provenance, not category alone: a condition the account manager typed is trusted while a document-derived condition stays blocked. Added five default-off slice flags and gated upload, assignment, extraction dispatch, the extraction job routes, and observation publication on them.
 - 2026-09-03: Selected React, TypeScript, and Vite and built the web onboarding journey against the new endpoints. The wizard opens at `next_step` and re-reads onboarding state after each step, so a reload or a corrected earlier answer resumes from the service's own view. Client validation mirrors the age, weight, and declaration rules while the service stays authoritative and its `detail` message is shown on rejection. Verified the request shapes against a live API on a fresh database, not only against mocked responses. Added a `web-quality` CI job and recorded the remaining client work, including the generated-client drift check and the missing health-context read endpoint, as tasks 10.5 through 10.15.
+- 2026-09-03: Replaced the development token entry with Google sign-in through Supabase Auth. The client uses PKCE so no access token reaches the URL, and it asks the authentication client for a token on every request rather than holding one, because Supabase rotates access tokens roughly hourly and a token captured at render time can expire before submit. The backend now retains the upstream sign-in method and verified email as identity provenance, read only from `app_metadata`, which Supabase controls; `user_metadata` is writable by the account holder and is ignored. The account key stays the authentication subject so a later change of sign-in method cannot repoint an account. Verified everything either side of the provider exchange; the exchange itself is blocked until Google is enabled on the Supabase project.

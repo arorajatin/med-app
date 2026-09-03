@@ -11,13 +11,12 @@ import { HealthContextStep } from "./steps/HealthContextStep";
 import { SelfProfileStep } from "./steps/SelfProfileStep";
 
 interface OnboardingWizardProps {
-  token: string;
   onUnauthenticated: () => void;
 }
 
 const LOAD_FAILED = "Could not load your onboarding progress.";
 
-export function OnboardingWizard({ token, onUnauthenticated }: OnboardingWizardProps) {
+export function OnboardingWizard({ onUnauthenticated }: OnboardingWizardProps) {
   const [onboarding, setOnboarding] = useState<OnboardingRead | null>(null);
   const [activeStep, setActiveStep] = useState<OnboardingStep | null>(null);
   const [reviewing, setReviewing] = useState(false);
@@ -27,7 +26,7 @@ export function OnboardingWizard({ token, onUnauthenticated }: OnboardingWizardP
 
   useEffect(() => {
     let cancelled = false;
-    getOnboarding(token)
+    getOnboarding()
       .then((state) => {
         if (cancelled) {
           return;
@@ -56,12 +55,12 @@ export function OnboardingWizard({ token, onUnauthenticated }: OnboardingWizardP
     return () => {
       cancelled = true;
     };
-  }, [token, onUnauthenticated]);
+  }, [onUnauthenticated]);
 
   async function handleStepCompleted() {
     let state: OnboardingRead;
     try {
-      state = await getOnboarding(token);
+      state = await getOnboarding();
     } catch (cause) {
       if (cause instanceof ApiError && cause.status === 401) {
         onUnauthenticated();
@@ -89,7 +88,6 @@ export function OnboardingWizard({ token, onUnauthenticated }: OnboardingWizardP
     if (activeStep === null) {
       return (
         <SummaryPanel
-          token={token}
           onboarding={state}
           healthContext={healthContext}
           onEditStep={handleEditStep}
@@ -99,14 +97,13 @@ export function OnboardingWizard({ token, onUnauthenticated }: OnboardingWizardP
     if (activeStep === "consent") {
       return (
         <ConsentStep
-          token={token}
           alreadyAccepted={completed.includes("consent")}
           onCompleted={handleStepCompleted}
         />
       );
     }
     if (activeStep === "self_profile") {
-      return <SelfProfileStep token={token} profile={profile} onCompleted={handleStepCompleted} />;
+      return <SelfProfileStep profile={profile} onCompleted={handleStepCompleted} />;
     }
     if (profile === null) {
       return <ErrorBanner message="Add your own profile before recording health details." />;
@@ -114,7 +111,6 @@ export function OnboardingWizard({ token, onUnauthenticated }: OnboardingWizardP
     if (activeStep === "health_context") {
       return (
         <HealthContextStep
-          token={token}
           profileId={profile.id}
           alreadyRecorded={completed.includes("health_context")}
           onCompleted={(recorded) => {
@@ -127,7 +123,6 @@ export function OnboardingWizard({ token, onUnauthenticated }: OnboardingWizardP
     return (
       <AttestedMemoryStep
         key={activeStep}
-        token={token}
         profileId={profile.id}
         category={activeStep === "conditions" ? "condition" : "medication"}
         onCompleted={handleStepCompleted}

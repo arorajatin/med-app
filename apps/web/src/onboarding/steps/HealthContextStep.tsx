@@ -7,14 +7,12 @@ import { FormField } from "../../components/FormField";
 import { MAX_AGE, MIN_AGE, validateAge, validateWeight } from "../validation";
 
 interface HealthContextStepProps {
-  token: string;
   profileId: string;
   alreadyRecorded: boolean;
   onCompleted: (recorded: ProfileHealthContextRead) => void;
 }
 
 export function HealthContextStep({
-  token,
   profileId,
   alreadyRecorded,
   onCompleted,
@@ -41,7 +39,7 @@ export function HealthContextStep({
     try {
       // Both values are stamped with the moment they were reported; the backend
       // never ages them on afterwards.
-      const recorded = await createHealthContext(token, profileId, {
+      const recorded = await createHealthContext(profileId, {
         reportedAge: validAge.value,
         enteredWeight: validWeight.value.entered,
         weightUnit: validWeight.value.unit,

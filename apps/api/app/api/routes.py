@@ -620,7 +620,13 @@ def create_appointment_review(
 
 def _account_context(db: Session, *, user: CurrentUser, settings: Settings) -> AccountContext:
     provider = "development" if settings.dev_auth_enabled else "supabase"
-    return resolve_account_context(db, provider=provider, provider_subject=user.id)
+    return resolve_account_context(
+        db,
+        provider=provider,
+        provider_subject=user.id,
+        upstream_provider=user.upstream_provider,
+        email=user.email,
+    )
 
 
 def _declare_attested_memory(

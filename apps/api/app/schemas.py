@@ -9,6 +9,10 @@ class CurrentUser(BaseModel):
     """Verified authentication identity injected into protected routes."""
 
     id: str
+    email: str | None = None
+    # Which upstream method verified this person, such as `google`. Read only from
+    # claims the identity provider controls, never from user-writable metadata.
+    upstream_provider: str | None = None
 
 
 class AccountRead(BaseModel):

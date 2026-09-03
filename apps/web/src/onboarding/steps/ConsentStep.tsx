@@ -5,12 +5,11 @@ import { ErrorBanner } from "../../components/ErrorBanner";
 import { CONSENT_POLICY_VERSION, CONSENT_SCOPE } from "../consentPolicy";
 
 interface ConsentStepProps {
-  token: string;
   alreadyAccepted: boolean;
   onCompleted: () => void;
 }
 
-export function ConsentStep({ token, alreadyAccepted, onCompleted }: ConsentStepProps) {
+export function ConsentStep({ alreadyAccepted, onCompleted }: ConsentStepProps) {
   const [accepted, setAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -24,7 +23,7 @@ export function ConsentStep({ token, alreadyAccepted, onCompleted }: ConsentStep
     setError(null);
     setSubmitting(true);
     try {
-      await acceptConsent(token, {
+      await acceptConsent({
         policyVersion: CONSENT_POLICY_VERSION,
         acceptedScope: CONSENT_SCOPE,
       });

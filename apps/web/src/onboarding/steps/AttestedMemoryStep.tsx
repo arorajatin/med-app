@@ -7,7 +7,6 @@ import { attestedTitles } from "../attestedMemory";
 import { MAX_ATTESTED_TITLE_LENGTH, validateAttestedEntries } from "../validation";
 
 interface AttestedMemoryStepProps {
-  token: string;
   profileId: string;
   category: AttestedCategory;
   onCompleted: () => void;
@@ -41,7 +40,6 @@ const COPY: Record<AttestedCategory, Copy> = {
 };
 
 export function AttestedMemoryStep({
-  token,
   profileId,
   category,
   onCompleted,
@@ -55,7 +53,7 @@ export function AttestedMemoryStep({
 
   useEffect(() => {
     let cancelled = false;
-    getMemory(token, profileId)
+    getMemory(profileId)
       .then((memory) => {
         if (cancelled) {
           return;
@@ -74,7 +72,7 @@ export function AttestedMemoryStep({
     return () => {
       cancelled = true;
     };
-  }, [token, profileId, category]);
+  }, [profileId, category]);
 
   function updateTitle(index: number, value: string) {
     setTitles((current) => current.map((title, position) => (position === index ? value : title)));
@@ -99,7 +97,6 @@ export function AttestedMemoryStep({
     try {
       // The list is the complete current set; an empty list is a real answer.
       await declareAttestedMemory(
-        token,
         profileId,
         category,
         entries.value.map((title) => ({ title })),

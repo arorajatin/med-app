@@ -218,6 +218,32 @@ body {
   font-weight: 500;
 }
 
+/* Google asks that its button keep a neutral surface and its own mark. */
+.button--google {
+  align-items: center;
+  background: #fff;
+  border-color: #747775;
+  color: #1f1f1f;
+  display: flex;
+  gap: 0.65rem;
+  padding: 0.6rem 1.1rem;
+}
+
+.google-mark {
+  height: 1.15rem;
+  width: 1.15rem;
+}
+
+.panel--narrow {
+  max-width: 30rem;
+}
+
+.app__account {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+}
+
 .checkbox {
   align-items: flex-start;
   display: flex;

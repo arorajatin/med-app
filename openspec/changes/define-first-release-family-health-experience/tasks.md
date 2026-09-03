@@ -97,7 +97,8 @@
 - [x] 10.2 Implement the resumable onboarding journey: consent acceptance, the one `self` profile, age and weight with the entered unit, and explicit condition and medication declarations including an explicit empty answer, driven by `GET /account/onboarding` rather than a client-side step counter.
 - [x] 10.3 Mirror the backend's age, weight, and declaration validation rules in the client so a person sees a problem before a round trip, while the service remains the authority and its rejection message is shown.
 - [x] 10.4 Establish and end a session, restore it on reload, and sign out and clear it when the API rejects the credential.
-- [ ] 10.5 Replace registration, verification, and sign-in with the real flows once task 2.3 lands; the current screen accepts a bearer token directly because no registration endpoint exists.
+- [x] 10.5 Implement Google sign-in through Supabase Auth with PKCE, session restore, background token refresh, sign-out, and safe handling of a cancelled or rejected redirect; remove the development token entry from the client.
+- [ ] 10.16 Implement email and password registration, the verification-pending state, resend verification, and sign-in in the client once task 2.3 provides them.
 - [ ] 10.6 Publish the backend OpenAPI document, generate or validate a typed client under `contracts/`, and add a drift check so the hand-mirrored types in `src/api/types.ts` cannot silently diverge.
 - [ ] 10.7 Add a profile health-context read endpoint and show the latest recorded age and weight with their reported dates on a resumed session, including the non-blocking refresh prompt.
 - [ ] 10.8 Implement family-profile creation and browsing screens.

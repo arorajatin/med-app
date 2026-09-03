@@ -1,4 +1,5 @@
 import { vi } from "vitest";
+import { setAccessTokenProvider } from "../api/client";
 
 export interface RecordedCall {
   method: string;
@@ -14,6 +15,7 @@ type Handler = (call: RecordedCall) => { status?: number; body: unknown };
  */
 export function mockApi(handlers: Record<string, Handler | unknown>) {
   const calls: RecordedCall[] = [];
+  setAccessTokenProvider(async () => "test-access-token");
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const method = init?.method ?? "GET";
     const path = url.replace(/^\/api/, "");

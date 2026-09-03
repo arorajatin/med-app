@@ -58,6 +58,11 @@ class AuthIdentity(Base):
     account_id: Mapped[str] = mapped_column(ForeignKey("accounts.id"), index=True, nullable=False)
     provider: Mapped[str] = mapped_column(String(40), nullable=False)
     provider_subject: Mapped[str] = mapped_column(String(255), nullable=False)
+    # The account key stays the authentication provider and its stable subject.
+    # How the person proved who they are, such as `google`, is provenance beside
+    # it, so a later sign-in method never repoints the account.
+    upstream_provider: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(320), nullable=True)
     verified_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 

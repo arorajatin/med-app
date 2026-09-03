@@ -32,6 +32,8 @@ def upgrade() -> None:
         sa.Column("account_id", sa.String(), nullable=False),
         sa.Column("provider", sa.String(length=40), nullable=False),
         sa.Column("provider_subject", sa.String(length=255), nullable=False),
+        sa.Column("upstream_provider", sa.String(length=40), nullable=True),
+        sa.Column("email", sa.String(length=320), nullable=True),
         sa.Column("verified_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(

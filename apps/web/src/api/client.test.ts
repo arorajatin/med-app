@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiError, request } from "./client";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ApiError, request, setAccessTokenProvider } from "./client";
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -7,6 +7,10 @@ function jsonResponse(status: number, body: unknown): Response {
     headers: { "Content-Type": "application/json" },
   });
 }
+
+beforeEach(() => {
+  setAccessTokenProvider(async () => "user_1");
+});
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -19,7 +23,6 @@ describe("request", () => {
 
     const result = await request<{ id: string }>("/account", {
       method: "POST",
-      token: "user_1",
       body: { policy_version: "2026-07-01" },
     });
 
@@ -37,7 +40,7 @@ describe("request", () => {
       vi.fn().mockResolvedValue(jsonResponse(409, { detail: "This account already has a self profile." })),
     );
 
-    await expect(request("/profiles", { token: "user_1" })).rejects.toMatchObject({
+    await expect(request("/profiles")).rejects.toMatchObject({
       status: 409,
       message: "This account already has a self profile.",
     });
@@ -53,7 +56,7 @@ describe("request", () => {
       ),
     );
 
-    await expect(request("/profiles/p1/health-context", { token: "user_1" })).rejects.toThrow(
+    await expect(request("/profiles/p1/health-context")).rejects.toThrow(
       "At least one reported age or weight value is required.",
     );
   });
@@ -61,7 +64,7 @@ describe("request", () => {
   it("reports an unreachable server without leaking the network error", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
 
-    const error = await request("/account", { token: "user_1" }).catch((cause) => cause);
+    const error = await request("/account").catch((cause) => cause);
     expect(error).toBeInstanceOf(ApiError);
     expect((error as ApiError).status).toBe(0);
   });

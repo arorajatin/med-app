@@ -14,15 +14,30 @@ export class ApiError extends Error {
 interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "PATCH";
   body?: unknown;
-  token: string;
+}
+
+type AccessTokenProvider = () => Promise<string | null>;
+
+let provideAccessToken: AccessTokenProvider = async () => null;
+
+/**
+ * The token is fetched per request rather than passed in, so a token the
+ * authentication client has since rotated can never be sent.
+ */
+export function setAccessTokenProvider(provider: AccessTokenProvider): void {
+  provideAccessToken = provider;
 }
 
 export function apiBaseUrl(): string {
   return import.meta.env.VITE_API_BASE_URL ?? DEFAULT_BASE_URL;
 }
 
-export async function request<T>(path: string, options: RequestOptions): Promise<T> {
-  const { method = "GET", body, token } = options;
+export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const { method = "GET", body } = options;
+  const token = await provideAccessToken();
+  if (token === null) {
+    throw new ApiError(401, "Your session has ended. Sign in again.");
+  }
   const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
   if (body !== undefined) {
     headers["Content-Type"] = "application/json";

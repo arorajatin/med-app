@@ -7,7 +7,6 @@ import { FormField } from "../../components/FormField";
 import { MAX_DISPLAY_NAME_LENGTH, validateDisplayName } from "../validation";
 
 interface SelfProfileStepProps {
-  token: string;
   profile: ProfileRead | null;
   onCompleted: () => void;
 }
@@ -19,7 +18,7 @@ const SEX_OPTIONS = [
   { value: "other", label: "Other" },
 ];
 
-export function SelfProfileStep({ token, profile, onCompleted }: SelfProfileStepProps) {
+export function SelfProfileStep({ profile, onCompleted }: SelfProfileStepProps) {
   const [displayName, setDisplayName] = useState(profile?.display_name ?? "");
   const [sex, setSex] = useState(profile?.sex ?? "");
   const [fieldError, setFieldError] = useState<string | null>(null);
@@ -37,7 +36,7 @@ export function SelfProfileStep({ token, profile, onCompleted }: SelfProfileStep
     setError(null);
     setSubmitting(true);
     try {
-      await putSelfProfile(token, { displayName: name.value, sex: sex === "" ? null : sex });
+      await putSelfProfile({ displayName: name.value, sex: sex === "" ? null : sex });
       onCompleted();
     } catch (cause) {
       setError(cause instanceof ApiError ? cause.message : "Could not save your profile.");
