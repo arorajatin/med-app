@@ -17,4 +17,3 @@ def get_extractor(settings: Settings = Depends(get_settings)) -> Extractor:
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
         detail=f"Extraction provider is not implemented: {settings.extraction_provider}",
     )
-

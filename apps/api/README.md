@@ -40,9 +40,26 @@ run `alembic upgrade head` before starting the API or worker. Databases created 
 are outside the supported contract; provision a new database instead of importing or transforming
 prototype rows.
 
+## Onboarding
+
+`GET /account/onboarding` reports progress through `self_profile`, `health_context`,
+`conditions`, and `medications`, and names the first step still outstanding so a returning account
+manager resumes where they stopped. Status is derived from the rows each step leaves behind, so it
+cannot drift from the data.
+
+Creating an account authorizes the AI processing required by the product. The API does not store a
+separate processing-consent record or repeat that choice on an ingestion or medical record.
+
+`PUT /account/onboarding/self-profile` creates the account's one `self` profile or updates the
+existing one. `PUT /profiles/{id}/attested-conditions` and `PUT /profiles/{id}/attested-medications`
+declare the complete current set; an empty list records that the account manager reported none.
+Declared entries become trusted memory facts with `user_attested` provenance.
+
 ## Safety defaults
 
 - Uploaded files are never exposed through public URLs.
 - AI extraction remains untrusted until reviewed.
 - Only confirmed or edited permitted fields enter the current baseline medical memory.
+- A condition the account manager typed is trusted; a condition derived from a document is not, and
+  stays hidden until literal source validation exists.
 - The mock provider is restricted to development and tests by the future production-boundary work.

@@ -8,12 +8,12 @@ safety boundary for AI-assisted extraction of one immutable logical document.
 ## Requirements
 
 ### Requirement: Explicit extraction job and attempt lifecycle
-The service SHALL represent each consented logical-document extraction as a job with observable
+The service SHALL represent each authenticated, account-owned logical-document extraction as a job with observable
 status, phase, timing, and failure information. Every run of a job SHALL create one atomic numbered
 attempt that records the provider, its components, the processing method, and the routing reason.
 
 #### Scenario: Queue a job
-- **WHEN** an upload-complete ingestion has accepted consent
+- **WHEN** an authenticated, account-owned ingestion is upload complete
 - **THEN** the service SHALL create a job in `queued` status
 - **AND** the ingestion's extraction state SHALL become `queued`
 

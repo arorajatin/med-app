@@ -1,6 +1,6 @@
 ## Context
 
-The backend now resides in `apps/api`, while the V1 user interface resides in `apps/web`. It maps an authenticated subject directly to `user_id`, requires a family profile before record creation, stores AI consent on each record, creates extraction jobs per file, and rebuilds memory by deleting and recreating report-derived facts. It has no application account/onboarding state, staged multi-part web ingestion, patient matching, metric observations, aggregate Feed, dynamic Drive, conversations, private download, or record deletion. Native clients are deferred to separate V2 changes and their future `apps/ios` and `apps/android` homes are not scaffolded in V1.
+The backend resides in `apps/api`, while the V1 user interface resides in `apps/web`. It maps authenticated identities to application accounts, derives onboarding progress from account-owned profile data, stages authenticated logical-document uploads, creates extraction jobs, and rebuilds memory from trusted facts. Aggregate Feed, dynamic Drive, conversations, private download, and record deletion remain pending. Native clients are deferred to separate V2 changes and their future `apps/ios` and `apps/android` homes are not scaffolded in V1.
 
 Baseline commit `8a1e0bd662cc231532c5b91248819e9294c4f8cb` adds a fail-closed condition-safety boundary. The built-in mock may persist only the closed set of baseline non-condition fields; every condition-shaped or unknown field, every field from another extractor implementation, and unrestricted provider raw output are omitted before persistence. Extraction, review, memory, and appointment reads expose only that permitted baseline. This is the current safety boundary, not the source-cited `documented_condition_candidate` contract designed below.
 
@@ -26,8 +26,8 @@ Three active changes own production Postgres/private storage/RLS, the selected p
 - Implement longitudinal charts or automatically treat an interpretation of an unreviewed observation as a medical fact.
 - Infer, classify for users, or rule out a condition from medication identity, dosage, lab values, ranges, symptoms, or any other implicit association.
 - Select a conversational model or external search provider.
-- Implement document ingestion through email, Amazon SES, WhatsApp, or any other external connector. External connector ingestion requires a separate post-V1 change covering provider selection, account linking, authentication, consent, grouping, replay protection, and regional review.
-- Add Chat side effects, AI-consent revocation, arbitrary family-relationship graphs, public links, account export, or account deletion.
+- Implement document ingestion through email, Amazon SES, WhatsApp, or any other external connector. External connector ingestion requires a separate post-V1 change covering provider selection, account linking, authentication, source authorization, grouping, replay protection, and regional review.
+- Add Chat side effects, post-creation AI-processing controls, arbitrary family-relationship graphs, public links, account export, or account deletion.
 
 ## Decisions
 
@@ -45,11 +45,9 @@ This leaves room for multiple linked authentication identities without relying o
 
 A family profile carries no date of birth and no year of birth. Reported age with its `reported_at` date is the only age context stored on the profile. That is enough for profile display and for understanding the person's health information, and it keeps a directly identifying date out of profile metadata. Uploaded source documents and source-linked patient evidence may still retain a date of birth. Patient matching uses names and explicit aliases only.
 
-### Store versioned account consent and snapshot it on AI work
+### Treat account creation as authorization for required AI processing
 
-Store consent evidence with account, actor, accepted scope, policy version, and timestamp. The presented scope covers document extraction and sending reviewed personal memory to Chat. Every ingestion and conversation provider request references the governing consent evidence without presenting another consent prompt.
-
-Acceptance is a precondition for completing onboarding, so every account that can upload carries governing consent evidence and the product has no AI-disabled mode. The service still fails closed: an ingestion attempt without governing consent is rejected rather than stored unprocessed. Revocation behavior is deliberately deferred, while the schema remains capable of adding a later revocation timestamp and policy.
+AI processing is inherent to the product. Creating an account authorizes document extraction and use of reviewed personal memory in Chat, and signup must state that boundary clearly. The application stores no separate consent row, onboarding has no consent step, and ingestions and provider requests carry no repeated consent snapshot or prompt. Post-creation processing controls are deferred to a separate change.
 
 ### Stage ingestion before creating a profile-bound report
 
@@ -62,7 +60,7 @@ Extraction:  queued ──▶ extracting ──▶ ready | failed
 Review:      not_required | pending ──▶ reviewed
 ```
 
-The aggregate contains ordered source parts, immutable source provenance, optional user context, provisional profile, consent snapshot, and lifecycle timestamps. `SourceChannel` is exactly `direct_file` or `camera`. A single image/PDF is one part; a multi-image report has ordered parts and finalizes atomically as one logical document.
+The aggregate contains ordered source parts, immutable source provenance, optional user context, provisional profile, and lifecycle timestamps. `SourceChannel` is exactly `direct_file` or `camera`. A single image/PDF is one part; a multi-image report has ordered parts and finalizes atomically as one logical document.
 
 Each `IngestionSource` retains account, channel, receipt time, authenticated actor identity, source-part ordinal, original filename, detected MIME type, byte count, SHA-256, and grouping identity. The authenticated file-upload and browser-camera routes stamp their own channel from route context; clients cannot choose or override it. Completed source provenance is immutable.
 
@@ -94,7 +92,9 @@ Keep raw provider output and normalized source references, then classify normali
 3. `metric_observation` for literal lab-report values;
 4. `memory_candidate` for literal prescription medications and instructions plus conditions explicitly written in the source document.
 
-Patient evidence is used only for account-local assignment. Document metadata requires account-manager confirmation or edit before it can drive trusted report-date ordering, issuer display, or a generated display name. V1 never deduces a condition, diagnosis, follow-up, or clinical interpretation from medication identity, dosage, lab values, ranges, symptoms, or general medical knowledge. It may create a `documented_condition_candidate` memory-candidate subtype only when the submitted prescription or lab report contains the literal condition text.
+Patient evidence is used only for account-local assignment. Document metadata requires account-manager confirmation or edit before it can drive trusted report-date ordering, issuer display, or a generated display name. V1 never deduces a condition, diagnosis, follow-up, or clinical interpretation from medication identity, dosage, lab values, ranges, symptoms, or general medical knowledge. It may create a `documented_condition_candidate` memory-candidate subtype only when the submitted prescription or lab report affirmatively states that the patient has the literally named condition. Negated or ruled-out conditions, screening statements, uncertainty, family history, and statements about someone other than the patient are omitted.
+
+V1 has no condition-severity classification or non-life-threatening-condition allowlist. Any future allowlist requires a separate reviewed change with a human-owned, versioned policy, effective dates, audited matching rules, and fail-closed behavior. The model never decides whether a condition is life-threatening.
 
 Metric observations store decimal or categorical original value, original unit, optional canonical value/unit, reference range, observed date, optional body-system classification, source report/page/location, extraction attempt, confidence, and quality state. They publish automatically after assignment but remain `unreviewed_extracted`, are correctable/excludable, and are never trusted medical memory or Chat evidence. A measurement cannot support creation of a condition candidate unless the document separately states that condition in literal text.
 
@@ -124,7 +124,7 @@ One extraction job targets one complete immutable logical document, not one phys
 
 Update `add-production-extraction-provider` so document metadata and memory candidates require review while patient evidence and observations remain untrusted in their own workflows. Update `add-queue-backed-extraction-worker` to claim immutable logical-document attempts and represent native parsing, Textract submission/callback, Bedrock structuring, and normalization phases.
 
-Production extraction remains feature-flagged until provider privacy approval, Mumbai placement, Bedrock ZDR availability, migrations/RLS, and de-identified English fixtures pass. The approved held-out gate requires zero false automatic profile assignments, at least 99.5 percent exact precision for published lab analyte/value/unit/source-page tuples, at least 99.5 percent correct source-page attribution, zero unanchored or fabricated published observations, at least 95 percent precision for prescription memory candidates, and zero documented-condition candidates whose condition text is absent from the cited source span. Recall is reported but omission is safer than publishing an unsupported or inferred value and is not a blocking floor for V1.
+Production extraction remains undeployed until provider privacy approval, Mumbai placement, Bedrock ZDR availability, migrations/RLS, and de-identified English fixtures pass. The approved held-out gate requires zero false automatic profile assignments, at least 99.5 percent exact precision for published lab analyte/value/unit/source-page tuples, at least 99.5 percent correct source-page attribution, zero unanchored or fabricated published observations, at least 95 percent precision for prescription memory candidates, and zero documented-condition candidates whose condition text is absent from the cited source span. Recall is reported but omission is safer than publishing an unsupported or inferred value and is not a blocking floor for V1.
 
 ### Build Feed and Drive as account-owned query projections
 
@@ -155,7 +155,7 @@ Model generation and external retrieval are separately configurable so either ca
 
 ### Extend database ownership and integrity below the API
 
-Add migrations for accounts, consent evidence, onboarding/profile health context, ingestion aggregates and parts, assignment evidence, observations and correction history, documented-condition candidates and their review history, conversations/messages/citations, display naming, deletion state, and stable memory provenance.
+Add migrations for accounts, onboarding/profile health context, ingestion aggregates and parts, assignment evidence, observations and correction history, documented-condition candidates and their review history, conversations/messages/citations, display naming, deletion state, and stable memory provenance.
 
 Every new private table receives explicit account ownership, owner-aware foreign keys or constraints, RLS policy coverage, and two-account isolation tests. Eliminate pseudo-foreign-key paths that could leave cross-profile or orphaned derived data.
 
@@ -164,7 +164,7 @@ Every new private table receives explicit account ownership, owner-aware foreign
 - Incorrect patient matching could place medical data under the wrong person → require exactly one normalized full-name or explicit-alias match inside the account, retain evidence, block publication otherwise, and support audited correction.
 - OCR-derived numeric values can still be wrong → label observations unreviewed, retain page/source evidence, allow correction/exclusion, and exclude them from memory and Chat.
 - OCR or model output could invent or misread a documented condition → require the condition words themselves in a resolvable source span, label the item as extracted from the document, require explicit confirmation or edit, and forbid medication-to-condition or lab-value-to-condition deductions.
-- Account-level consent could be interpreted more broadly over time → version the scope and snapshot it on every provider-bound operation.
+- Required AI processing could surprise a new account holder → state it clearly during signup and provide no misleading AI-disabled path.
 - Multi-image reports increase upload and retry complexity → finalize an ordered logical document atomically before queue dispatch.
 - External Chat retrieval can leak identifiers or import misinformation → de-identify queries, separate external from personal evidence, retain actual links, and state unsupported conclusions.
 - Hard deletion spans database, queue, storage, and citations → revoke synchronously, purge through idempotent cleanup, and retain only non-PHI tombstones.
@@ -177,13 +177,13 @@ This change targets fresh installations only. Revision `20260721_0001` is the so
 
 1. Provision an empty PostgreSQL database in `ap-south-1` and apply the current Alembic head before any API or worker starts.
 2. Reconcile the three active infrastructure changes with stable ingestion keys, logical-document jobs, classified extraction output, private download, and all new RLS tables.
-3. Add account, consent, unique-`self`, profile health-context, and provenance structures through reviewed forward migrations from the sole baseline.
-4. Create accounts, profiles, consent, ingestions, and derived data only through the V1 application flows.
+3. Add account, unique-`self`, profile health-context, and provenance structures through reviewed forward migrations from the sole baseline.
+4. Create accounts, profiles, ingestions, and derived data only through the V1 application flows.
 5. Add staged ingestion and ordered parts as the only document-ingestion persistence path.
 6. Adapt private storage and queue dispatch to stable logical-document identity.
 7. Add account-local patient matching and block derived publication until assignment resolves.
 8. Add observations, candidate-memory classification, source-cited documented-condition review, stable facts, and retry supersession for newly ingested documents.
-9. Add Feed, Drive, report download/rename/delete, and Chat in independently feature-flagged slices.
+9. Add Feed, Drive, report download/rename/delete, and Chat as independently deployable slices.
 10. Validate `ap-south-1` placement, Bedrock ZDR, provider privacy approval, current-head startup, owner constraints, RLS, private storage, cleanup, held-out extraction quality, zero inferred condition output, and cross-account isolation before enabling each slice.
 
 Rollback disables new entry points and provider dispatch while preserving data created by the current schema. Before production launch, a disposable installation may be recreated from the sole baseline. After launch, schema corrections move forward through a reviewed revision; the service never falls back to a build whose declared Alembic head differs from the database. Any rollback after deletion begins continues cleanup so tombstoned private content does not become accessible again.

@@ -1,8 +1,8 @@
 ## Context
 
-`Extractor` already provides a provider-neutral input and output boundary, and `MockExtractor` proves the current end-to-end flow. The current dependency raises HTTP 501 for any non-mock provider. V1 records arrive only through authenticated `direct_file` or `camera` web-upload routes as machine-readable PDFs, scans, photographs, and ordered image sets; provider output can be malformed or plausible but wrong. Because the documents contain health data, the production path must also prove the governing account-level consent snapshot, India-only processing, retention controls, source linkage, and atomic publication without prompting again for each document or condition candidate.
+`Extractor` already provides a provider-neutral input and output boundary, and `MockExtractor` proves the current end-to-end flow. The current dependency raises HTTP 501 for any non-mock provider. V1 records arrive only through authenticated `direct_file` or `camera` web-upload routes as machine-readable PDFs, scans, photographs, and ordered image sets; provider output can be malformed or plausible but wrong. Because the documents contain health data, the production path must also prove authenticated account ownership, India-only processing, retention controls, source linkage, and atomic publication.
 
-This change defines the production extraction adapter and its normalized contract. Durable dispatch, leases, and worker recovery remain in `add-queue-backed-extraction-worker`. Account-scoped storage and RLS remain in `adopt-supabase-data-boundary`. Patient assignment and profile publication remain in `define-first-release-family-health-experience` and consume the evidence classes defined here.
+This change defines the production extraction adapter and narrows the first-release trust-class contract for that adapter. Durable dispatch, leases, and worker recovery remain in `add-queue-backed-extraction-worker`. Account-scoped storage and RLS remain in `adopt-supabase-data-boundary`. The general evidence classes, patient assignment, and profile publication remain in `define-first-release-family-health-experience`.
 
 ## Goals / Non-Goals
 
@@ -75,7 +75,7 @@ The normalized contract contains exactly these V1 classes:
 3. `metric_observation`: literal lab analyte, decimal or categorical value, unit, reference range, flag, and observation date. These may publish automatically only after profile assignment resolves and remain `unreviewed_extracted`, correctable, and excluded from trusted memory.
 4. `memory_candidate`: either literal prescription medication/instruction fields or a `documented_condition_candidate` containing condition text literally written in the prescription or lab report. These begin pending and require explicit review before trusted memory publication.
 
-Prescription candidates retain medication name, strength, dosage form, dose, route, frequency, duration, and instructions when present. A documented-condition candidate retains the exact condition text and a source reference to the span that names it. Medication details, lab values, ranges, flags, symptoms, and general medical associations never create a condition candidate by themselves. A documented condition requires `confirm`, `edit`, or `ignore`; only confirmation or a reviewed replacement may enter trusted memory.
+Prescription candidates retain medication name, strength, dosage form, dose, route, frequency, duration, and instructions when present. A documented-condition candidate retains the exact extracted condition text and a source reference to an affirmative statement that the patient has that condition. Negated or ruled-out conditions, screening statements, uncertainty, family history, and statements about someone other than the patient are omitted. Medication details, lab values, ranges, flags, symptoms, and general medical associations never create a condition candidate by themselves. A documented condition requires `confirm`, `edit`, or `ignore`; only confirmation or a reviewed replacement may enter trusted memory.
 
 The adapter omits unavailable or unsupported values instead of inferring them. It does not produce diagnoses, clinical interpretations, or provider-authored patient matches. A resolvable citation to text that does not itself name the proposed condition is semantically unsupported and causes that candidate to be omitted; a missing, mismatched, or fabricated source reference invalidates the complete attempt.
 
@@ -124,7 +124,7 @@ Recall is reported but is not a safety gate; omission is preferable to an incorr
 
 ## Migration Plan
 
-1. Add the four-class normalized contract, including prescription and literal documented-condition memory subtypes, authenticated web-upload logical-document inputs, component provenance, source-reference validation, and safe failure taxonomy behind a disabled production feature flag.
+1. Add the four-class normalized contract, including prescription and literal documented-condition memory subtypes, authenticated web-upload logical-document inputs, component provenance, source-reference validation, and safe failure taxonomy without deploying it to production.
 2. Configure Mumbai KMS, S3, SNS, SQS, Textract, and Bedrock resources; verify region and ZDR policy before accepting production traffic.
 3. Implement and contract-test the native gate, Textract conversion, Mistral schema adapter, literal-condition/no-inference validation, atomic commit, and encrypted raw-result lifecycle.
 4. Run the de-identified corpus and publish the versioned quality report. Do not enable production unless every gate passes.

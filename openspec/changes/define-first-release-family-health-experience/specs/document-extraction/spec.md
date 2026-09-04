@@ -1,10 +1,10 @@
 ## MODIFIED Requirements
 
 ### Requirement: Explicit logical-document extraction lifecycle
-The service SHALL represent each consented immutable logical-document extraction as an attempt-aware job with public status, internal phase, timing, provider-component provenance, processing method, routing reason, and safe failure information.
+The service SHALL represent each authenticated, account-owned immutable logical-document extraction as an attempt-aware job with public status, internal phase, timing, provider-component provenance, processing method, routing reason, and safe failure information.
 
 #### Scenario: Queue one logical document
-- **WHEN** a consented upload-complete logical document is accepted
+- **WHEN** an authenticated, account-owned upload-complete logical document is accepted
 - **THEN** the service SHALL create one job in `queued` for that document and attempt
 - **AND** the source SHALL move to `queued_for_extraction`
 
@@ -119,7 +119,7 @@ Every normalized item SHALL contain at least one `SourceReference` with source p
 - **THEN** normalization SHALL omit that candidate
 - **AND** other valid normalized items MAY still commit when the complete result passes all validation rules
 
-### Requirement: Separate extraction trust classes
+### Requirement: Explicit extraction trust classes
 The extraction result SHALL preserve literal evidence and SHALL NOT infer a condition, diagnosis, follow-up, or other clinical interpretation in V1. It MAY extract a `documented_condition_candidate` only when a prescription or lab report literally names the condition.
 
 #### Scenario: Extract patient evidence
@@ -144,10 +144,14 @@ The extraction result SHALL preserve literal evidence and SHALL NOT infer a cond
 - **AND** it SHALL require explicit submitted review before becoming medical memory
 
 #### Scenario: Extract a condition written in a prescription or lab report
-- **WHEN** a prescription or lab report literally names a condition
+- **WHEN** a prescription or lab report affirmatively states that the patient has a literally named condition
 - **THEN** extraction MAY return a source-linked `memory_candidate` with subtype `documented_condition_candidate`
 - **AND** the candidate SHALL contain the exact condition text written in the document and a source reference to the span that names it
 - **AND** it SHALL begin `pending` and remain outside trusted medical memory, Chat evidence, and Drive condition groups until the account manager confirms or edits it
+
+#### Scenario: A condition mention is not an affirmative statement about the patient
+- **WHEN** cited text negates or rules out a condition, describes screening or uncertainty, records family history, or refers to someone other than the patient
+- **THEN** extraction SHALL NOT create a documented-condition candidate from that mention
 
 #### Scenario: Medication evidence does not state a condition
 - **WHEN** a prescription contains medication names, strengths, dosages, routes, frequencies, durations, or instructions but does not literally name a condition

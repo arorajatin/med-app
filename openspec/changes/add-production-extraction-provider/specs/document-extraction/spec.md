@@ -1,3 +1,53 @@
+## MODIFIED Requirements
+
+### Requirement: Explicit extraction trust classes
+The normalized production contract SHALL classify each supported item as `patient_evidence`, `document_metadata_candidate`, `metric_observation`, or `memory_candidate` and SHALL apply the corresponding publication boundary. A `memory_candidate` MAY use subtype `documented_condition_candidate` only when the cited prescription or lab-report text literally names the condition. The adapter SHALL NOT infer a condition or diagnosis from medication details, lab observations, symptoms, or general medical knowledge.
+
+#### Scenario: Extract patient evidence
+- **WHEN** a document contains a literal patient name and may also contain a patient identifier or date of birth
+- **THEN** the adapter SHALL return source-linked `patient_evidence` for account-local assignment only
+- **AND** patient evidence MAY retain the source-linked date of birth when it is present
+- **AND** the date of birth SHALL NOT be copied to a profile or used for automatic assignment
+- **AND** the evidence SHALL remain untrusted medical data
+
+#### Scenario: Extract document metadata
+- **WHEN** a document supports a report date, issuer or provider, type, or display-name suggestion
+- **THEN** the adapter SHALL return a source-linked `document_metadata_candidate`
+- **AND** that candidate SHALL require review before becoming trusted metadata
+
+#### Scenario: Extract a lab observation
+- **WHEN** a lab report supports an analyte, decimal or categorical value, unit, reference range, flag, or observation date
+- **THEN** the adapter SHALL return a source-linked `metric_observation` containing only literal supported values
+- **AND** the observation MAY publish only after profile assignment resolves
+- **AND** a published observation SHALL remain `unreviewed_extracted`, correctable, and separate from trusted memory
+
+#### Scenario: Extract a prescription candidate
+- **WHEN** a prescription supports a medication name, strength, dosage form, dose, route, frequency, duration, or instruction
+- **THEN** the adapter SHALL return a source-linked `memory_candidate`
+- **AND** that candidate SHALL remain pending until explicitly reviewed
+
+#### Scenario: Extract a condition written in the document
+- **WHEN** a prescription or lab report affirmatively states that the patient has a literally named condition
+- **THEN** the adapter MAY return a source-linked `memory_candidate` with subtype `documented_condition_candidate`
+- **AND** the candidate SHALL contain the exact condition text written in the document and a source reference to the span that names it
+- **AND** that candidate SHALL remain pending until explicitly confirmed, edited, or ignored
+
+#### Scenario: A condition mention is not an affirmative statement about the patient
+- **WHEN** cited text negates or rules out a condition, describes screening or uncertainty, records family history, or refers to someone other than the patient
+- **THEN** the adapter SHALL NOT create a documented-condition candidate from that mention
+
+#### Scenario: Medication or lab evidence does not name a condition
+- **WHEN** a document contains medication details, lab measurements, reference ranges, or abnormal flags but does not literally name a condition
+- **THEN** the adapter SHALL NOT create a documented-condition candidate from those details
+
+#### Scenario: Symptoms or general knowledge do not name a condition
+- **WHEN** a document contains symptoms or could be associated with a condition through general medical knowledge but does not literally name that condition
+- **THEN** the adapter SHALL NOT create a documented-condition candidate from those symptoms or associations
+
+#### Scenario: A value is absent or interpretive
+- **WHEN** a schema value is unavailable from the cited document text or would require diagnosis or clinical interpretation
+- **THEN** the adapter SHALL omit the value rather than infer or fabricate it
+
 ## ADDED Requirements
 
 ### Requirement: Fixed production extraction pipeline
@@ -21,7 +71,7 @@ The service SHALL use `pdfplumber`, Amazon Textract, and Amazon Bedrock Mistral 
 The production adapter SHALL process one immutable logical document per attempt and SHALL support only unencrypted PDF, JPEG, and PNG input representing an English-language lab report or prescription that completed through an authenticated `direct_file` or `camera` web-upload route.
 
 #### Scenario: Accept a supported logical document
-- **WHEN** a consented input is one PDF, one image, or an ordered JPEG/PNG image set within all product limits
+- **WHEN** an authenticated, account-owned input is one PDF, one image, or an ordered JPEG/PNG image set within all product limits
 - **THEN** the adapter SHALL preserve source-part order and logical page numbering for one extraction attempt
 
 #### Scenario: Receive input outside authenticated web upload
@@ -82,50 +132,6 @@ The adapter SHALL convert native text or Textract output into a provider-neutral
 - **THEN** the complete attempt SHALL fail terminally
 - **AND** none of that attempt's otherwise valid items SHALL be published
 
-### Requirement: Explicit extraction trust classes
-The normalized production contract SHALL classify each supported item as `patient_evidence`, `document_metadata_candidate`, `metric_observation`, or `memory_candidate` and SHALL apply the corresponding publication boundary. A `memory_candidate` MAY use subtype `documented_condition_candidate` only when the cited prescription or lab-report text literally names the condition. The adapter SHALL NOT infer a condition or diagnosis from medication details, lab observations, symptoms, or general medical knowledge.
-
-#### Scenario: Extract patient evidence
-- **WHEN** a document contains a literal patient name and may also contain a patient identifier or date of birth
-- **THEN** the adapter SHALL return source-linked `patient_evidence` for account-local assignment only
-- **AND** patient evidence MAY retain the source-linked date of birth when it is present
-- **AND** the date of birth SHALL NOT be copied to a profile or used for automatic assignment
-- **AND** the evidence SHALL remain untrusted medical data
-
-#### Scenario: Extract document metadata
-- **WHEN** a document supports a report date, issuer or provider, type, or display-name suggestion
-- **THEN** the adapter SHALL return a source-linked `document_metadata_candidate`
-- **AND** that candidate SHALL require review before becoming trusted metadata
-
-#### Scenario: Extract a lab observation
-- **WHEN** a lab report supports an analyte, decimal or categorical value, unit, reference range, flag, or observation date
-- **THEN** the adapter SHALL return a source-linked `metric_observation` containing only literal supported values
-- **AND** the observation MAY publish only after profile assignment resolves
-- **AND** a published observation SHALL remain `unreviewed_extracted`, correctable, and separate from trusted memory
-
-#### Scenario: Extract a prescription candidate
-- **WHEN** a prescription supports a medication name, strength, dosage form, dose, route, frequency, duration, or instruction
-- **THEN** the adapter SHALL return a source-linked `memory_candidate`
-- **AND** that candidate SHALL remain pending until explicitly reviewed
-
-#### Scenario: Extract a condition written in the document
-- **WHEN** a prescription or lab report contains text that literally names a condition
-- **THEN** the adapter MAY return a source-linked `memory_candidate` with subtype `documented_condition_candidate`
-- **AND** the candidate SHALL contain the exact condition text written in the document and a source reference to the span that names it
-- **AND** that candidate SHALL remain pending until explicitly confirmed, edited, or ignored
-
-#### Scenario: Medication or lab evidence does not name a condition
-- **WHEN** a document contains medication details, lab measurements, reference ranges, or abnormal flags but does not literally name a condition
-- **THEN** the adapter SHALL NOT create a documented-condition candidate from those details
-
-#### Scenario: Symptoms or general knowledge do not name a condition
-- **WHEN** a document contains symptoms or could be associated with a condition through general medical knowledge but does not literally name that condition
-- **THEN** the adapter SHALL NOT create a documented-condition candidate from those symptoms or associations
-
-#### Scenario: A value is absent or interpretive
-- **WHEN** a schema value is unavailable from the cited document text or would require diagnosis or clinical interpretation
-- **THEN** the adapter SHALL omit the value rather than infer or fabricate it
-
 ### Requirement: Exact account-local assignment boundary
 Automatic profile assignment SHALL use source-linked patient evidence only after extraction and SHALL match only profiles and explicit aliases owned by the same account.
 
@@ -164,16 +170,11 @@ An extraction attempt SHALL publish one complete validated result set or no new 
 - **THEN** the attempt SHALL end terminally without automatic fallback to another provider, region, or the mock
 
 ### Requirement: Privacy-safe retention and operations
-The production path SHALL require the governing accepted account-level extraction-consent snapshot without another prompt for each document or condition candidate, process and stage medical content only in `ap-south-1`, and restrict retained content to the report's approved audit lifecycle.
+The production path SHALL require authenticated account ownership, process and stage medical content only in `ap-south-1`, and restrict retained content to the report's approved audit lifecycle.
 
-#### Scenario: Consent is absent
-- **WHEN** a logical document lacks valid AI-processing consent
+#### Scenario: Account ownership is absent
+- **WHEN** a logical document is not owned by the authenticated account
 - **THEN** the service SHALL NOT invoke `pdfplumber`, Textract, or Bedrock for extraction
-
-#### Scenario: Account consent already governs the upload
-- **WHEN** an authenticated web upload references an accepted account-level extraction-consent snapshot
-- **THEN** the service SHALL treat that snapshot as the governing consent for extraction dispatch
-- **AND** it SHALL NOT ask for another consent choice for the document or any documented-condition candidate it produces
 
 #### Scenario: Retain a successful result
 - **WHEN** an extraction attempt commits successfully
@@ -186,7 +187,7 @@ The production path SHALL require the governing accepted account-level extractio
 - **AND** a 24-hour lifecycle policy SHALL provide a deletion backstop
 
 #### Scenario: Invoke Bedrock
-- **WHEN** a consented layout stream is sent to Mistral Large 3
+- **WHEN** an authorized layout stream is sent to Mistral Large 3
 - **THEN** the invocation SHALL use `data_retention_mode: none`
 - **AND** IAM or SCP policy SHALL prevent relaxing the zero-data-retention requirement
 

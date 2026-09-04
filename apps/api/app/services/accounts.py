@@ -13,7 +13,12 @@ class AccountContext:
 
 
 def resolve_account_context(
-    db: Session, *, provider: str, provider_subject: str
+    db: Session,
+    *,
+    provider: str,
+    provider_subject: str,
+    upstream_provider: str | None = None,
+    email: str | None = None,
 ) -> AccountContext:
     """Resolve a verified identity, creating its application account idempotently."""
 
@@ -27,6 +32,9 @@ def resolve_account_context(
     )
     if identity is not None:
         account = db.query(models.Account).filter(models.Account.id == identity.account_id).one()
+        _refresh_identity_provenance(
+            db, identity=identity, upstream_provider=upstream_provider, email=email
+        )
         return AccountContext(account=account, identity=identity)
 
     account = models.Account()
@@ -36,6 +44,8 @@ def resolve_account_context(
         account_id=account.id,
         provider=provider,
         provider_subject=provider_subject,
+        upstream_provider=upstream_provider,
+        email=email,
         verified_at=datetime.now(UTC),
     )
     db.add(identity)
@@ -45,10 +55,22 @@ def resolve_account_context(
     return AccountContext(account=account, identity=identity)
 
 
-def latest_consent(db: Session, *, account_id: str) -> models.ConsentEvidence | None:
-    return (
-        db.query(models.ConsentEvidence)
-        .filter(models.ConsentEvidence.account_id == account_id)
-        .order_by(models.ConsentEvidence.accepted_at.desc(), models.ConsentEvidence.id.desc())
-        .first()
-    )
+def _refresh_identity_provenance(
+    db: Session,
+    *,
+    identity: models.AuthIdentity,
+    upstream_provider: str | None,
+    email: str | None,
+) -> None:
+    """Keep the latest verified sign-in method and address on a known identity."""
+
+    changed = False
+    if upstream_provider is not None and identity.upstream_provider != upstream_provider:
+        identity.upstream_provider = upstream_provider
+        changed = True
+    if email is not None and identity.email != email:
+        identity.email = email
+        changed = True
+    if changed:
+        db.commit()
+        db.refresh(identity)

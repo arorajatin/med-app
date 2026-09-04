@@ -2,30 +2,20 @@
 
 ## Purpose
 
-Define account-level AI-processing consent, staged logical-document ingestion, explicit patient
-assignment, and private file storage for medical records.
+Define staged logical-document ingestion, explicit patient assignment, and private file storage for
+medical records.
 
 ## Requirements
 
-### Requirement: Account-level AI-processing consent
-The service SHALL record versioned consent evidence for an account and SHALL snapshot the accepted
-consent on every ingestion. Accepted consent SHALL be a precondition for uploading, because every
-capability depends on AI processing, and the service SHALL NOT prompt for consent again for each
-document.
+### Requirement: Account-authorized AI processing
+Creating an application account SHALL authorize the AI processing required by the product. The
+service SHALL NOT store a separate application consent record or repeat that choice on an ingestion
+or medical record.
 
-#### Scenario: Accept consent
-- **WHEN** an account manager submits a policy version and accepted scope
-- **THEN** the service SHALL store consent evidence with the accepting identity and acceptance time
-
-#### Scenario: Ingest with accepted consent
-- **WHEN** a document is uploaded and the account has accepted consent
-- **THEN** the ingestion SHALL reference the most recently accepted consent evidence
-- **AND** the service SHALL create an extraction job for that ingestion
-
-#### Scenario: Ingest without accepted consent
-- **WHEN** a document is uploaded and the account has no accepted consent
-- **THEN** the service SHALL reject the upload with HTTP 403
-- **AND** the service SHALL NOT store the ingestion, its parts, or any file content
+#### Scenario: Ingest an account-owned document
+- **WHEN** an authenticated account uploads a document
+- **THEN** the service SHALL create an extraction job for that ingestion
+- **AND** the ingestion SHALL NOT store a separate AI-processing consent value or reference
 
 ### Requirement: Staged logical document ingestion
 The service SHALL accept a logical document as one to twenty ordered immutable source parts through

@@ -20,6 +20,12 @@ context: |
   - openspec/changes contains approved or candidate future work, not current behavior.
   - openspec/changes/archive preserves completed change history and design rationale.
   - Capability names are kebab-case and describe stable product behavior.
+  - Cross-change delivery order lives in openspec/README.md; within-change order and
+    checklist state live in tasks.md; review.md records the actual resume point.
+  - A change that modifies a requirement archives only after the change that adds or
+    owns that requirement.
+  - Specifications define behavior and do not carry implementation order. Do not create
+    a parallel implementation-plan file.
   - Every active change keeps review and testing progress in review.md.
   - Before ending a partial review session, update review.md with the reviewed commit,
     completed scope, test results, open findings, and exact resume point.
@@ -37,6 +43,9 @@ rules:
     - Preserve the safety invariants from project context or explain any intentional change.
     - Include migration and rollback decisions for persistence or data-model changes.
   tasks:
+    - Keep tasks in dependency order. When stable task IDs make physical reordering
+      disruptive, add a compact order index that references those IDs without repeating
+      their acceptance criteria.
     - Include automated tests for every changed requirement.
     - Include a final review task that cannot complete until review.md is current.
     - Include a strict OpenSpec validation task before archival.

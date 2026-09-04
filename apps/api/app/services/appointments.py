@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app import models
-from app.ai.condition_safety import is_permitted_memory_category
+from app.ai.condition_safety import is_permitted_memory_fact
 
 
 def generate_checklist(
@@ -23,7 +23,11 @@ def generate_checklist(
         .order_by(models.MemoryFact.created_at.desc())
         .all()
     )
-    facts = [fact for fact in candidate_facts if is_permitted_memory_category(fact.category)][:8]
+    facts = [
+        fact
+        for fact in candidate_facts
+        if is_permitted_memory_fact(category=fact.category, provenance=fact.provenance)
+    ][:8]
 
     items: list[models.AppointmentChecklistItem] = []
     for fact in facts:

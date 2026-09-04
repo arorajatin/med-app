@@ -8,7 +8,6 @@ from app import models
 from app.ai.base import Extractor, SourceReferenceData
 from app.ai.condition_safety import enforce_condition_safety
 from app.ai.mock_provider import MockExtractor
-from app.config import Settings
 from app.services.common import recalculate_review_state
 from app.storage import LocalPrivateStorage
 
@@ -16,7 +15,6 @@ from app.storage import LocalPrivateStorage
 def create_extraction_job(
     db: Session,
     *,
-    settings: Settings,
     ingestion: models.Ingestion,
 ) -> models.ExtractionJob:
     job = models.ExtractionJob(

@@ -32,6 +32,8 @@ def upgrade() -> None:
         sa.Column("account_id", sa.String(), nullable=False),
         sa.Column("provider", sa.String(length=40), nullable=False),
         sa.Column("provider_subject", sa.String(length=255), nullable=False),
+        sa.Column("upstream_provider", sa.String(length=40), nullable=True),
+        sa.Column("email", sa.String(length=320), nullable=True),
         sa.Column("verified_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(
@@ -53,6 +55,8 @@ def upgrade() -> None:
         sa.Column("display_name", sa.String(length=160), nullable=False),
         sa.Column("relationship", sa.String(length=80), nullable=False),
         sa.Column("sex", sa.String(length=40), nullable=True),
+        sa.Column("conditions_declared_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("medications_declared_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(
@@ -96,33 +100,6 @@ def upgrade() -> None:
     )
     op.create_index(
         op.f("ix_appointments_profile_id"), "appointments", ["profile_id"], unique=False
-    )
-    op.create_table(
-        "consent_evidence",
-        sa.Column("id", sa.String(), nullable=False),
-        sa.Column("account_id", sa.String(), nullable=False),
-        sa.Column("actor_identity_id", sa.String(), nullable=False),
-        sa.Column("accepted_scope", sa.JSON(), nullable=False),
-        sa.Column("policy_version", sa.String(length=80), nullable=False),
-        sa.Column("accepted_at", sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["account_id"],
-            ["accounts.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["actor_identity_id"],
-            ["auth_identities.id"],
-        ),
-        sa.PrimaryKeyConstraint("id"),
-    )
-    op.create_index(
-        op.f("ix_consent_evidence_account_id"), "consent_evidence", ["account_id"], unique=False
-    )
-    op.create_index(
-        op.f("ix_consent_evidence_actor_identity_id"),
-        "consent_evidence",
-        ["actor_identity_id"],
-        unique=False,
     )
     op.create_table(
         "profile_health_context",
@@ -217,7 +194,6 @@ def upgrade() -> None:
         sa.Column("account_id", sa.String(), nullable=False),
         sa.Column("provisional_profile_id", sa.String(), nullable=True),
         sa.Column("resolved_profile_id", sa.String(), nullable=True),
-        sa.Column("consent_evidence_id", sa.String(), nullable=False),
         sa.Column("resolved_by_identity_id", sa.String(), nullable=True),
         sa.Column("source_channel", sa.String(length=20), nullable=False),
         sa.Column("grouping_id", sa.String(), nullable=False),
@@ -242,10 +218,6 @@ def upgrade() -> None:
             ["accounts.id"],
         ),
         sa.ForeignKeyConstraint(
-            ["consent_evidence_id"],
-            ["consent_evidence.id"],
-        ),
-        sa.ForeignKeyConstraint(
             ["provisional_profile_id"],
             ["profiles.id"],
         ),
@@ -260,12 +232,6 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(op.f("ix_ingestions_account_id"), "ingestions", ["account_id"], unique=False)
-    op.create_index(
-        op.f("ix_ingestions_consent_evidence_id"),
-        "ingestions",
-        ["consent_evidence_id"],
-        unique=False,
-    )
     op.create_index(
         op.f("ix_ingestions_provisional_profile_id"),
         "ingestions",
@@ -810,6 +776,7 @@ def upgrade() -> None:
         sa.Column("source_record_id", sa.String(), nullable=True),
         sa.Column("source_candidate_id", sa.String(), nullable=True),
         sa.Column("source_reference_id", sa.String(), nullable=True),
+        sa.Column("attested_by_identity_id", sa.String(), nullable=True),
         sa.Column("provenance", sa.String(length=40), nullable=False),
         sa.Column("category", sa.String(length=80), nullable=False),
         sa.Column("title", sa.String(length=240), nullable=False),
@@ -821,6 +788,10 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["account_id"],
             ["accounts.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["attested_by_identity_id"],
+            ["auth_identities.id"],
         ),
         sa.ForeignKeyConstraint(
             ["profile_id"],
@@ -1001,7 +972,6 @@ def downgrade() -> None:
     op.drop_table("extraction_jobs")
     op.drop_index(op.f("ix_ingestions_resolved_profile_id"), table_name="ingestions")
     op.drop_index(op.f("ix_ingestions_provisional_profile_id"), table_name="ingestions")
-    op.drop_index(op.f("ix_ingestions_consent_evidence_id"), table_name="ingestions")
     op.drop_index(op.f("ix_ingestions_account_id"), table_name="ingestions")
     op.drop_table("ingestions")
     op.drop_index(op.f("ix_appointment_reviews_profile_id"), table_name="appointment_reviews")
@@ -1011,9 +981,6 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_profile_health_context_profile_id"), table_name="profile_health_context")
     op.drop_index(op.f("ix_profile_health_context_account_id"), table_name="profile_health_context")
     op.drop_table("profile_health_context")
-    op.drop_index(op.f("ix_consent_evidence_actor_identity_id"), table_name="consent_evidence")
-    op.drop_index(op.f("ix_consent_evidence_account_id"), table_name="consent_evidence")
-    op.drop_table("consent_evidence")
     op.drop_index(op.f("ix_appointments_profile_id"), table_name="appointments")
     op.drop_index(op.f("ix_appointments_account_id"), table_name="appointments")
     op.drop_table("appointments")

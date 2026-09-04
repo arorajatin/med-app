@@ -13,6 +13,8 @@ BASELINE_MEMORY_SUBTYPES = frozenset(
     {"prescription_medication", "prescription_instruction"}
 )
 BASELINE_MEMORY_CATEGORIES = frozenset({"medication", "test_result", "follow_up"})
+USER_ATTESTED_PROVENANCE = "user_attested"
+USER_ATTESTED_CATEGORIES = frozenset({"condition", "medication"})
 
 
 def is_condition_shaped_name(value: str) -> bool:
@@ -26,6 +28,20 @@ def is_condition_shaped_candidate(candidate: MemoryCandidateDatum) -> bool:
 
 def is_permitted_memory_category(category: str) -> bool:
     return category.strip().casefold() in BASELINE_MEMORY_CATEGORIES
+
+
+def is_permitted_memory_fact(*, category: str, provenance: str) -> bool:
+    """Decide whether one stored fact may be read back as trusted memory.
+
+    A condition the account manager typed is trusted because a person asserted it.
+    A condition derived from a document stays blocked until literal source
+    validation exists, so provenance, not the category alone, decides.
+    """
+
+    normalized = category.strip().casefold()
+    if provenance == USER_ATTESTED_PROVENANCE:
+        return normalized in USER_ATTESTED_CATEGORIES
+    return is_permitted_memory_category(normalized)
 
 
 def _references_are_structured(references: Iterable[SourceReferenceData]) -> bool:

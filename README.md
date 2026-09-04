@@ -7,7 +7,7 @@ Product monorepo for a private-by-default family medical-records application.
 ```text
 apps/
   api/        FastAPI backend and workers
-  web/        V1 web client home; framework not selected yet
+  web/        V1 web client: React, TypeScript, and Vite
 
 contracts/    Shared API-contract documentation and generated-client boundary
 infra/        Supabase and AWS infrastructure definitions
@@ -46,5 +46,29 @@ uv run --package med-app-backend python -m app.worker once
 npx --yes @fission-ai/openspec@1.6.0 validate --all --strict
 ```
 
-Backend-specific notes are in [apps/api/README.md](apps/api/README.md). Product behavior and planned
-work remain rooted in [openspec/README.md](openspec/README.md).
+## Web setup
+
+Run web commands from `apps/web`. The dev server proxies `/api` to a backend running on port 8000.
+
+```bash
+npm install
+cp .env.example .env   # then fill in the Supabase URL and anon key
+npm run dev
+```
+
+Sign-in is Google through Supabase Auth, so the backend must run with `DEV_AUTH_ENABLED=false` and
+the Supabase project must have the Google provider enabled. See
+[apps/web/README.md](apps/web/README.md) for the full setup.
+
+Useful checks:
+
+```bash
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+```
+
+Backend-specific notes are in [apps/api/README.md](apps/api/README.md). Web notes are in
+[apps/web/README.md](apps/web/README.md). Product behavior and planned work remain rooted in
+[openspec/README.md](openspec/README.md).

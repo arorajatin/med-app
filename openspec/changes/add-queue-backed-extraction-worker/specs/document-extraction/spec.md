@@ -1,13 +1,12 @@
 ## ADDED Requirements
 
 ### Requirement: Dispatch one immutable logical document
-The extraction system SHALL create one job only for an upload-complete logical document created through an authenticated `direct_file` or `camera` web-upload route with an accepted account-level consent snapshot, and SHALL make every attempt in that job generation reference the same immutable ordered source-part manifest and consent snapshot.
+The extraction system SHALL create one job only for an upload-complete logical document created through an authenticated, account-owned `direct_file` or `camera` web-upload route, and SHALL make every attempt in that job generation reference the same immutable ordered source-part manifest.
 
 #### Scenario: Dispatch a finalized report
-- **WHEN** every source part has committed, the logical document is finalized, and it references an accepted account-level processing-consent snapshot
+- **WHEN** every source part has committed and the authenticated, account-owned logical document is finalized
 - **THEN** the service SHALL persist one queued job and one dispatch outbox event in the finalization transaction
 - **AND** each attempt SHALL process every source part in its stored ordinal order
-- **AND** the service SHALL NOT request another consent choice for the document or a candidate it produces
 
 #### Scenario: Reject another ingestion source
 - **WHEN** a logical document does not carry immutable `direct_file` or `camera` provenance stamped by an authenticated web-upload route
@@ -50,7 +49,7 @@ Application queue messages, Textract continuation messages, metrics, traces, and
 #### Scenario: Dispatch application work
 - **WHEN** the service creates an extraction or continuation message
 - **THEN** the serialized application payload SHALL be limited to schema/event version, opaque job, attempt, outbox, provider-job, and correlation identifiers, plus enumerated provider status when applicable
-- **AND** the worker SHALL load the governing consent snapshot, ownership, manifest, and private object references from the database after claiming the attempt
+- **AND** the worker SHALL load ownership, manifest, and private object references from the database after claiming the attempt
 
 #### Scenario: Record telemetry or an error
 - **WHEN** the dispatcher, worker, provider callback, reconciler, or cleanup process emits telemetry
@@ -169,7 +168,7 @@ The worker SHALL acknowledge queue delivery only after its phase transition, Tex
 - **THEN** redelivery SHALL load the committed state and continue or acknowledge idempotently
 
 ### Requirement: Cancel and clean up report work safely
-Report deletion SHALL prevent new extraction work, make late deliveries harmless, and trigger idempotent regional cleanup. V1 SHALL NOT introduce a user-facing consent-revocation workflow through this worker contract.
+Report deletion SHALL prevent new extraction work, make late deliveries harmless, and trigger idempotent regional cleanup.
 
 #### Scenario: Delete a report with pending work
 - **WHEN** an owned report is deleted while its job is queued, claimed, retry-scheduled, or waiting for Textract

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app import models
 from app.ai.base import Extractor
-from app.ai.condition_safety import is_permitted_memory_category
+from app.ai.condition_safety import is_permitted_memory_fact
 from app.api.deps import get_extractor, get_storage
 from app.auth import get_current_user
 from app.config import Settings, get_settings
@@ -17,22 +17,24 @@ from app.schemas import (
     AppointmentRead,
     AppointmentReviewCreate,
     AppointmentReviewRead,
+    AttestedMemoryRead,
+    AttestedMemoryUpdate,
     ChecklistItemRead,
-    ConsentCreate,
-    ConsentRead,
     CurrentUser,
     ExtractionJobRead,
     ExtractionRead,
     IngestionUploadResult,
     MedicalRecordRead,
     MemoryRead,
+    OnboardingRead,
     ProfileCreate,
     ProfileHealthContextCreate,
     ProfileHealthContextRead,
     ProfileRead,
     RecordReviewRequest,
+    SelfProfileUpdate,
 )
-from app.services.accounts import AccountContext, latest_consent, resolve_account_context
+from app.services.accounts import AccountContext, resolve_account_context
 from app.services.appointments import generate_checklist
 from app.services.common import (
     require_appointment,
@@ -43,6 +45,13 @@ from app.services.common import (
 from app.services.extraction import create_extraction_job, retry_extraction_job, run_extraction_job
 from app.services.ingestions import resolve_ingestion_assignment
 from app.services.memory import apply_record_review
+from app.services.onboarding import (
+    attested_facts,
+    declare_attested_memory,
+    ensure_self_profile,
+    refresh_onboarding_status,
+    self_profile,
+)
 from app.storage import LocalPrivateStorage
 
 router = APIRouter()
@@ -67,25 +76,42 @@ def get_account(
     return _account_context(db, user=user, settings=settings).account
 
 
-@router.post("/account/consents", response_model=ConsentRead, status_code=status.HTTP_201_CREATED)
-def accept_consent(
-    payload: ConsentCreate,
+@router.get("/account/onboarding", response_model=OnboardingRead)
+def get_onboarding(
     db: Session = Depends(get_db),
     user: CurrentUser = Depends(get_current_user),
     settings: Settings = Depends(get_settings),
-) -> models.ConsentEvidence:
+) -> OnboardingRead:
     context = _account_context(db, user=user, settings=settings)
-    consent = models.ConsentEvidence(
-        account_id=context.account.id,
-        actor_identity_id=context.identity.id,
-        accepted_scope=payload.accepted_scope,
-        policy_version=payload.policy_version,
-        accepted_at=datetime.now(UTC),
+    state = refresh_onboarding_status(db, account=context.account)
+    return OnboardingRead.model_validate(
+        {
+            "status": state.status,
+            "next_step": state.next_step,
+            "completed_steps": list(state.completed_steps),
+            "self_profile": state.self_profile,
+        }
     )
-    db.add(consent)
-    db.commit()
-    db.refresh(consent)
-    return consent
+
+
+@router.put("/account/onboarding/self-profile", response_model=ProfileRead)
+def put_self_profile(
+    payload: SelfProfileUpdate,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+    settings: Settings = Depends(get_settings),
+) -> models.Profile:
+    """Create the account's `self` profile, or reuse it when onboarding resumes."""
+
+    context = _account_context(db, user=user, settings=settings)
+    profile = ensure_self_profile(
+        db,
+        account_id=context.account.id,
+        display_name=payload.display_name,
+        sex=payload.sex,
+    )
+    refresh_onboarding_status(db, account=context.account)
+    return profile
 
 
 @router.post("/profiles", response_model=ProfileRead, status_code=status.HTTP_201_CREATED)
@@ -96,10 +122,16 @@ def create_profile(
     settings: Settings = Depends(get_settings),
 ) -> models.Profile:
     context = _account_context(db, user=user, settings=settings)
+    if payload.relationship == "self" and self_profile(db, account_id=context.account.id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This account already has a self profile.",
+        )
     profile = models.Profile(account_id=context.account.id, **payload.model_dump())
     db.add(profile)
     db.commit()
     db.refresh(profile)
+    refresh_onboarding_status(db, account=context.account)
     return profile
 
 
@@ -141,7 +173,8 @@ def create_profile_health_context(
     user: CurrentUser = Depends(get_current_user),
     settings: Settings = Depends(get_settings),
 ) -> models.ProfileHealthContext:
-    account_id = _account_context(db, user=user, settings=settings).account.id
+    context = _account_context(db, user=user, settings=settings)
+    account_id = context.account.id
     require_profile(db, account_id=account_id, profile_id=profile_id)
     normalized_weight = None
     if payload.entered_weight is not None and payload.weight_unit is not None:
@@ -163,7 +196,44 @@ def create_profile_health_context(
     db.add(health_context)
     db.commit()
     db.refresh(health_context)
+    refresh_onboarding_status(db, account=context.account)
     return health_context
+
+
+@router.put("/profiles/{profile_id}/attested-conditions", response_model=AttestedMemoryRead)
+def declare_attested_conditions(
+    profile_id: str,
+    payload: AttestedMemoryUpdate,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+    settings: Settings = Depends(get_settings),
+) -> AttestedMemoryRead:
+    return _declare_attested_memory(
+        profile_id=profile_id,
+        payload=payload,
+        category="condition",
+        db=db,
+        user=user,
+        settings=settings,
+    )
+
+
+@router.put("/profiles/{profile_id}/attested-medications", response_model=AttestedMemoryRead)
+def declare_attested_medications(
+    profile_id: str,
+    payload: AttestedMemoryUpdate,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+    settings: Settings = Depends(get_settings),
+) -> AttestedMemoryRead:
+    return _declare_attested_memory(
+        profile_id=profile_id,
+        payload=payload,
+        category="medication",
+        db=db,
+        user=user,
+        settings=settings,
+    )
 
 
 @router.post(
@@ -396,7 +466,11 @@ def get_memory(
         .order_by(models.MemoryFact.created_at.desc())
         .all()
     )
-    facts = [fact for fact in stored_facts if is_permitted_memory_category(fact.category)]
+    facts = [
+        fact
+        for fact in stored_facts
+        if is_permitted_memory_fact(category=fact.category, provenance=fact.provenance)
+    ]
     return MemoryRead.model_validate({"profile": profile, "facts": facts})
 
 
@@ -477,7 +551,7 @@ def get_appointment_checklist(
             models.MemoryFact.is_active.is_(True),
         )
         .all()
-        if is_permitted_memory_category(fact.category)
+        if is_permitted_memory_fact(category=fact.category, provenance=fact.provenance)
     }
     return [
         item
@@ -516,7 +590,45 @@ def create_appointment_review(
 
 def _account_context(db: Session, *, user: CurrentUser, settings: Settings) -> AccountContext:
     provider = "development" if settings.dev_auth_enabled else "supabase"
-    return resolve_account_context(db, provider=provider, provider_subject=user.id)
+    return resolve_account_context(
+        db,
+        provider=provider,
+        provider_subject=user.id,
+        upstream_provider=user.upstream_provider,
+        email=user.email,
+    )
+
+
+def _declare_attested_memory(
+    *,
+    profile_id: str,
+    payload: AttestedMemoryUpdate,
+    category: str,
+    db: Session,
+    user: CurrentUser,
+    settings: Settings,
+) -> AttestedMemoryRead:
+    context = _account_context(db, user=user, settings=settings)
+    account_id = context.account.id
+    profile = require_profile(db, account_id=account_id, profile_id=profile_id)
+    declared_at = declare_attested_memory(
+        db,
+        account_id=account_id,
+        profile=profile,
+        category=category,
+        entries=[(entry.title, entry.details) for entry in payload.entries],
+        attested_by_identity_id=context.identity.id,
+    )
+    refresh_onboarding_status(db, account=context.account)
+    return AttestedMemoryRead.model_validate(
+        {
+            "category": category,
+            "declared_at": declared_at,
+            "facts": attested_facts(
+                db, account_id=account_id, profile_id=profile.id, category=category
+            ),
+        }
+    )
 
 
 async def _receive_ingestion(
@@ -547,16 +659,9 @@ async def _receive_ingestion(
     context = _account_context(db, user=user, settings=settings)
     if provisional_profile_id is not None:
         require_profile(db, account_id=context.account.id, profile_id=provisional_profile_id)
-    consent = latest_consent(db, account_id=context.account.id)
-    if consent is None:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="This account has not accepted AI processing, which every feature requires.",
-        )
     ingestion = models.Ingestion(
         account_id=context.account.id,
         provisional_profile_id=provisional_profile_id,
-        consent_evidence_id=consent.id,
         source_channel=source_channel,
         display_filename=display_filename,
         user_context=user_context,
@@ -611,7 +716,7 @@ async def _receive_ingestion(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=str(exc)
         ) from exc
 
-    job = create_extraction_job(db, settings=settings, ingestion=ingestion)
+    job = create_extraction_job(db, ingestion=ingestion)
     if settings.extraction_run_inline:
         job = run_extraction_job(db, job_id=job.id, storage=storage, extractor=extractor)
 

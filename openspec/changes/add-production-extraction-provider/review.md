@@ -28,11 +28,11 @@ Baseline commit: 66e8382799534ed3acc8c0f87eae210f417a8d57
 
 ## Open Findings
 
-- The first-release, queue-worker, and Supabase-boundary planning dependencies now use the same web-upload boundary, account-consent snapshot, trust classes, literal-condition rule, exact matching, canonical retry policy, Mumbai boundary, retention, and deletion semantics.
+- The first-release, queue-worker, and Supabase-boundary planning dependencies now use the same authenticated web-upload boundary, trust classes, literal-condition rule, exact matching, canonical retry policy, Mumbai boundary, retention, and deletion semantics.
 - Implementation and provider evaluation evidence remain pending; production enablement remains blocked on privacy approval, ZDR, infrastructure/RLS, and fixture gates.
 
 ## Session History
 
 - 2026-08-01: Reconciled the extraction-provider planning artifacts with the approved V1 ingestion and extraction plan; implementation remains pending.
 - 2026-08-01: Completed cross-change reconciliation and strict all-change validation.
-- 2026-08-10: Reconciled authenticated web ingress, literal documented conditions, account-level consent, canonical retries, and the `apps/api/app/ai/` implementation path; strict validation passed.
+- 2026-08-10: Reconciled authenticated web ingress, literal documented conditions, canonical retries, and the `apps/api/app/ai/` implementation path; strict validation passed.

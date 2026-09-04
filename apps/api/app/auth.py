@@ -77,7 +77,29 @@ def _verify_supabase_jwt(token: str, settings: Settings) -> CurrentUser:
             detail="Supabase access token is missing a subject.",
         )
 
-    return CurrentUser(id=user_id)
+    return CurrentUser(
+        id=user_id,
+        email=_string_claim(claims.get("email")),
+        upstream_provider=_upstream_provider(claims),
+    )
+
+
+def _string_claim(value: object) -> str | None:
+    return value if isinstance(value, str) and value else None
+
+
+def _upstream_provider(claims: dict) -> str | None:
+    """Read the sign-in method from `app_metadata`, which only Supabase can write.
+
+    The sibling `user_metadata` is writable by the account holder, so it is never
+    a trustworthy source for how an identity was verified.
+    """
+
+    app_metadata = claims.get("app_metadata")
+    if not isinstance(app_metadata, dict):
+        return None
+    return _string_claim(app_metadata.get("provider"))
+
 
 # definitive method
 # _bearer_token -> extraction method

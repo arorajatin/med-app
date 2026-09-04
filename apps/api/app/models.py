@@ -58,23 +58,13 @@ class AuthIdentity(Base):
     account_id: Mapped[str] = mapped_column(ForeignKey("accounts.id"), index=True, nullable=False)
     provider: Mapped[str] = mapped_column(String(40), nullable=False)
     provider_subject: Mapped[str] = mapped_column(String(255), nullable=False)
+    # The account key stays the authentication provider and its stable subject.
+    # How the person proved who they are, such as `google`, is provenance beside
+    # it, so a later sign-in method never repoints the account.
+    upstream_provider: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(320), nullable=True)
     verified_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-
-
-class ConsentEvidence(Base):
-    """Versioned proof that an account manager accepted an AI-processing scope."""
-
-    __tablename__ = "consent_evidence"
-
-    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
-    account_id: Mapped[str] = mapped_column(ForeignKey("accounts.id"), index=True, nullable=False)
-    actor_identity_id: Mapped[str] = mapped_column(
-        ForeignKey("auth_identities.id"), index=True, nullable=False
-    )
-    accepted_scope: Mapped[dict] = mapped_column(JSON, nullable=False)
-    policy_version: Mapped[str] = mapped_column(String(80), nullable=False)
-    accepted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
 class Profile(Base):
@@ -96,6 +86,14 @@ class Profile(Base):
     display_name: Mapped[str] = mapped_column(String(160), nullable=False)
     relationship: Mapped[str] = mapped_column(String(80), default="self", nullable=False)
     sex: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    # An empty condition or medication list creates no fact, so these record that the
+    # account manager answered the question rather than skipped it.
+    conditions_declared_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    medications_declared_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, onupdate=utcnow
@@ -152,9 +150,6 @@ class Ingestion(Base):
     )
     resolved_profile_id: Mapped[str | None] = mapped_column(
         ForeignKey("profiles.id"), index=True, nullable=True
-    )
-    consent_evidence_id: Mapped[str] = mapped_column(
-        ForeignKey("consent_evidence.id"), index=True, nullable=False
     )
     resolved_by_identity_id: Mapped[str | None] = mapped_column(
         ForeignKey("auth_identities.id"), nullable=True
@@ -478,6 +473,9 @@ class MemoryFact(Base):
     )
     source_reference_id: Mapped[str | None] = mapped_column(
         ForeignKey("source_references.id"), nullable=True
+    )
+    attested_by_identity_id: Mapped[str | None] = mapped_column(
+        ForeignKey("auth_identities.id"), nullable=True
     )
     provenance: Mapped[str] = mapped_column(String(40), nullable=False)
     category: Mapped[str] = mapped_column(String(80), nullable=False)

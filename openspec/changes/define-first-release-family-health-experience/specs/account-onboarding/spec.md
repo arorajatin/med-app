@@ -59,18 +59,13 @@ The system SHALL automatically create one `self` family profile and SHALL collec
 - **THEN** the system SHALL resume at the first incomplete step
 - **AND** the account SHALL NOT create an additional `self` profile
 
-### Requirement: Capture account-level AI-processing consent
-The system SHALL present the account-level AI-processing terms during onboarding, describing document extraction and use of reviewed personal memory in Chat, and SHALL retain the accepted scope, policy version, and timestamp for the account. Acceptance SHALL be required to complete onboarding, and the first release SHALL NOT provide a mode in which an account operates with AI processing disabled.
+### Requirement: Account creation authorizes required AI processing
+The system SHALL state during signup that AI processing is inherent to document extraction and use of reviewed personal memory in Chat. Creating an account SHALL authorize that processing without a separate onboarding step, stored application consent record, per-document choice, or AI-disabled runtime mode.
 
-#### Scenario: Accept account-level consent
-- **WHEN** the account manager accepts the presented AI-processing terms
-- **THEN** future ingestions for that account SHALL be eligible for AI processing without another per-document consent prompt
-
-#### Scenario: Do not accept account-level consent
-- **WHEN** the account manager does not accept the presented AI-processing terms
-- **THEN** onboarding SHALL remain incomplete
-- **AND** the system SHALL NOT admit the account to Upload, Feed, Drive, or Chat
-- **AND** the system SHALL NOT dispatch AI extraction or send personal medical memory to an AI provider
+#### Scenario: Create an account
+- **WHEN** a verified identity creates an application account
+- **THEN** the account SHALL be eligible to use capabilities that require AI processing
+- **AND** onboarding SHALL begin with the `self` profile rather than a separate consent step
 
 ### Requirement: One manager owns the first-release family space
 The first release SHALL allow only the authenticated account manager to create and manage profiles and reports in that account's family space.

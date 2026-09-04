@@ -9,6 +9,10 @@ class CurrentUser(BaseModel):
     """Verified authentication identity injected into protected routes."""
 
     id: str
+    email: str | None = None
+    # Which upstream method verified this person, such as `google`. Read only from
+    # claims the identity provider controls, never from user-writable metadata.
+    upstream_provider: str | None = None
 
 
 class AccountRead(BaseModel):
@@ -18,20 +22,6 @@ class AccountRead(BaseModel):
     onboarding_status: str
     created_at: datetime
     updated_at: datetime
-
-
-class ConsentCreate(BaseModel):
-    policy_version: str = Field(min_length=1, max_length=80)
-    accepted_scope: dict
-
-
-class ConsentRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: str
-    policy_version: str
-    accepted_scope: dict
-    accepted_at: datetime
 
 
 class ProfileCreate(BaseModel):
@@ -49,6 +39,18 @@ class ProfileRead(BaseModel):
     sex: str | None
     created_at: datetime
     updated_at: datetime
+
+
+class SelfProfileUpdate(BaseModel):
+    display_name: str = Field(min_length=1, max_length=160)
+    sex: str | None = Field(default=None, max_length=40)
+
+
+class OnboardingRead(BaseModel):
+    status: str
+    next_step: str | None
+    completed_steps: list[str]
+    self_profile: ProfileRead | None
 
 
 class ProfileHealthContextCreate(BaseModel):
@@ -307,6 +309,23 @@ class MemoryFactRead(BaseModel):
 
 class MemoryRead(BaseModel):
     profile: ProfileRead
+    facts: list[MemoryFactRead]
+
+
+class AttestedEntry(BaseModel):
+    title: str = Field(min_length=1, max_length=240)
+    details: dict = Field(default_factory=dict)
+
+
+class AttestedMemoryUpdate(BaseModel):
+    """The complete current set. An empty list declares that there are none."""
+
+    entries: list[AttestedEntry] = Field(default_factory=list, max_length=100)
+
+
+class AttestedMemoryRead(BaseModel):
+    category: str
+    declared_at: datetime
     facts: list[MemoryFactRead]
 
 

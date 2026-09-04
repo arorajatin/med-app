@@ -21,7 +21,7 @@ Capture one medical report through the authenticated V1 web app, store it privat
 9. The service privately stores every validated source part, and the web app displays upload progress using safe report metadata.
 10. The report becomes upload complete only after every part is durable.
 11. The completed upload becomes eligible for Feed.
-12. One logical-document extraction begins in the background under the account-level AI consent accepted during onboarding, without another consent prompt.
+12. One logical-document extraction begins in the background under the account authorization established at creation, without a per-document processing choice.
 
 Direct-to-storage client uploads are prohibited; authenticated API-mediated web uploads are the supported V1 upload path. Email, inbound aliases, external connectors, and other non-web ingestion paths are outside V1.
 
