@@ -17,18 +17,3 @@ def get_extractor(settings: Settings = Depends(get_settings)) -> Extractor:
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
         detail=f"Extraction provider is not implemented: {settings.extraction_provider}",
     )
-
-
-def require_feature(*, enabled: bool, feature: str) -> None:
-    """Hide a disabled slice from callers.
-
-    Routes call this inside the handler body so an unauthenticated request still
-    fails authentication first and never learns which features a deployment runs.
-    """
-
-    if not enabled:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"{feature} is not enabled for this deployment.",
-        )
-

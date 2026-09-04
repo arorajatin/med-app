@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from fastapi.testclient import TestClient
 
 from app import models
@@ -83,6 +85,48 @@ def test_onboarding_starts_before_consent(client):
     assert state["next_step"] == "consent"
     assert state["completed_steps"] == []
     assert state["self_profile"] is None
+
+
+def test_ai_processing_must_be_explicitly_accepted(client):
+    """False, missing, or string values are not evidence of AI-processing consent."""
+
+    for accepted_scope in ({"ai_processing": False}, {}, {"ai_processing": "true"}):
+        response = client.post(
+            "/account/consents",
+            headers=auth(),
+            json={"policy_version": "2026-07-01", "accepted_scope": accepted_scope},
+        )
+        assert response.status_code == 422
+
+    assert onboarding(client)["next_step"] == "consent"
+    assert upload(client).status_code == 403
+
+    with next(get_db()) as db:
+        assert db.query(models.ConsentEvidence).count() == 0
+
+
+def test_false_consent_evidence_does_not_complete_onboarding(client):
+    """A false legacy row is not treated as accepted consent."""
+
+    onboarding(client)
+    with next(get_db()) as db:
+        account = db.query(models.Account).one()
+        identity = db.query(models.AuthIdentity).one()
+        db.add(
+            models.ConsentEvidence(
+                account_id=account.id,
+                actor_identity_id=identity.id,
+                policy_version="2026-07-01",
+                accepted_scope={"ai_processing": False},
+                accepted_at=datetime.now(UTC),
+            )
+        )
+        db.commit()
+
+    state = onboarding(client)
+    assert state["status"] == "not_started"
+    assert state["next_step"] == "consent"
+    assert upload(client).status_code == 403
 
 
 def test_onboarding_resumes_at_the_first_incomplete_step(client):
@@ -244,64 +288,3 @@ def test_document_derived_condition_stays_hidden_while_attested_conditions_show(
 
     memory = client.get(f"/profiles/{profile['id']}/memory", headers=auth()).json()
     assert [fact["title"] for fact in memory["facts"]] == ["Asthma"]
-
-
-def test_upload_is_unavailable_when_web_ingestion_is_disabled(make_client):
-    """A disabled slice is invisible while the rest of the account still works."""
-
-    client = make_client(FEATURE_WEB_INGESTION_ENABLED="false")
-    profile = put_self_profile(client)
-    accept_consent(client)
-
-    response = upload(client, profile_id=profile["id"])
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Upload is not enabled for this deployment."
-    assert (
-        client.post(
-            f"/ingestions/placeholder-id/assignment/{profile['id']}", headers=auth()
-        ).status_code
-        == 404
-    )
-
-    with next(get_db()) as db:
-        assert db.query(models.Ingestion).count() == 0
-
-
-def test_upload_without_the_extraction_slice_stores_the_document_only(make_client):
-    """Ingestion runs on its own: the document is stored and no AI work is queued."""
-
-    client = make_client(FEATURE_EXTRACTION_ENABLED="false")
-    profile = put_self_profile(client)
-    accept_consent(client)
-
-    body = upload(client, profile_id=profile["id"]).json()
-    assert body["ingestion"]["upload_state"] == "complete"
-    assert body["ingestion"]["extraction_state"] == "not_requested"
-    assert body["extraction_job"] is None
-
-    with next(get_db()) as db:
-        assert db.query(models.ExtractionJob).count() == 0
-        assert db.query(models.ExtractionAttempt).count() == 0
-
-    assert client.get("/extraction/jobs/placeholder-id", headers=auth()).status_code == 404
-
-
-def test_observations_are_not_published_when_that_slice_is_disabled(make_client):
-    """Extraction still runs, but metric observations stay unpublished."""
-
-    client = make_client(FEATURE_OBSERVATIONS_ENABLED="false")
-    profile = put_self_profile(client)
-    accept_consent(client)
-
-    ingestion_id = upload(client, profile_id=profile["id"]).json()["ingestion"]["id"]
-    record = client.post(
-        f"/ingestions/{ingestion_id}/assignment/{profile['id']}", headers=auth()
-    ).json()
-    extraction = client.get(f"/records/{record['id']}/extraction", headers=auth()).json()
-
-    assert extraction["ingestion"]["extraction_state"] == "ready"
-    assert extraction["metadata_candidates"] != []
-    assert extraction["observations"] == []
-
-    with next(get_db()) as db:
-        assert db.query(models.MetricObservation).count() == 0

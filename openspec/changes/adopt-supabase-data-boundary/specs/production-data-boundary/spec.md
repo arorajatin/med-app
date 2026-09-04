@@ -130,17 +130,17 @@ Production capabilities SHALL remain disabled until their migrations, region con
 #### Scenario: Enable the base production boundary
 - **WHEN** an operator enables production Postgres and private Storage
 - **THEN** the schema revision, Mumbai project attestation, RLS policies, storage policies, encryption keys, deletion reconciliation, backup/restore check, and two-account isolation suite SHALL all be current and passing
-- **AND** a failed check SHALL keep the capability disabled
+- **AND** a failed check SHALL block production deployment
 
-#### Scenario: Enable production extraction
-- **WHEN** an operator enables production Textract and Bedrock processing
+#### Scenario: Deploy production extraction
+- **WHEN** an operator deploys production Textract and Bedrock processing
 - **THEN** the base boundary, Mumbai staging/queue controls, provider privacy approval, and Bedrock zero-data-retention eligibility SHALL pass
 - **AND** failure SHALL NOT fall back to mock extraction, privileged data access, cross-region inference, or another provider
 
 #### Scenario: Exercise fresh-schema migration
 - **WHEN** an empty database is upgraded to the declared head and representative private data is created through current application flows
 - **THEN** checksums and row counts SHALL verify that source objects and protected rows are neither lost nor exposed
-- **AND** feature-disable rollback SHALL preserve the Mumbai Supabase boundary, RLS, tombstones, and in-progress deletion cleanup
+- **AND** deployment rollback SHALL preserve the Mumbai Supabase boundary, RLS, tombstones, and in-progress deletion cleanup
 
 ### Requirement: Local adapter parity
 Local development and tests SHALL retain adapters that implement the same application-facing persistence, private-storage, authorization, stable-key, signed-access, and lifecycle contracts without claiming production residency or provider guarantees.

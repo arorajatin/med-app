@@ -14,15 +14,19 @@ OpenSpec separates deployed truth from proposed work. Do not document unfinished
 
 The [baseline archive](changes/archive/2026-07-14-baseline-medical-records-backend/design.md) preserves the decisions formerly recorded as ADRs and explains which production concerns remain deferred.
 
-## Proposed Roadmap
+## Active Change Delivery Order
 
-The sequence below reflects current technical dependencies, not a release commitment.
+The first-release change is the product umbrella and remains active while its specialized production changes land. The stages below describe contract and implementation dependencies, not a requirement to archive the complete umbrella change first. Stages 2A and 2B may proceed in parallel after Stage 1; production enablement still requires both.
 
-| Sequence | Change | Outcome | Depends On |
+| Stage | Change or slice | Outcome | Depends On |
 | --- | --- | --- | --- |
-| 1 | [Adopt Supabase data boundary](changes/adopt-supabase-data-boundary/proposal.md) | Postgres, private Storage, and row-level ownership | Database schema management |
-| 2 | [Add production extraction provider](changes/add-production-extraction-provider/proposal.md) | Real OCR or model-backed document extraction | Provider evaluation and privacy approval |
-| 3 | [Add queue-backed extraction worker](changes/add-queue-backed-extraction-worker/proposal.md) | Durable asynchronous dispatch, retries, and recovery | Database schema management and queue selection |
+| 1 | [First-release foundation](changes/define-first-release-family-health-experience/tasks.md) | Account, profile, consent, logical-document, extraction-class, assignment, and review contracts with local/test adapters | Current living capabilities and database schema management |
+| 2A | [Adopt Supabase data boundary](changes/adopt-supabase-data-boundary/proposal.md) | Production Postgres, private Storage, and row-level ownership | Stage 1 account and ingestion schemas |
+| 2B | [Add production extraction provider](changes/add-production-extraction-provider/proposal.md) | Real OCR/model adapter and source-valid normalized output | Stage 1 extraction contract, provider evaluation, and privacy approval |
+| 3 | [Add queue-backed extraction worker](changes/add-queue-backed-extraction-worker/proposal.md) | Durable asynchronous dispatch, Textract continuation, retries, and recovery | Stage 1 job contract, Stage 2A production boundary, Stage 2B provider phase contract, and queue selection |
+| 4 | [Complete the first-release experience](changes/define-first-release-family-health-experience/tasks.md) | Feed, Drive, Chat, production integration, and release verification | The applicable Stage 2 and 3 capabilities |
+
+Delivery order is separate from archive order. A specialized change may be implemented and reviewed while the umbrella remains active, but it must not archive a `MODIFIED` requirement before the change that adds or owns that requirement. For the current `document-extraction` deltas, archive `define-first-release-family-health-experience` before `add-production-extraction-provider`, then archive `add-queue-backed-extraction-worker`. The independent `adopt-supabase-data-boundary` capability may archive as soon as its own implementation and review are complete.
 
 ## Change Workflow
 
@@ -32,6 +36,8 @@ The sequence below reflects current technical dependencies, not a release commit
 4. Keep the change's `review.md` current during code review and testing.
 5. Run `openspec validate <name> --strict` and the relevant automated tests.
 6. Sync the delta specs into `openspec/specs/`, then archive the completed change.
+
+Keep cross-change delivery and archive order in this roadmap, dependency reasoning in each change's `design.md`, the canonical within-change order and checklist in `tasks.md`, and the actual next resume point in `review.md`. Specifications define behavior and do not carry implementation order. Do not create a parallel implementation-plan file.
 
 ## Review Checkpoints
 

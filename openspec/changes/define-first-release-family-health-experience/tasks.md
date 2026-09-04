@@ -1,3 +1,15 @@
+The checkbox definitions below are the canonical implementation checklist. Use this dependency order for delivery; tasks within a phase may proceed in parallel when their direct prerequisites are satisfied. `review.md` records the actual resume point when implementation pauses.
+
+1. **Completed safety and client baseline:** 0.1-0.2, 2.4-2.5, 2.8, 9.3, and 10.1-10.5.
+2. **Account and profile foundation:** 2.1-2.3, 2.6-2.7, 7.1, 10.6-10.8, and 10.16.
+3. **Logical-document ingestion:** 1.4, 3.1-3.5, 3.8, and 10.9.
+4. **Normalized extraction and assignment:** 1.5, 3.6-3.7, and 4.1.
+5. **Observations, review, records, Feed, and Drive:** 4.3-4.10, 5.1-5.7, 7.2, and 10.10-10.12.
+6. **Production data, extraction, and worker integration:** 1.1-1.3, 4.2, and 4.11-4.12. Implement the specialized changes in the cross-change order documented in `openspec/README.md`.
+7. **Chat:** 6.1-6.6 and 10.13.
+8. **Release verification:** 7.3-7.5, 9.1-9.2, 9.4, and 10.14-10.15.
+9. **Post-V1 proposals:** 8.1-8.6; these are outside the V1 implementation path but must move to separate changes before this change can archive.
+
 ## 0. Immediate Condition-Safety Baseline
 
 - [x] 0.1 Remove association-based mock condition output; fail closed before persistence for every generic, condition-shaped, or unknown extractor field; expose only permitted baseline fields to memory, review, and appointment paths; and add keyword, filename, unsafe-provider, and unsupported-field regression tests.
@@ -35,7 +47,7 @@
 
 ## 4. Extraction, Observations, and Reviewed Memory
 
-- [ ] 4.1 Extend the normalized extractor contract with `native_text`/`textract_ocr`, routing reason, patient evidence, document-metadata candidates, metric observations, prescription-memory candidates, literal `documented_condition_candidate` items, and required `SourceReference` values.
+- [ ] 4.1 Extend the normalized extractor contract with `native_text`/`textract_ocr`, routing reason, patient evidence, document-metadata candidates, metric observations, prescription-memory candidates, literal `documented_condition_candidate` items, affirmative patient-subject assertion validation, and required `SourceReference` values.
 - [ ] 4.2 Implement the all-pages native PDF gate with pdfplumber, whole-document Textract fallback, Textract-only image processing, and schema-constrained Bedrock Mistral Large 3 normalization in Mumbai.
 - [ ] 4.3 Implement source-linked document-metadata review so confirmation/edit can drive report date, issuer, type, or generated display name, ignore leaves it untrusted, and an explicit rename always wins.
 - [ ] 4.4 Add migration-backed observations with original and normalized values/units, ranges, dates, optional body-system classification, source locations, attempt identity, confidence, and quality state.
@@ -45,7 +57,7 @@
 - [ ] 4.8 Implement documented-condition review with the label `Condition written in this document — verify before saving`, exact source text/page display, and mandatory `confirm`, `edit`, or `ignore`; preserve original and replacement provenance and never preselect the candidate.
 - [ ] 4.9 Update memory generation to include reviewed prescription candidates, confirmed or edited documented conditions, and user-attested facts; exclude observations and pending or ignored conditions; and preserve stable or superseded Chat, Drive, and appointment citations when decisions change.
 - [ ] 4.10 Update record-review completion so only pending candidate-memory items block completion and metric observations never do.
-- [ ] 4.11 Add native-gate, whole-PDF fallback, provider-region, ZDR, patient-evidence, four-class output, source-reference, atomic-result, transient/terminal retry, retention/deletion, metadata/observation/memory review, citation, and cross-account tests, including proof that medications, dosages, lab values/ranges/flags, symptoms, optional upload context, and general medical associations cannot create a condition candidate.
+- [ ] 4.11 Add native-gate, whole-PDF fallback, provider-region, ZDR, patient-evidence, four-class output, source-reference, atomic-result, transient/terminal retry, retention/deletion, metadata/observation/memory review, citation, and cross-account tests, including proof that medications, dosages, lab values/ranges/flags, symptoms, optional upload context, general medical associations, negation, rule-out, screening, uncertainty, family history, and non-patient statements cannot create a condition candidate.
 - [ ] 4.12 Build approved de-identified English digital-PDF, scan, photo, multi-page-lab, and prescription fixtures; gate rollout on zero false assignments, 99.5% exact lab tuple precision, 99.5% source-page accuracy, zero unanchored published values, 95% prescription-candidate precision, and zero documented-condition candidates whose cited source text does not literally name the condition.
 
 ## 5. Feed, Drive, and Report Management
@@ -71,9 +83,8 @@
 
 - [ ] 7.1 Create application accounts and profiles only through the registration and onboarding flows defined in section 2; do not add historical-data import paths.
 - [ ] 7.2 Verify a fresh database begins without extracted fields or memory facts and that all new derived data enters through the V1 observation and reviewed-memory contracts.
-- [ ] 7.3 Add independently controlled feature flags for staged web ingestion, observations, Feed/Drive, production extraction, and Chat.
 - [ ] 7.4 Verify all new ownership constraints and RLS policies against local and disposable Supabase environments with two-account direct-data tests.
-- [ ] 7.5 Exercise fresh database bootstrap, current-head startup, feature-disable rollback, tombstone cleanup, and re-enable paths without losing private data or audit provenance.
+- [ ] 7.5 Exercise fresh database bootstrap, current-head startup, deployment rollback, and tombstone cleanup without losing private data or audit provenance.
 
 ## 8. Follow-up Roadmap
 

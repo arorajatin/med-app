@@ -80,7 +80,7 @@ After purge, the queue worker may retain only its bounded non-PHI job/idempotenc
 
 ### Gate rollout by capability
 
-Production persistence/private storage and production extraction use independent feature flags. The base data flag cannot enable until migrations are current, the Supabase region/project attestation passes, RLS and storage isolation tests pass, encryption keys are configured, and backup/restore and deletion reconciliation are verified. Extraction additionally requires Mumbai staging/queues, provider privacy approval, and Bedrock zero-data-retention eligibility. A failed preflight disables the affected capability rather than routing to a local, mock, cross-region, direct-to-storage, or privileged fallback.
+Production persistence/private storage and production extraction have independent deployment-readiness gates. The base data path cannot deploy until migrations are current, the Supabase region/project attestation passes, RLS and storage isolation tests pass, encryption keys are configured, and backup/restore and deletion reconciliation are verified. Extraction additionally requires Mumbai staging/queues, provider privacy approval, and Bedrock zero-data-retention eligibility. A failed preflight blocks the affected deployment rather than routing to a local, mock, cross-region, direct-to-storage, or privileged fallback.
 
 ## Risks / Trade-offs
 

@@ -27,10 +27,14 @@ The normalized production contract SHALL classify each supported item as `patien
 - **AND** that candidate SHALL remain pending until explicitly reviewed
 
 #### Scenario: Extract a condition written in the document
-- **WHEN** a prescription or lab report contains text that literally names a condition
+- **WHEN** a prescription or lab report affirmatively states that the patient has a literally named condition
 - **THEN** the adapter MAY return a source-linked `memory_candidate` with subtype `documented_condition_candidate`
 - **AND** the candidate SHALL contain the exact condition text written in the document and a source reference to the span that names it
 - **AND** that candidate SHALL remain pending until explicitly confirmed, edited, or ignored
+
+#### Scenario: A condition mention is not an affirmative statement about the patient
+- **WHEN** cited text negates or rules out a condition, describes screening or uncertainty, records family history, or refers to someone other than the patient
+- **THEN** the adapter SHALL NOT create a documented-condition candidate from that mention
 
 #### Scenario: Medication or lab evidence does not name a condition
 - **WHEN** a document contains medication details, lab measurements, reference ranges, or abnormal flags but does not literally name a condition

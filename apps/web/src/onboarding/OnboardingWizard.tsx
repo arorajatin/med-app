@@ -71,8 +71,9 @@ export function OnboardingWizard({ onUnauthenticated }: OnboardingWizardProps) {
     }
     setOnboarding(state);
     setError(null);
-    // Correcting a finished step returns to the summary; otherwise carry on.
-    setActiveStep(reviewing ? null : state.next_step);
+    // Only a completed onboarding can return to its summary. If later required
+    // steps remain, correcting an earlier answer resumes at the first one.
+    setActiveStep(reviewing && state.status === "completed" ? null : state.next_step);
     setReviewing(false);
   }
 
@@ -147,8 +148,15 @@ export function OnboardingWizard({ onUnauthenticated }: OnboardingWizardProps) {
       <ErrorBanner message={error} />
       {renderStep(onboarding)}
       {activeStep !== null && reviewing ? (
-        <button className="button button--quiet" type="button" onClick={() => setActiveStep(null)}>
-          Back to summary
+        <button
+          className="button button--quiet"
+          type="button"
+          onClick={() => {
+            setActiveStep(onboarding.status === "completed" ? null : onboarding.next_step);
+            setReviewing(false);
+          }}
+        >
+          {onboarding.status === "completed" ? "Back to summary" : "Back to current step"}
         </button>
       ) : null}
     </div>

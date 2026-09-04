@@ -5,15 +5,10 @@ from app.config import get_settings
 from app.database import Base, bootstrap_test_database, configure_database, get_engine
 from app.main import create_app
 
-# Local development settings plus the slices that have shipped. Feature-flag tests
-# override these to prove each slice can be switched off on its own.
 DEFAULT_TEST_ENV = {
     "ENVIRONMENT": "test",
     "DEV_AUTH_ENABLED": "true",
     "EXTRACTION_RUN_INLINE": "true",
-    "FEATURE_WEB_INGESTION_ENABLED": "true",
-    "FEATURE_EXTRACTION_ENABLED": "true",
-    "FEATURE_OBSERVATIONS_ENABLED": "true",
 }
 
 

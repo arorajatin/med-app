@@ -144,10 +144,14 @@ The extraction result SHALL preserve literal evidence and SHALL NOT infer a cond
 - **AND** it SHALL require explicit submitted review before becoming medical memory
 
 #### Scenario: Extract a condition written in a prescription or lab report
-- **WHEN** a prescription or lab report literally names a condition
+- **WHEN** a prescription or lab report affirmatively states that the patient has a literally named condition
 - **THEN** extraction MAY return a source-linked `memory_candidate` with subtype `documented_condition_candidate`
 - **AND** the candidate SHALL contain the exact condition text written in the document and a source reference to the span that names it
 - **AND** it SHALL begin `pending` and remain outside trusted medical memory, Chat evidence, and Drive condition groups until the account manager confirms or edits it
+
+#### Scenario: A condition mention is not an affirmative statement about the patient
+- **WHEN** cited text negates or rules out a condition, describes screening or uncertainty, records family history, or refers to someone other than the patient
+- **THEN** extraction SHALL NOT create a documented-condition candidate from that mention
 
 #### Scenario: Medication evidence does not state a condition
 - **WHEN** a prescription contains medication names, strengths, dosages, routes, frequencies, durations, or instructions but does not literally name a condition

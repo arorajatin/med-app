@@ -63,11 +63,11 @@ The system SHALL automatically create one `self` family profile and SHALL collec
 The system SHALL present the account-level AI-processing terms during onboarding, describing document extraction and use of reviewed personal memory in Chat, and SHALL retain the accepted scope, policy version, and timestamp for the account. Acceptance SHALL be required to complete onboarding, and the first release SHALL NOT provide a mode in which an account operates with AI processing disabled.
 
 #### Scenario: Accept account-level consent
-- **WHEN** the account manager accepts the presented AI-processing terms
+- **WHEN** the account manager accepts the presented AI-processing terms with `ai_processing` set to boolean `true`
 - **THEN** future ingestions for that account SHALL be eligible for AI processing without another per-document consent prompt
 
 #### Scenario: Do not accept account-level consent
-- **WHEN** the account manager does not accept the presented AI-processing terms
+- **WHEN** the account manager submits `ai_processing` as false or omits a boolean `true` acceptance
 - **THEN** onboarding SHALL remain incomplete
 - **AND** the system SHALL NOT admit the account to Upload, Feed, Drive, or Chat
 - **AND** the system SHALL NOT dispatch AI extraction or send personal medical memory to an AI provider

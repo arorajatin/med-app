@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app import models
 from app.ai.base import Extractor
 from app.ai.condition_safety import is_permitted_memory_fact
-from app.api.deps import get_extractor, get_storage, require_feature
+from app.api.deps import get_extractor, get_storage
 from app.auth import get_current_user
 from app.config import Settings, get_settings
 from app.database import get_db
@@ -328,7 +328,6 @@ def assign_ingestion(
     user: CurrentUser = Depends(get_current_user),
     settings: Settings = Depends(get_settings),
 ) -> models.MedicalRecord:
-    require_feature(enabled=settings.feature_web_ingestion_enabled, feature="Upload")
     context = _account_context(db, user=user, settings=settings)
     ingestion = require_ingestion(db, account_id=context.account.id, ingestion_id=ingestion_id)
     profile = require_profile(db, account_id=context.account.id, profile_id=profile_id)
@@ -428,7 +427,6 @@ def get_extraction_job(
     user: CurrentUser = Depends(get_current_user),
     settings: Settings = Depends(get_settings),
 ) -> models.ExtractionJob:
-    require_feature(enabled=settings.feature_extraction_enabled, feature="Extraction")
     account_id = _account_context(db, user=user, settings=settings).account.id
     job = (
         db.query(models.ExtractionJob)
@@ -457,9 +455,7 @@ def run_job(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Job cannot be run from status: {job.status}",
         )
-    return run_extraction_job(
-        db, job_id=job.id, settings=settings, storage=storage, extractor=extractor
-    )
+    return run_extraction_job(db, job_id=job.id, storage=storage, extractor=extractor)
 
 
 @router.post("/extraction/jobs/{job_id}/retry", response_model=ExtractionJobRead)
@@ -472,9 +468,7 @@ def retry_job(
     extractor: Extractor = Depends(get_extractor),
 ) -> models.ExtractionJob:
     job = get_extraction_job(job_id, db, user, settings)
-    return retry_extraction_job(
-        db, job=job, settings=settings, storage=storage, extractor=extractor
-    )
+    return retry_extraction_job(db, job=job, storage=storage, extractor=extractor)
 
 
 @router.get("/profiles/{profile_id}/memory", response_model=MemoryRead)
@@ -674,7 +668,6 @@ async def _receive_ingestion(
     storage: LocalPrivateStorage,
     extractor: Extractor,
 ) -> IngestionUploadResult:
-    require_feature(enabled=settings.feature_web_ingestion_enabled, feature="Upload")
     if not uploads or len(uploads) > MAX_LOGICAL_PARTS:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
@@ -754,13 +747,9 @@ async def _receive_ingestion(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=str(exc)
         ) from exc
 
-    job = None
-    if settings.feature_extraction_enabled:
-        job = create_extraction_job(db, settings=settings, ingestion=ingestion)
-        if settings.extraction_run_inline:
-            job = run_extraction_job(
-                db, job_id=job.id, settings=settings, storage=storage, extractor=extractor
-            )
+    job = create_extraction_job(db, ingestion=ingestion)
+    if settings.extraction_run_inline:
+        job = run_extraction_job(db, job_id=job.id, storage=storage, extractor=extractor)
 
     for part in parts:
         db.refresh(part)

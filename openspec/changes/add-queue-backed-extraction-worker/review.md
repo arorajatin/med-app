@@ -22,7 +22,7 @@ Baseline commit: `66e8382`
 ## Resume From
 
 - Start task 1.1 with the immutable manifest and job-generation/attempt state model, after confirming the three dependent deltas use the same identifiers, status names, result-set boundary, and retention rules.
-- Keep dispatch and consumers feature-flagged until regional infrastructure, provider privacy/ZDR approval, migrations/RLS, payload/log privacy tests, and extraction quality gates pass.
+- Do not deploy dispatch or consumers until regional infrastructure, provider privacy/ZDR approval, migrations/RLS, payload/log privacy tests, and extraction quality gates pass.
 
 ## Tests Run
 

@@ -113,7 +113,7 @@ Alert when the oldest undelivered outbox row exceeds two minutes, the oldest run
 
 1. Add immutable manifest/version, job-generation, attempt/phase, claim, active-result, callback, outbox, and safe-failure persistence. Every new upload creates its ordered manifest directly.
 2. Provision the regional encrypted dispatch/callback queues, dead-letter queues, SNS topic, KMS keys, staging/output buckets, policies, retention rules, dashboards, and alerts with consumers disabled.
-3. Deploy the dispatcher, worker, callback consumer, reconciler, and cleanup handlers behind a production feature flag; verify startup region checks and non-PHI serialization.
+3. Deploy the dispatcher, worker, callback consumer, reconciler, and cleanup handlers to staging; verify startup region checks and non-PHI serialization before production deployment.
 4. Enable staging dispatch, then test duplicate delivery, interruption in every phase, callback loss/redelivery, three-attempt exhaustion, supersession, deletion, and DLQ recovery.
 5. Enable production queue dispatch and disable inline production extraction after queue health and provider privacy gates pass.
 

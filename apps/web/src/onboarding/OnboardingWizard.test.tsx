@@ -33,6 +33,46 @@ describe("OnboardingWizard", () => {
     expect(steps[2]).toHaveTextContent("In progress");
   });
 
+  it("returns to the next required step after correcting an earlier answer", async () => {
+    const state = onboardingState({
+      next_step: "health_context",
+      completed_steps: ["consent", "self_profile"],
+      self_profile: SELF_PROFILE,
+    });
+    mockApi({
+      "GET /account/onboarding": state,
+      "PUT /account/onboarding/self-profile": SELF_PROFILE,
+    });
+
+    renderWizard();
+
+    await screen.findByRole("heading", { name: "Age and weight" });
+    await userEvent.click(screen.getByRole("button", { name: "Your name" }));
+    await userEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+
+    expect(await screen.findByRole("heading", { name: "Age and weight" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Onboarding complete" })).not.toBeInTheDocument();
+  });
+
+  it("returns to the next required step when cancelling an earlier edit", async () => {
+    mockApi({
+      "GET /account/onboarding": onboardingState({
+        next_step: "health_context",
+        completed_steps: ["consent", "self_profile"],
+        self_profile: SELF_PROFILE,
+      }),
+    });
+
+    renderWizard();
+
+    await screen.findByRole("heading", { name: "Age and weight" });
+    await userEvent.click(screen.getByRole("button", { name: "Your name" }));
+    await userEvent.click(screen.getByRole("button", { name: "Back to current step" }));
+
+    expect(screen.getByRole("heading", { name: "Age and weight" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Onboarding complete" })).not.toBeInTheDocument();
+  });
+
   it("moves to the next step once consent is accepted", async () => {
     let accepted = false;
     const { calls } = mockApi({

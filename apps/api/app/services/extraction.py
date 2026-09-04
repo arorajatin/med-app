@@ -8,7 +8,6 @@ from app import models
 from app.ai.base import Extractor, SourceReferenceData
 from app.ai.condition_safety import enforce_condition_safety
 from app.ai.mock_provider import MockExtractor
-from app.config import Settings
 from app.services.common import recalculate_review_state
 from app.storage import LocalPrivateStorage
 
@@ -16,7 +15,6 @@ from app.storage import LocalPrivateStorage
 def create_extraction_job(
     db: Session,
     *,
-    settings: Settings,
     ingestion: models.Ingestion,
 ) -> models.ExtractionJob:
     job = models.ExtractionJob(
@@ -35,7 +33,6 @@ def run_extraction_job(
     db: Session,
     *,
     job_id: str,
-    settings: Settings,
     storage: LocalPrivateStorage,
     extractor: Extractor,
 ) -> models.ExtractionJob:
@@ -118,7 +115,6 @@ def run_extraction_job(
             record=record,
             part_by_ordinal=part_by_ordinal,
             extraction=extraction,
-            publish_observations=settings.feature_observations_enabled,
         )
 
         finished_at = datetime.now(UTC)
@@ -163,7 +159,6 @@ def retry_extraction_job(
     db: Session,
     *,
     job: models.ExtractionJob,
-    settings: Settings,
     storage: LocalPrivateStorage,
     extractor: Extractor,
 ) -> models.ExtractionJob:
@@ -174,9 +169,7 @@ def retry_extraction_job(
     ingestion = db.query(models.Ingestion).filter(models.Ingestion.id == job.ingestion_id).one()
     ingestion.extraction_state = "queued"
     db.commit()
-    return run_extraction_job(
-        db, job_id=job.id, settings=settings, storage=storage, extractor=extractor
-    )
+    return run_extraction_job(db, job_id=job.id, storage=storage, extractor=extractor)
 
 
 def parse_iso_date(value: dict | None) -> date | None:
@@ -200,7 +193,6 @@ def _persist_result(
     record: models.MedicalRecord | None,
     part_by_ordinal: dict[int, models.IngestionPart],
     extraction,
-    publish_observations: bool,
 ) -> None:
     reviewed_metadata_types, reviewed_memory_keys = _discard_unreviewed_prior_items(
         db, ingestion=ingestion, attempt_id=attempt.id
@@ -250,9 +242,7 @@ def _persist_result(
             metadata_candidate_id=metadata_item.id,
         )
 
-    # Observations stay unpublished until the observation slice is enabled.
-    observations = extraction.observations if publish_observations else []
-    for datum in observations:
+    for datum in extraction.observations:
         prior_active = (
             db.query(models.MetricObservation)
             .filter(

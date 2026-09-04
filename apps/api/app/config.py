@@ -15,13 +15,6 @@ class Settings(BaseSettings):
     extraction_provider: str = "mock"
     extraction_run_inline: bool = True
     max_upload_bytes: int = 15_000_000
-    # Each V1 slice ships behind its own default-off flag so a deployment enables
-    # only the behavior it has evidence for. Feed/Drive and Chat have no routes yet.
-    feature_web_ingestion_enabled: bool = False
-    feature_extraction_enabled: bool = False
-    feature_observations_enabled: bool = False
-    feature_feed_drive_enabled: bool = False
-    feature_chat_enabled: bool = False
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

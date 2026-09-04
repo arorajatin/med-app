@@ -28,6 +28,12 @@ class ConsentCreate(BaseModel):
     policy_version: str = Field(min_length=1, max_length=80)
     accepted_scope: dict
 
+    @model_validator(mode="after")
+    def validate_ai_processing_acceptance(self):
+        if self.accepted_scope.get("ai_processing") is not True:
+            raise ValueError("AI processing consent must be accepted.")
+        return self
+
 
 class ConsentRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)

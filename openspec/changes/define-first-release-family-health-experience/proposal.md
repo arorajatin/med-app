@@ -21,7 +21,7 @@ Explicit non-goals for this change:
 
 - Separate login or direct self-upload access for family members; this remains a roadmap change.
 - The interactive family-member → body-system → metric trend visualization; this change creates the observation contract needed by that future experience.
-- AI-consent revocation, family sharing, clinician access, public file links, arbitrary family-relationship graphs, chat-initiated actions or reminders, medical diagnosis, condition inference from medications, lab values, ranges, symptoms, or other implicit associations, selection of a Chat model provider, or document ingestion through email, Amazon SES, WhatsApp, or any other external connector. External connector ingestion requires a separate post-V1 change.
+- AI-consent revocation, family sharing, clinician access, public file links, arbitrary family-relationship graphs, chat-initiated actions or reminders, medical diagnosis, condition-severity classification, a condition allowlist, condition inference from medications, lab values, ranges, symptoms, or other implicit associations, selection of a Chat model provider, or document ingestion through email, Amazon SES, WhatsApp, or any other external connector. External connector ingestion requires a separate post-V1 change.
 
 This change affects medical-data privacy, AI trust, and consent. It retains owner isolation and private files, keeps automatically extracted measurements and unconfirmed documented-condition candidates out of trusted medical memory, requires explicit review for document metadata, prescription memory, and literally documented condition candidates, and restricts V1 storage and processing to `ap-south-1` Mumbai.
 
