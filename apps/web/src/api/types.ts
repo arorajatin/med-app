@@ -1,7 +1,6 @@
 /** Mirrors the response models in `apps/api/app/schemas.py`. */
 
 export type OnboardingStep =
-  | "consent"
   | "self_profile"
   | "health_context"
   | "conditions"
@@ -34,13 +33,6 @@ export interface OnboardingRead {
   next_step: OnboardingStep | null;
   completed_steps: OnboardingStep[];
   self_profile: ProfileRead | null;
-}
-
-export interface ConsentRead {
-  id: string;
-  policy_version: string;
-  accepted_scope: Record<string, unknown>;
-  accepted_at: string;
 }
 
 export interface ProfileHealthContextRead {

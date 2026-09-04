@@ -2,7 +2,7 @@
 
 ## Goal
 
-Create the sole account-manager identity, establish `self`, capture starting health context, and record the required account-level AI-processing acceptance.
+Create the sole account-manager identity, establish `self`, and capture starting health context. Creating the account authorizes the AI processing required by the product.
 
 ## Sign-up
 
@@ -11,7 +11,8 @@ Create the sole account-manager identity, establish `self`, capture starting hea
 3. Email/password sign-up creates a verification-pending identity and sends an email-verification action.
 4. An email/password user cannot enter protected application areas until verification succeeds.
 5. A verified identity establishes an authenticated account session.
-6. Safe recovery is available for provider cancellation, duplicate activation attempts, invalid or expired verification, and temporary identity-provider failure.
+6. Creating the application account authorizes document extraction and use of reviewed personal memory in Chat; signup states this processing boundary clearly.
+7. Safe recovery is available for provider cancellation, duplicate activation attempts, invalid or expired verification, and temporary identity-provider failure.
 
 ## Self onboarding
 
@@ -26,16 +27,14 @@ Create the sole account-manager identity, establish `self`, capture starting hea
 4. Weight follows the validation, normalization, and storage rules in the [Profile and Family Management Journey](profile-and-family.md#error-and-access-behavior).
 5. Age and weight are always shown with their reported dates.
 6. Conditions and medications entered directly by the account manager become trusted user-attested memory immediately.
-7. The system presents the account-level AI-processing terms covering document extraction and reviewed-memory Chat. Acceptance is required, because every first-release capability depends on AI processing.
-8. The accepted consent scope, policy version, and time are retained.
-9. Completed onboarding lands in Feed.
+7. Completed onboarding lands in Feed.
 
 ## Alternate paths
 
 - Retrying or resuming onboarding reuses the existing `self` profile.
 - Fractional or out-of-range age and weight that violates the shared profile rules keep the person on the relevant step with a correction message. These are broad input-quality limits, not clinical judgements.
-- Declining the AI-processing terms leaves onboarding incomplete; the first release has no mode that runs with AI processing disabled.
-- AI-consent revocation and account deletion are not part of the first release. V1 provides no post-acceptance stop-processing control.
+- Onboarding has no separate AI-processing step or AI-disabled mode.
+- Post-creation AI-processing controls and account deletion are not part of the first release.
 
 ## First-release boundary
 

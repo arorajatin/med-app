@@ -25,7 +25,7 @@
 
 ## 4. Privacy, Retention, and Operations
 
-- [ ] 4.1 Enforce the governing accepted account-level consent snapshot before native extraction or provider invocation without another per-document or per-condition prompt, and prohibit production fallback to the mock, another provider, or cross-region inference.
+- [ ] 4.1 Enforce authenticated account ownership before native extraction or provider invocation, and prohibit production fallback to the mock, another provider, or cross-region inference.
 - [ ] 4.2 Encrypt and restrict successful native/Textract and Bedrock raw output until report deletion; cascade report deletion through raw output, normalized results, and source references.
 - [ ] 4.3 Delete Textract staging objects promptly after persistence or rejection and verify the 24-hour lifecycle backstop; retain failed-attempt safe envelopes for 30 days only.
 - [ ] 4.4 Add content-free metrics and logs for component, method, family, status, timing, retry class, page and item counts, request IDs, and safe failure codes.

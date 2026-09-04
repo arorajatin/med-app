@@ -67,21 +67,6 @@ class AuthIdentity(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
-class ConsentEvidence(Base):
-    """Versioned proof that an account manager accepted an AI-processing scope."""
-
-    __tablename__ = "consent_evidence"
-
-    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
-    account_id: Mapped[str] = mapped_column(ForeignKey("accounts.id"), index=True, nullable=False)
-    actor_identity_id: Mapped[str] = mapped_column(
-        ForeignKey("auth_identities.id"), index=True, nullable=False
-    )
-    accepted_scope: Mapped[dict] = mapped_column(JSON, nullable=False)
-    policy_version: Mapped[str] = mapped_column(String(80), nullable=False)
-    accepted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
 class Profile(Base):
     """A family member managed inside one application account."""
 
@@ -165,9 +150,6 @@ class Ingestion(Base):
     )
     resolved_profile_id: Mapped[str | None] = mapped_column(
         ForeignKey("profiles.id"), index=True, nullable=True
-    )
-    consent_evidence_id: Mapped[str] = mapped_column(
-        ForeignKey("consent_evidence.id"), index=True, nullable=False
     )
     resolved_by_identity_id: Mapped[str | None] = mapped_column(
         ForeignKey("auth_identities.id"), nullable=True

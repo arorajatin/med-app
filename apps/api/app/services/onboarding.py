@@ -5,11 +5,10 @@ from sqlalchemy.orm import Session
 
 from app import models
 from app.ai.condition_safety import USER_ATTESTED_PROVENANCE
-from app.services.accounts import latest_consent
 
 # The order the account manager works through, so a resumed session can name the
 # first step that is still outstanding.
-ONBOARDING_STEPS = ("consent", "self_profile", "health_context", "conditions", "medications")
+ONBOARDING_STEPS = ("self_profile", "health_context", "conditions", "medications")
 ATTESTED_CATEGORIES = ("condition", "medication")
 
 
@@ -34,8 +33,6 @@ def evaluate_onboarding(db: Session, *, account: models.Account) -> OnboardingSt
 
     profile = self_profile(db, account_id=account.id)
     completed = []
-    if latest_consent(db, account_id=account.id) is not None:
-        completed.append("consent")
     if profile is not None:
         completed.append("self_profile")
         if _has_health_context(db, profile=profile):

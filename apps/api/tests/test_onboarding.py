@@ -1,24 +1,11 @@
-from datetime import UTC, datetime
-
 from fastapi.testclient import TestClient
 
 from app import models
 from app.database import get_db
 
-LAB_REPORT = b"Lab report 2026-06-01 creatinine 1.2 kidney follow up"
-
 
 def auth(user_id: str = "user_1") -> dict[str, str]:
     return {"Authorization": f"Bearer {user_id}"}
-
-
-def accept_consent(client: TestClient, *, user: str = "user_1") -> None:
-    response = client.post(
-        "/account/consents",
-        headers=auth(user),
-        json={"policy_version": "2026-07-01", "accepted_scope": {"ai_processing": True}},
-    )
-    assert response.status_code == 201, response.text
 
 
 def put_self_profile(client: TestClient, *, user: str = "user_1", name: str = "Asha") -> dict:
@@ -67,73 +54,18 @@ def onboarding(client: TestClient, *, user: str = "user_1") -> dict:
     return response.json()
 
 
-def upload(client: TestClient, *, profile_id: str | None = None, user: str = "user_1"):
-    data = {"provisional_profile_id": profile_id} if profile_id else {}
-    return client.post(
-        "/ingestions/direct-file",
-        headers=auth(user),
-        files={"uploads": ("report.pdf", LAB_REPORT, "application/pdf")},
-        data=data,
-    )
-
-
-def test_onboarding_starts_before_consent(client):
-    """A new account has done nothing yet, so the first step is consent."""
+def test_onboarding_starts_at_the_self_profile(client):
+    """Account creation authorizes processing, so onboarding starts with the self profile."""
 
     state = onboarding(client)
     assert state["status"] == "not_started"
-    assert state["next_step"] == "consent"
+    assert state["next_step"] == "self_profile"
     assert state["completed_steps"] == []
     assert state["self_profile"] is None
 
 
-def test_ai_processing_must_be_explicitly_accepted(client):
-    """False, missing, or string values are not evidence of AI-processing consent."""
-
-    for accepted_scope in ({"ai_processing": False}, {}, {"ai_processing": "true"}):
-        response = client.post(
-            "/account/consents",
-            headers=auth(),
-            json={"policy_version": "2026-07-01", "accepted_scope": accepted_scope},
-        )
-        assert response.status_code == 422
-
-    assert onboarding(client)["next_step"] == "consent"
-    assert upload(client).status_code == 403
-
-    with next(get_db()) as db:
-        assert db.query(models.ConsentEvidence).count() == 0
-
-
-def test_false_consent_evidence_does_not_complete_onboarding(client):
-    """A false legacy row is not treated as accepted consent."""
-
-    onboarding(client)
-    with next(get_db()) as db:
-        account = db.query(models.Account).one()
-        identity = db.query(models.AuthIdentity).one()
-        db.add(
-            models.ConsentEvidence(
-                account_id=account.id,
-                actor_identity_id=identity.id,
-                policy_version="2026-07-01",
-                accepted_scope={"ai_processing": False},
-                accepted_at=datetime.now(UTC),
-            )
-        )
-        db.commit()
-
-    state = onboarding(client)
-    assert state["status"] == "not_started"
-    assert state["next_step"] == "consent"
-    assert upload(client).status_code == 403
-
-
 def test_onboarding_resumes_at_the_first_incomplete_step(client):
     """Each step reports the next outstanding one until onboarding completes."""
-
-    accept_consent(client)
-    assert onboarding(client)["next_step"] == "self_profile"
 
     profile = put_self_profile(client)
     assert onboarding(client)["next_step"] == "health_context"
@@ -162,7 +94,6 @@ def test_onboarding_resumes_at_the_first_incomplete_step(client):
     assert state["status"] == "completed"
     assert state["next_step"] is None
     assert state["completed_steps"] == [
-        "consent",
         "self_profile",
         "health_context",
         "conditions",

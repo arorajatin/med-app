@@ -4,7 +4,6 @@ import type {
   AttestedCategory,
   AttestedEntryInput,
   AttestedMemoryRead,
-  ConsentRead,
   MemoryRead,
   OnboardingRead,
   ProfileHealthContextRead,
@@ -18,16 +17,6 @@ export function getAccount(): Promise<AccountRead> {
 
 export function getOnboarding(): Promise<OnboardingRead> {
   return request<OnboardingRead>("/account/onboarding");
-}
-
-export function acceptConsent(input: {
-  policyVersion: string;
-  acceptedScope: Record<string, unknown>;
-}): Promise<ConsentRead> {
-  return request<ConsentRead>("/account/consents", {
-    method: "POST",
-    body: { policy_version: input.policyVersion, accepted_scope: input.acceptedScope },
-  });
 }
 
 export function putSelfProfile(input: {

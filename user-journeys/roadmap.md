@@ -10,7 +10,6 @@ That change must define:
 - linking an identity to an existing managed profile;
 - manager, contributor, and viewer permissions;
 - whether the original account manager retains access;
-- consent ownership;
 - independent uploads into the same profile;
 - audit history and access revocation;
 - duplicate-account and duplicate-profile reconciliation;
@@ -47,7 +46,7 @@ Graphs use report-linked metric observations, not medical-memory prose.
 
 Email and WhatsApp intake are excluded from V1. Create and approve a separate post-V1 OpenSpec change for each channel before accepting reports through it.
 
-Each future change must decide the user journey, account and source authorization, supported report formats, report grouping, provider and security approach, privacy and residency requirements, consent, profile assignment, provenance, deletion, failure handling, duplicate delivery, and testing. V1 makes no commitment to a provider, inbound-address scheme, phone-linking method, or transport design.
+Each future change must decide the user journey, account and source authorization, supported report formats, report grouping, provider and security approach, privacy and residency requirements, profile assignment, provenance, deletion, failure handling, duplicate delivery, and testing. V1 makes no commitment to a provider, inbound-address scheme, phone-linking method, or transport design.
 
 ## Other deferred journeys
 

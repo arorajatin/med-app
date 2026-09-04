@@ -20,7 +20,7 @@ The first-release change is the product umbrella and remains active while its sp
 
 | Stage | Change or slice | Outcome | Depends On |
 | --- | --- | --- | --- |
-| 1 | [First-release foundation](changes/define-first-release-family-health-experience/tasks.md) | Account, profile, consent, logical-document, extraction-class, assignment, and review contracts with local/test adapters | Current living capabilities and database schema management |
+| 1 | [First-release foundation](changes/define-first-release-family-health-experience/tasks.md) | Account, profile, logical-document, extraction-class, assignment, and review contracts with local/test adapters | Current living capabilities and database schema management |
 | 2A | [Adopt Supabase data boundary](changes/adopt-supabase-data-boundary/proposal.md) | Production Postgres, private Storage, and row-level ownership | Stage 1 account and ingestion schemas |
 | 2B | [Add production extraction provider](changes/add-production-extraction-provider/proposal.md) | Real OCR/model adapter and source-valid normalized output | Stage 1 extraction contract, provider evaluation, and privacy approval |
 | 3 | [Add queue-backed extraction worker](changes/add-queue-backed-extraction-worker/proposal.md) | Durable asynchronous dispatch, Textract continuation, retries, and recovery | Stage 1 job contract, Stage 2A production boundary, Stage 2B provider phase contract, and queue selection |

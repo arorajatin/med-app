@@ -18,7 +18,7 @@ describe("OnboardingWizard", () => {
     mockApi({
       "GET /account/onboarding": onboardingState({
         next_step: "health_context",
-        completed_steps: ["consent", "self_profile"],
+        completed_steps: ["self_profile"],
         self_profile: SELF_PROFILE,
       }),
     });
@@ -30,13 +30,13 @@ describe("OnboardingWizard", () => {
       "listitem",
     );
     expect(steps[0]).toHaveTextContent("Done");
-    expect(steps[2]).toHaveTextContent("In progress");
+    expect(steps[1]).toHaveTextContent("In progress");
   });
 
   it("returns to the next required step after correcting an earlier answer", async () => {
     const state = onboardingState({
       next_step: "health_context",
-      completed_steps: ["consent", "self_profile"],
+      completed_steps: ["self_profile"],
       self_profile: SELF_PROFILE,
     });
     mockApi({
@@ -58,7 +58,7 @@ describe("OnboardingWizard", () => {
     mockApi({
       "GET /account/onboarding": onboardingState({
         next_step: "health_context",
-        completed_steps: ["consent", "self_profile"],
+        completed_steps: ["self_profile"],
         self_profile: SELF_PROFILE,
       }),
     });
@@ -73,58 +73,11 @@ describe("OnboardingWizard", () => {
     expect(screen.queryByRole("heading", { name: "Onboarding complete" })).not.toBeInTheDocument();
   });
 
-  it("moves to the next step once consent is accepted", async () => {
-    let accepted = false;
-    const { calls } = mockApi({
-      "GET /account/onboarding": () =>
-        accepted
-          ? { body: onboardingState({ next_step: "self_profile", completed_steps: ["consent"] }) }
-          : { body: onboardingState({ status: "not_started" }) },
-      "POST /account/consents": () => {
-        accepted = true;
-        return {
-          status: 201,
-          body: {
-            id: "consent_1",
-            policy_version: "2026-07-01",
-            accepted_scope: { ai_processing: true },
-            accepted_at: "2026-07-01T00:00:00Z",
-          },
-        };
-      },
-    });
-
-    renderWizard();
-
-    await screen.findByRole("heading", { name: "AI processing terms" });
-    await userEvent.click(screen.getByRole("checkbox"));
-    await userEvent.click(screen.getByRole("button", { name: "Accept and continue" }));
-
-    expect(await screen.findByRole("heading", { name: "Your name" })).toBeInTheDocument();
-    const consentCall = calls.find((call) => call.path === "/account/consents");
-    expect(consentCall?.body).toMatchObject({
-      policy_version: "2026-07-01",
-      accepted_scope: { ai_processing: true },
-    });
-  });
-
-  it("blocks acceptance until the terms box is ticked", async () => {
-    const { calls } = mockApi({ "GET /account/onboarding": onboardingState() });
-
-    renderWizard();
-
-    await screen.findByRole("heading", { name: "AI processing terms" });
-    await userEvent.click(screen.getByRole("button", { name: "Accept and continue" }));
-
-    expect(await screen.findByRole("alert")).toHaveTextContent("Tick the box");
-    expect(calls.some((call) => call.path === "/account/consents")).toBe(false);
-  });
-
   it("keeps an invalid age on the step and sends nothing", async () => {
     const { calls } = mockApi({
       "GET /account/onboarding": onboardingState({
         next_step: "health_context",
-        completed_steps: ["consent", "self_profile"],
+        completed_steps: ["self_profile"],
         self_profile: SELF_PROFILE,
       }),
     });
@@ -149,8 +102,8 @@ describe("OnboardingWizard", () => {
         body: onboardingState({
           next_step: recorded ? "conditions" : "health_context",
           completed_steps: recorded
-            ? ["consent", "self_profile", "health_context"]
-            : ["consent", "self_profile"],
+            ? ["self_profile", "health_context"]
+            : ["self_profile"],
           self_profile: SELF_PROFILE,
         }),
       }),
@@ -183,7 +136,7 @@ describe("OnboardingWizard", () => {
     const { calls } = mockApi({
       "GET /account/onboarding": onboardingState({
         next_step: "conditions",
-        completed_steps: ["consent", "self_profile", "health_context"],
+        completed_steps: ["self_profile", "health_context"],
         self_profile: SELF_PROFILE,
       }),
       "GET /profiles/profile_1/memory": {
@@ -237,7 +190,7 @@ describe("OnboardingWizard", () => {
     const { calls } = mockApi({
       "GET /account/onboarding": onboardingState({
         next_step: "medications",
-        completed_steps: ["consent", "self_profile", "health_context", "conditions"],
+        completed_steps: ["self_profile", "health_context", "conditions"],
         self_profile: SELF_PROFILE,
       }),
       "GET /profiles/profile_1/memory": { profile: SELF_PROFILE, facts: [] },
@@ -265,7 +218,7 @@ describe("OnboardingWizard", () => {
       "GET /account/onboarding": onboardingState({
         status: "completed",
         next_step: null,
-        completed_steps: ["consent", "self_profile", "health_context", "conditions", "medications"],
+        completed_steps: ["self_profile", "health_context", "conditions", "medications"],
         self_profile: SELF_PROFILE,
       }),
       "GET /profiles/profile_1/memory": { profile: SELF_PROFILE, facts: [] },

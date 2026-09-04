@@ -4,7 +4,7 @@ import { ErrorBanner } from "./components/ErrorBanner";
 import { GoogleMark } from "./components/GoogleMark";
 
 interface SignInScreenProps {
-  /** A failure carried back on the redirect, such as a cancelled consent screen. */
+  /** A failure carried back on the redirect, such as a cancelled provider authorization. */
   redirectError: string | null;
 }
 
@@ -43,6 +43,10 @@ export function SignInScreen({ redirectError }: SignInScreenProps) {
       </button>
       <p className="muted">
         We receive your name and email address from Google. We never receive your Google password.
+      </p>
+      <p className="muted">
+        Creating an account authorizes AI processing of the medical records you upload and the
+        reviewed personal memory used in Chat.
       </p>
     </section>
   );

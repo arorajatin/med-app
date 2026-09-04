@@ -51,10 +51,7 @@ export function SummaryPanel({
   return (
     <section className="panel">
       <h2>Onboarding complete</h2>
-      <p>
-        Your account is set up. Feed, Upload, Drive, and Chat arrive as each slice is switched on
-        for this deployment.
-      </p>
+      <p>Your account is set up.</p>
 
       <SummaryRow
         step="self_profile"
@@ -74,11 +71,6 @@ export function SummaryPanel({
       <SummaryRow
         step="medications"
         value={<AttestedSummary titles={attested?.medication} noun="medications" />}
-        onEditStep={onEditStep}
-      />
-      <SummaryRow
-        step="consent"
-        value={<span>AI processing terms accepted.</span>}
         onEditStep={onEditStep}
       />
     </section>

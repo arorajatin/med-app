@@ -4,7 +4,7 @@ Production extraction is slower than an HTTP upload, includes an asynchronous Te
 
 ## What Changes
 
-- Dispatch exactly one finalized logical document created by an authenticated `direct_file` or `camera` web-upload route, including its immutable ordered source-part manifest and governing account-level consent snapshot, through an Amazon SQS Standard queue in `ap-south-1` after the upload transaction commits.
+- Dispatch exactly one finalized logical document created by an authenticated `direct_file` or `camera` web-upload route, including its immutable ordered source-part manifest, through an Amazon SQS Standard queue in `ap-south-1` after the upload transaction commits.
 - Run one atomic extraction attempt through explicit inspection, native-text or Textract, model extraction, normalization, and publication phases.
 - Resume asynchronous Textract PDF work through a regional SNS-to-SQS callback path without holding a worker claim while the provider runs.
 - Claim runnable phases atomically, use attempt-scoped idempotency, and supersede prior result sets only after a replacement commits successfully.
@@ -13,7 +13,7 @@ Production extraction is slower than an HTTP upload, includes an asynchronous Te
 - Delete temporary provider objects promptly, retain successful encrypted output until report deletion, and make report deletion cancel pending work and cleanup idempotently.
 - Keep deterministic fake dispatch and run-once adapters for local development and tests; production never falls back to inline or mock processing.
 
-This change operationalizes the production extraction path selected by `add-production-extraction-provider`. It does not redefine the clinical extraction schema, document-ingestion authorization, or review workflow, and it does not add email, WhatsApp, or another external-connector intake path. V1 consent revocation remains deferred; report deletion still cancels pending work so deleted data cannot be recreated by a late delivery.
+This change operationalizes the production extraction path selected by `add-production-extraction-provider`. It does not redefine the clinical extraction schema, document-ingestion authorization, or review workflow, and it does not add email, WhatsApp, or another external-connector intake path. Report deletion still cancels pending work so deleted data cannot be recreated by a late delivery.
 
 ## Capabilities
 

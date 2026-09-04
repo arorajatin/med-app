@@ -1,13 +1,13 @@
 The checkbox definitions below are the canonical implementation checklist. Use this dependency order for delivery; tasks within a phase may proceed in parallel when their direct prerequisites are satisfied. `review.md` records the actual resume point when implementation pauses.
 
 1. **Completed safety and client baseline:** 0.1-0.2, 2.4-2.5, 2.8, 9.3, and 10.1-10.5.
-2. **Account and profile foundation:** 2.1-2.3, 2.6-2.7, 7.1, 10.6-10.8, and 10.16.
+2. **Account and profile foundation:** 2.1-2.3, 2.7, 7.1, 10.6-10.8, and 10.16.
 3. **Logical-document ingestion:** 1.4, 3.1-3.5, 3.8, and 10.9.
 4. **Normalized extraction and assignment:** 1.5, 3.6-3.7, and 4.1.
 5. **Observations, review, records, Feed, and Drive:** 4.3-4.10, 5.1-5.7, 7.2, and 10.10-10.12.
 6. **Production data, extraction, and worker integration:** 1.1-1.3, 4.2, and 4.11-4.12. Implement the specialized changes in the cross-change order documented in `openspec/README.md`.
 7. **Chat:** 6.1-6.6 and 10.13.
-8. **Release verification:** 7.3-7.5, 9.1-9.2, 9.4, and 10.14-10.15.
+8. **Release verification:** 7.4-7.5, 9.1-9.2, 9.4, and 10.14-10.15.
 9. **Post-V1 proposals:** 8.1-8.6; these are outside the V1 implementation path but must move to separate changes before this change can archive.
 
 ## 0. Immediate Condition-Safety Baseline
@@ -23,27 +23,26 @@ The checkbox definitions below are the canonical implementation checklist. Use t
 - [ ] 1.4 Enforce PDF/JPEG/PNG input, 15,000,000-byte logical-document, 20-page/part, 10,000,000-byte image, and 10,000-pixel image-dimension ceilings with stable safe failures.
 - [ ] 1.5 Implement Unicode NFKC/case-folded exact full-name or explicit-alias matching with ambiguous-match blocking; do not match on date of birth and do not add fuzzy automatic matching.
 
-## 2. Accounts, Onboarding, Profiles, and Consent
+## 2. Accounts, Onboarding, and Profiles
 
-- [ ] 2.1 Add migration-backed application accounts, authentication-identity mapping, onboarding progress, versioned consent evidence, and a uniqueness constraint for one `self` profile per account.
+- [ ] 2.1 Add migration-backed application accounts, authentication-identity mapping, onboarding progress, and a uniqueness constraint for one `self` profile per account.
 - [ ] 2.2 Add age and reported time plus original/normalized weight and unit fields with validation and migration coverage.
 - [ ] 2.3 Implement Google and email/password registration, email verification, verified sign-in, sign-out, safe retries, and idempotent account activation.
 - [x] 2.4 Implement resumable onboarding that creates or reuses `self`, captures health context, and records explicit empty conditions or medications.
 - [x] 2.5 Implement user-attested condition and medication provenance and immediate trusted-memory creation.
-- [ ] 2.6 Implement versioned account-level consent checks and snapshots for extraction and personal-memory Chat dispatch without another consent prompt for each document, condition candidate, or Chat message; require acceptance to complete onboarding, provide no AI-disabled runtime mode, and fail closed when governing consent is absent.
-- [ ] 2.7 Add authorization, validation, duplicate-activation, onboarding-resume, consent-gating, and two-account isolation tests for every requirement in account onboarding, family profiles, and access control.
+- [ ] 2.7 Add authorization, validation, duplicate-activation, onboarding-resume, and two-account isolation tests for every requirement in account onboarding, family profiles, and access control.
 - [x] 2.8 Remove date of birth and year of birth from the profile schema, API, and every profile display; keep reported age as the profile's only age context; preserve optional source-linked date of birth in patient evidence without using it for assignment; and cover the boundary with schema and API tests.
 
 ## 3. Staged Logical Document Ingestion
 
-- [ ] 3.1 Add migration-backed ingestion, ordered part, canonical immutable `IngestionSource`, orthogonal lifecycle, assignment evidence, consent snapshot, and stable private-object identity.
+- [ ] 3.1 Add migration-backed ingestion, ordered part, canonical immutable `IngestionSource`, orthogonal lifecycle, assignment evidence, and stable private-object identity.
 - [ ] 3.2 Implement validated single-image/PDF and camera-capture receipt through route-stamped `direct_file` and `camera` private-upload contracts.
 - [ ] 3.3 Implement ordered multi-image assembly that finalizes exactly one logical document atomically.
 - [ ] 3.4 Implement optional user context, immutable original filename, mutable display filename, upload completion, and safe partial-upload cleanup.
-- [ ] 3.5 Adapt extraction dispatch so only upload-complete logical documents with accepted consent create one attempt-aware job.
+- [ ] 3.5 Adapt extraction dispatch so every authenticated, account-owned, upload-complete logical document creates one attempt-aware job.
 - [ ] 3.6 Implement account-local patient matching in which exactly one normalized full-name or explicit-alias match replaces the provisional selection and every other result, including no match, becomes `needs_assignment`.
 - [ ] 3.7 Implement manual pending-assignment resolution without AI-created profiles and publish derived data only after assignment resolves.
-- [ ] 3.8 Add supported, multipart, partial, MIME-sniffing, encrypted, corrupt, oversized, route-controlled source-channel, client-override rejection, absent-consent rejection, exact-match, unmatched, ambiguous, manual-resolution, authorization, and retry tests for every medical-record and ingestion requirement.
+- [ ] 3.8 Add supported, multipart, partial, MIME-sniffing, encrypted, corrupt, oversized, route-controlled source-channel, client-override rejection, exact-match, unmatched, ambiguous, manual-resolution, authorization, and retry tests for every medical-record and ingestion requirement.
 
 ## 4. Extraction, Observations, and Reviewed Memory
 
@@ -77,7 +76,7 @@ The checkbox definitions below are the canonical implementation checklist. Use t
 - [ ] 6.3 Implement immutable explicitly selected profile scope and retrieval of only reviewed or user-attested memory, excluding pending or ignored documented conditions, all other pending candidates, and unreviewed observations.
 - [ ] 6.4 Implement external retrieval with minimized identifiers, clear personal-versus-external attribution, persisted fetched links, and no fabricated citations.
 - [ ] 6.5 Implement retained history, safe generation failure/retry, and source-unavailable behavior after report deletion.
-- [ ] 6.6 Add selected-profile, cross-profile denial, no-evidence, pending/ignored-evidence, consent, external attribution, de-identification, provider failure, history, deletion-citation, and two-account isolation tests for every conversational-assistant requirement.
+- [ ] 6.6 Add selected-profile, cross-profile denial, no-evidence, pending/ignored-evidence, external attribution, de-identification, provider failure, history, deletion-citation, and two-account isolation tests for every conversational-assistant requirement.
 
 ## 7. Migration and Rollout
 
@@ -88,24 +87,24 @@ The checkbox definitions below are the canonical implementation checklist. Use t
 
 ## 8. Follow-up Roadmap
 
-- [ ] 8.1 Propose delegated family-member access covering invitations, independent login, profile claiming, grants, the original manager's continuing rights, consent ownership, audit history, revocation, and family members uploading their own reports.
+- [ ] 8.1 Propose delegated family-member access covering invitations, independent login, profile claiming, grants, the original manager's continuing rights, audit history, revocation, and family members uploading their own reports.
 - [ ] 8.2 Propose interactive longitudinal exploration from family member to body system to metric timeline, including analyte aliases, canonical units, reference ranges, observation corrections, accessibility, and source-report drill-down.
-- [ ] 8.3 Propose post-V1 email ingestion in a separate OpenSpec change; decide provider, account/address linking, sender authorization, spoofing and replay protection, attachment grouping, provenance, consent, assignment, deletion, retention, and India-residency controls there rather than in V1.
-- [ ] 8.4 Propose post-V1 WhatsApp ingestion covering provider approval, account/phone linking, webhook authentication, sender authorization, consent, message grouping, encrypted phone provenance, idempotency, and India-residency review.
+- [ ] 8.3 Propose post-V1 email ingestion in a separate OpenSpec change; decide provider, account/address linking, sender authorization, spoofing and replay protection, attachment grouping, provenance, assignment, deletion, retention, and India-residency controls there rather than in V1.
+- [ ] 8.4 Propose post-V1 WhatsApp ingestion covering provider approval, account/phone linking, webhook authentication, sender authorization, message grouping, encrypted phone provenance, idempotency, and India-residency review.
 - [ ] 8.5 Propose V2 native clients under `apps/ios` and `apps/android`, including authentication, generated API contracts, upload/camera UX, local-data security, and profile isolation; do not scaffold them in V1.
-- [ ] 8.6 Record separate follow-up changes for Chat actions/reminders, account export/deletion and post-acceptance processing controls, and any full family-relationship graph.
+- [ ] 8.6 Record separate follow-up changes for Chat actions/reminders, account export/deletion and post-creation processing controls, and any full family-relationship graph.
 
 ## 9. Verification and Review
 
 - [ ] 9.1 Build a requirement-to-automated-test traceability matrix covering every added, modified, and removed requirement in this change.
 - [ ] 9.2 Run the complete unit, API, migration, worker, web-upload-contract, provider-contract, private-storage, RLS, and end-to-end journey test suites and record results in `review.md`.
 - [x] 9.3 Run strict change and all-change OpenSpec validation after reconciliation and resolve every validation finding.
-- [ ] 9.4 Complete final privacy, AI-trust, consent, deletion, cross-profile isolation, and rollback review; this task SHALL remain incomplete until `review.md` contains the reviewed commit, scope, test results, resolved or accepted findings, and final resume or completion state.
+- [ ] 9.4 Complete final privacy, AI-trust, account-creation terms, deletion, cross-profile isolation, and rollback review; this task SHALL remain incomplete until `review.md` contains the reviewed commit, scope, test results, resolved or accepted findings, and final resume or completion state.
 
 ## 10. V1 Web Client
 
 - [x] 10.1 Scaffold `apps/web` on a selected framework with type checking, linting, unit tests, a production build, and a CI job that runs all four from a locked dependency set.
-- [x] 10.2 Implement the resumable onboarding journey: consent acceptance, the one `self` profile, age and weight with the entered unit, and explicit condition and medication declarations including an explicit empty answer, driven by `GET /account/onboarding` rather than a client-side step counter.
+- [x] 10.2 Implement the resumable onboarding journey: the one `self` profile, age and weight with the entered unit, and explicit condition and medication declarations including an explicit empty answer, driven by `GET /account/onboarding` rather than a client-side step counter.
 - [x] 10.3 Mirror the backend's age, weight, and declaration validation rules in the client so a person sees a problem before a round trip, while the service remains the authority and its rejection message is shown.
 - [x] 10.4 Establish and end a session, restore it on reload, and sign out and clear it when the API rejects the credential.
 - [x] 10.5 Implement Google sign-in through Supabase Auth with PKCE, session restore, background token refresh, sign-out, and safe handling of a cancelled or rejected redirect; remove the development token entry from the client.
@@ -113,7 +112,7 @@ The checkbox definitions below are the canonical implementation checklist. Use t
 - [ ] 10.6 Publish the backend OpenAPI document, generate or validate a typed client under `contracts/`, and add a drift check so the hand-mirrored types in `src/api/types.ts` cannot silently diverge.
 - [ ] 10.7 Add a profile health-context read endpoint and show the latest recorded age and weight with their reported dates on a resumed session, including the non-blocking refresh prompt.
 - [ ] 10.8 Implement family-profile creation and browsing screens.
-- [ ] 10.9 Implement every upload mode and its error states, including direct file, camera capture, ordered multi-image documents, and the size, type, and consent rejections.
+- [ ] 10.9 Implement every upload mode and its error states, including direct file, camera capture, ordered multi-image documents, and size and type rejections.
 - [ ] 10.10 Implement Feed, pending-assignment resolution, and processing state.
 - [ ] 10.11 Implement the review screens with exact source display, including document metadata, prescription candidates, and documented-condition `confirm`, `edit`, or `ignore`.
 - [ ] 10.12 Implement observation retrieval and correction, Drive projections, and report rename, download, and delete.

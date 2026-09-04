@@ -4,7 +4,7 @@ The current user-journey drafts describe the application's tabs and a partial up
 
 ## What Changes
 
-- Add Google and email/password onboarding for one account holder, automatically create the account holder's `self` profile, capture initial health context, and record account-level AI-processing consent.
+- Add Google and email/password onboarding for one account holder, automatically create the account holder's `self` profile, and capture initial health context. Account creation authorizes the AI processing required by the product.
 - Keep the first release single-manager: one authenticated account owns and manages every family profile. Record delegated family-member login and self-upload as a roadmap follow-up.
 - Expand document intake through the authenticated web app to camera capture, a single image or PDF, and a multi-image document, with immutable `direct_file` or `camera` provenance.
 - Deliver the V1 client from `apps/web` against the backend in `apps/api`; reserve unscaffolded `apps/ios` and `apps/android` homes for separate V2 native-client changes.
@@ -15,21 +15,21 @@ The current user-journey drafts describe the application's tabs and a partial up
 - Add provider-neutral, profile-scoped Chat grounded in reviewed memory, with conversation history and external-source links when outside information is used.
 - Add authenticated download, display-name rename, and cascading deletion for owned reports and their derived data.
 - Add complete user-journey documents for the first-release app shell and each primary flow.
-- **BREAKING** Replace per-record AI-processing consent selection with an account-level consent captured during onboarding and snapshotted on each ingestion. Accepting it is required to complete onboarding; the first release has no mode that runs with AI processing disabled.
+- **BREAKING** Remove per-record AI-processing consent selection and consent snapshots. Creating an account authorizes the AI processing required by the product, so onboarding has no separate consent step and the first release has no mode that runs with AI processing disabled.
 
 Explicit non-goals for this change:
 
 - Separate login or direct self-upload access for family members; this remains a roadmap change.
 - The interactive family-member → body-system → metric trend visualization; this change creates the observation contract needed by that future experience.
-- AI-consent revocation, family sharing, clinician access, public file links, arbitrary family-relationship graphs, chat-initiated actions or reminders, medical diagnosis, condition-severity classification, a condition allowlist, condition inference from medications, lab values, ranges, symptoms, or other implicit associations, selection of a Chat model provider, or document ingestion through email, Amazon SES, WhatsApp, or any other external connector. External connector ingestion requires a separate post-V1 change.
+- Post-creation AI-processing controls, family sharing, clinician access, public file links, arbitrary family-relationship graphs, chat-initiated actions or reminders, medical diagnosis, condition-severity classification, a condition allowlist, condition inference from medications, lab values, ranges, symptoms, or other implicit associations, selection of a Chat model provider, or document ingestion through email, Amazon SES, WhatsApp, or any other external connector. External connector ingestion requires a separate post-V1 change.
 
-This change affects medical-data privacy, AI trust, and consent. It retains owner isolation and private files, keeps automatically extracted measurements and unconfirmed documented-condition candidates out of trusted medical memory, requires explicit review for document metadata, prescription memory, and literally documented condition candidates, and restricts V1 storage and processing to `ap-south-1` Mumbai.
+This change affects medical-data privacy, AI trust, and account-creation terms. It retains owner isolation and private files, keeps automatically extracted measurements and unconfirmed documented-condition candidates out of trusted medical memory, requires explicit review for document metadata, prescription memory, and literally documented condition candidates, and restricts V1 storage and processing to `ap-south-1` Mumbai.
 
 ## Capabilities
 
 ### New Capabilities
 
-- `account-onboarding`: Google and email/password signup, verification, account creation, first-run health context, and account-level AI consent.
+- `account-onboarding`: Google and email/password signup, verification, account creation, and first-run health context.
 - `metric-observations`: Automatic, auditable storage and retrieval of deterministic report measurements without treating them as reviewed medical memory.
 - `record-feed`: Account-wide completed-upload browsing with upload-date and report-date ordering.
 - `record-organization`: Person-scoped dynamic organization of reports by month or reviewed condition.
@@ -39,12 +39,12 @@ This change affects medical-data privacy, AI trust, and consent. It retains owne
 
 - `access-control`: Extend private owner isolation to accounts, conversations, observations, organization views, and staged web uploads.
 - `family-profiles`: Automatically create `self`, capture age and unit-aware weight, accept user-attested conditions and medications, and support the single-manager family context.
-- `medical-records`: Replace per-record consent with account-level consent, support first-release input modes, stage safe patient assignment, and add download, rename, and delete behavior.
+- `medical-records`: Remove per-record processing choices, support first-release input modes, stage safe patient assignment, and add download, rename, and delete behavior.
 - `document-extraction`: Use native PDF text or Amazon Textract plus Bedrock Mistral Large 3 to produce patient evidence, document-metadata candidates, deterministic observations, reviewable prescription-memory candidates, and documented-condition candidates copied only from condition text literally present in the submitted prescription or lab report with auditable references.
 - `reviewed-medical-memory`: Add preselected-but-explicit review of prescription medication and instruction candidates, require confirmation or edit before a literally documented condition becomes trusted, accept user-attested onboarding facts, and exclude unreviewed metric observations and unconfirmed documented-condition candidates.
 
 ## Impact
 
-The change affects the V1 client in `apps/web`, the backend in `apps/api`, authentication and onboarding APIs, account/profile persistence, consent records, authenticated web-upload sessions, private storage, record and extraction schemas, patient matching, metric-observation tables and queries, documented-condition review and reviewed-memory rebuilding, aggregate listing, dynamic organization queries, conversation storage, model/provider abstractions, private download delivery, cascading deletion, migrations, and automated authorization, safety, and lifecycle tests. Native clients under future `apps/ios` and `apps/android` paths are outside this change.
+The change affects the V1 client in `apps/web`, the backend in `apps/api`, authentication and onboarding APIs, account/profile persistence, authenticated web-upload sessions, private storage, record and extraction schemas, patient matching, metric-observation tables and queries, documented-condition review and reviewed-memory rebuilding, aggregate listing, dynamic organization queries, conversation storage, model/provider abstractions, private download delivery, cascading deletion, migrations, and automated authorization, safety, and lifecycle tests. Native clients under future `apps/ios` and `apps/android` paths are outside this change.
 
 It overlaps with the active Supabase data-boundary, production-extraction-provider, and queue-backed-worker changes. Implementations must reuse their Mumbai private storage, selected production extraction adapters, and durable logical-document job boundaries rather than introducing parallel infrastructure.

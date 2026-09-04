@@ -61,6 +61,7 @@ describe("App", () => {
 
     expect(await screen.findByRole("button", { name: /Continue with Google/ })).toBeInTheDocument();
     expect(screen.queryByLabelText(/token/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Creating an account authorizes AI processing/)).toBeInTheDocument();
   });
 
   it("hands off to Google when the person chooses it", async () => {
@@ -98,7 +99,7 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(await screen.findByRole("heading", { name: "AI processing terms" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Your name" })).toBeInTheDocument();
     expect(screen.getByText("asha@example.com")).toBeInTheDocument();
   });
 
@@ -107,7 +108,7 @@ describe("App", () => {
     mockApi({ "GET /account/onboarding": onboardingState({ status: "not_started" }) });
 
     render(<App />);
-    await screen.findByRole("heading", { name: "AI processing terms" });
+    await screen.findByRole("heading", { name: "Your name" });
     await userEvent.click(screen.getByRole("button", { name: "Sign out" }));
 
     expect(signOut).toHaveBeenCalledOnce();

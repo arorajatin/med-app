@@ -1,8 +1,7 @@
 # Web Client
 
-The V1 web client. This first slice is the sign-up and onboarding journey: account-level AI
-processing consent, the one `self` profile, age and weight, and user-attested conditions and
-medications.
+The V1 web client. This first slice is the sign-up and onboarding journey: the one `self` profile,
+age and weight, and user-attested conditions and medications.
 
 ## Stack
 

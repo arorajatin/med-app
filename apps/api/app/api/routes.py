@@ -20,8 +20,6 @@ from app.schemas import (
     AttestedMemoryRead,
     AttestedMemoryUpdate,
     ChecklistItemRead,
-    ConsentCreate,
-    ConsentRead,
     CurrentUser,
     ExtractionJobRead,
     ExtractionRead,
@@ -36,7 +34,7 @@ from app.schemas import (
     RecordReviewRequest,
     SelfProfileUpdate,
 )
-from app.services.accounts import AccountContext, latest_consent, resolve_account_context
+from app.services.accounts import AccountContext, resolve_account_context
 from app.services.appointments import generate_checklist
 from app.services.common import (
     require_appointment,
@@ -76,28 +74,6 @@ def get_account(
     settings: Settings = Depends(get_settings),
 ) -> models.Account:
     return _account_context(db, user=user, settings=settings).account
-
-
-@router.post("/account/consents", response_model=ConsentRead, status_code=status.HTTP_201_CREATED)
-def accept_consent(
-    payload: ConsentCreate,
-    db: Session = Depends(get_db),
-    user: CurrentUser = Depends(get_current_user),
-    settings: Settings = Depends(get_settings),
-) -> models.ConsentEvidence:
-    context = _account_context(db, user=user, settings=settings)
-    consent = models.ConsentEvidence(
-        account_id=context.account.id,
-        actor_identity_id=context.identity.id,
-        accepted_scope=payload.accepted_scope,
-        policy_version=payload.policy_version,
-        accepted_at=datetime.now(UTC),
-    )
-    db.add(consent)
-    db.commit()
-    db.refresh(consent)
-    refresh_onboarding_status(db, account=context.account)
-    return consent
 
 
 @router.get("/account/onboarding", response_model=OnboardingRead)
@@ -683,16 +659,9 @@ async def _receive_ingestion(
     context = _account_context(db, user=user, settings=settings)
     if provisional_profile_id is not None:
         require_profile(db, account_id=context.account.id, profile_id=provisional_profile_id)
-    consent = latest_consent(db, account_id=context.account.id)
-    if consent is None:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="This account has not accepted AI processing, which every feature requires.",
-        )
     ingestion = models.Ingestion(
         account_id=context.account.id,
         provisional_profile_id=provisional_profile_id,
-        consent_evidence_id=consent.id,
         source_channel=source_channel,
         display_filename=display_filename,
         user_context=user_context,

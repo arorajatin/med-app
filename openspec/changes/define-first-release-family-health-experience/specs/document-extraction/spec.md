@@ -1,10 +1,10 @@
 ## MODIFIED Requirements
 
 ### Requirement: Explicit logical-document extraction lifecycle
-The service SHALL represent each consented immutable logical-document extraction as an attempt-aware job with public status, internal phase, timing, provider-component provenance, processing method, routing reason, and safe failure information.
+The service SHALL represent each authenticated, account-owned immutable logical-document extraction as an attempt-aware job with public status, internal phase, timing, provider-component provenance, processing method, routing reason, and safe failure information.
 
 #### Scenario: Queue one logical document
-- **WHEN** a consented upload-complete logical document is accepted
+- **WHEN** an authenticated, account-owned upload-complete logical document is accepted
 - **THEN** the service SHALL create one job in `queued` for that document and attempt
 - **AND** the source SHALL move to `queued_for_extraction`
 

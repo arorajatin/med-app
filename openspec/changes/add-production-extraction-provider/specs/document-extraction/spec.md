@@ -71,7 +71,7 @@ The service SHALL use `pdfplumber`, Amazon Textract, and Amazon Bedrock Mistral 
 The production adapter SHALL process one immutable logical document per attempt and SHALL support only unencrypted PDF, JPEG, and PNG input representing an English-language lab report or prescription that completed through an authenticated `direct_file` or `camera` web-upload route.
 
 #### Scenario: Accept a supported logical document
-- **WHEN** a consented input is one PDF, one image, or an ordered JPEG/PNG image set within all product limits
+- **WHEN** an authenticated, account-owned input is one PDF, one image, or an ordered JPEG/PNG image set within all product limits
 - **THEN** the adapter SHALL preserve source-part order and logical page numbering for one extraction attempt
 
 #### Scenario: Receive input outside authenticated web upload
@@ -170,16 +170,11 @@ An extraction attempt SHALL publish one complete validated result set or no new 
 - **THEN** the attempt SHALL end terminally without automatic fallback to another provider, region, or the mock
 
 ### Requirement: Privacy-safe retention and operations
-The production path SHALL require the governing accepted account-level extraction-consent snapshot without another prompt for each document or condition candidate, process and stage medical content only in `ap-south-1`, and restrict retained content to the report's approved audit lifecycle.
+The production path SHALL require authenticated account ownership, process and stage medical content only in `ap-south-1`, and restrict retained content to the report's approved audit lifecycle.
 
-#### Scenario: Consent is absent
-- **WHEN** a logical document lacks valid AI-processing consent
+#### Scenario: Account ownership is absent
+- **WHEN** a logical document is not owned by the authenticated account
 - **THEN** the service SHALL NOT invoke `pdfplumber`, Textract, or Bedrock for extraction
-
-#### Scenario: Account consent already governs the upload
-- **WHEN** an authenticated web upload references an accepted account-level extraction-consent snapshot
-- **THEN** the service SHALL treat that snapshot as the governing consent for extraction dispatch
-- **AND** it SHALL NOT ask for another consent choice for the document or any documented-condition candidate it produces
 
 #### Scenario: Retain a successful result
 - **WHEN** an extraction attempt commits successfully
@@ -192,7 +187,7 @@ The production path SHALL require the governing accepted account-level extractio
 - **AND** a 24-hour lifecycle policy SHALL provide a deletion backstop
 
 #### Scenario: Invoke Bedrock
-- **WHEN** a consented layout stream is sent to Mistral Large 3
+- **WHEN** an authorized layout stream is sent to Mistral Large 3
 - **THEN** the invocation SHALL use `data_retention_mode: none`
 - **AND** IAM or SCP policy SHALL prevent relaxing the zero-data-retention requirement
 

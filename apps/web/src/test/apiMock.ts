@@ -59,7 +59,7 @@ export function onboardingState(
 ) {
   return {
     status: "in_progress",
-    next_step: "consent",
+    next_step: "self_profile",
     completed_steps: [],
     self_profile: null,
     ...overrides,

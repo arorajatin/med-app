@@ -6,7 +6,6 @@ import { ErrorBanner } from "../components/ErrorBanner";
 import { StepIndicator } from "../components/StepIndicator";
 import { SummaryPanel } from "./SummaryPanel";
 import { AttestedMemoryStep } from "./steps/AttestedMemoryStep";
-import { ConsentStep } from "./steps/ConsentStep";
 import { HealthContextStep } from "./steps/HealthContextStep";
 import { SelfProfileStep } from "./steps/SelfProfileStep";
 
@@ -92,14 +91,6 @@ export function OnboardingWizard({ onUnauthenticated }: OnboardingWizardProps) {
           onboarding={state}
           healthContext={healthContext}
           onEditStep={handleEditStep}
-        />
-      );
-    }
-    if (activeStep === "consent") {
-      return (
-        <ConsentStep
-          alreadyAccepted={completed.includes("consent")}
-          onCompleted={handleStepCompleted}
         />
       );
     }

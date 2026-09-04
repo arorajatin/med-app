@@ -35,22 +35,13 @@ The service SHALL accept unencrypted PDF, JPEG, and PNG source parts submitted t
 - **AND** the service SHALL return HTTP 413
 - **AND** the ingestion SHALL NOT become upload complete
 
-### Requirement: Explicit AI-processing consent
-The service SHALL create an extraction job for every upload-complete logical document under the owning account's accepted AI-processing consent, and SHALL snapshot the accepted consent version on the ingestion without asking again for each document. Accepted consent SHALL be a precondition for uploading, and the service SHALL fail closed rather than retain a document that has no governing consent.
+### Requirement: Process every account-owned upload
+The service SHALL create an extraction job for every authenticated, account-owned, upload-complete logical document. Account creation authorizes required AI processing, so an ingestion SHALL NOT store a separate processing-consent choice or snapshot.
 
-#### Scenario: Upload under accepted account consent
-- **WHEN** a file upload completes for an account with accepted AI-processing consent
-- **THEN** the service SHALL record the governing consent version on the ingestion
-- **AND** the service SHALL create an extraction job for that file or logical multi-image document
-
-#### Scenario: Upload from an account without accepted consent
-- **WHEN** an upload is attempted for an account that has not accepted AI-processing consent
-- **THEN** the service SHALL reject the upload with HTTP 403
-- **AND** the service SHALL NOT retain any part of that upload
-
-#### Scenario: Upload another document under existing consent
-- **WHEN** an account with accepted consent uploads another document
-- **THEN** the service SHALL NOT require another per-document consent choice
+#### Scenario: Complete an account-owned upload
+- **WHEN** a file upload completes for an authenticated account
+- **THEN** the service SHALL create an extraction job for that file or logical multi-image document
+- **AND** the service SHALL NOT request or store a per-document processing choice
 
 ## ADDED Requirements
 

@@ -74,16 +74,3 @@ def _refresh_identity_provenance(
     if changed:
         db.commit()
         db.refresh(identity)
-
-
-def latest_consent(db: Session, *, account_id: str) -> models.ConsentEvidence | None:
-    consents = (
-        db.query(models.ConsentEvidence)
-        .filter(models.ConsentEvidence.account_id == account_id)
-        .order_by(models.ConsentEvidence.accepted_at.desc(), models.ConsentEvidence.id.desc())
-        .all()
-    )
-    return next(
-        (consent for consent in consents if consent.accepted_scope.get("ai_processing") is True),
-        None,
-    )

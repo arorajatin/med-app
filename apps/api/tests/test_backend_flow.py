@@ -42,19 +42,6 @@ def create_profile(client: TestClient, *, user: str = "user_1", name: str = "Sel
     return profile
 
 
-def accept_consent(client: TestClient, *, user: str = "user_1") -> dict:
-    response = client.post(
-        "/account/consents",
-        headers=auth(user),
-        json={
-            "policy_version": "2026-07-01",
-            "accepted_scope": {"ai_processing": True},
-        },
-    )
-    assert response.status_code == 201
-    return response.json()
-
-
 def upload_document(
     client: TestClient,
     *,
@@ -98,7 +85,7 @@ def confirm_all(client: TestClient, *, record_id: str, extraction: dict, user: s
 
 
 def ingest_and_assign(client: TestClient, *, content: bytes, profile_id: str) -> tuple[dict, dict]:
-    """Upload a consented document, run extraction inline, and resolve its patient."""
+    """Upload a document, run extraction inline, and resolve its patient."""
 
     upload = upload_document(client, content=content, profile_id=profile_id)
     record = assign(client, ingestion_id=upload["ingestion"]["id"], profile_id=profile_id)
@@ -110,7 +97,6 @@ def test_upload_extract_review_and_memory_flow_does_not_infer_a_condition(client
     """The full review flow stores supported facts without inferring a medical condition."""
 
     profile = create_profile(client)
-    accept_consent(client)
 
     upload = upload_document(
         client,
@@ -167,7 +153,6 @@ def test_metric_observations_never_become_memory_facts(client):
     """Extracted measurements remain observations and never become trusted memory facts."""
 
     profile = create_profile(client)
-    accept_consent(client)
 
     record, extraction = ingest_and_assign(
         client,
@@ -213,7 +198,6 @@ def test_extracted_date_of_birth_is_retained_as_patient_evidence(client, monkeyp
 
     monkeypatch.setattr(MockExtractor, "extract_document", extract_document)
     profile = create_profile(client)
-    accept_consent(client)
 
     record, extraction = ingest_and_assign(
         client,
@@ -230,7 +214,6 @@ def test_retry_does_not_duplicate_candidates_or_active_observations(client):
     """Retrying extraction replaces pending results without creating active duplicates."""
 
     profile = create_profile(client)
-    accept_consent(client)
 
     record, extraction = ingest_and_assign(
         client,
@@ -295,7 +278,6 @@ def test_retry_preserves_reviewed_decisions(client):
     """Retrying extraction keeps confirmed candidates and their existing memory facts."""
 
     profile = create_profile(client)
-    accept_consent(client)
 
     record, extraction = ingest_and_assign(
         client,
@@ -352,7 +334,6 @@ def test_appointment_checklist_uses_confirmed_memory(client):
     """Appointment checklists use confirmed memory facts to create relevant questions."""
 
     profile = create_profile(client)
-    accept_consent(client)
 
     record, extraction = ingest_and_assign(
         client,
@@ -517,7 +498,6 @@ def test_unsafe_provider_condition_output_never_reaches_persistence(client, stor
             )
 
     profile = create_profile(client)
-    accept_consent(client)
 
     client.app.dependency_overrides[get_extractor] = UnsafeExtractor
     try:
@@ -584,7 +564,6 @@ def test_provider_exception_text_is_not_persisted_or_returned(client):
             raise RuntimeError("Provider inferred kidney disease from creatinine")
 
     profile = create_profile(client)
-    accept_consent(client)
 
     client.app.dependency_overrides[get_extractor] = RaisingExtractor
     try:
@@ -621,7 +600,6 @@ def test_hidden_unsupported_condition_does_not_block_review_completion(client):
     """A filtered unsupported condition does not prevent valid candidates from being reviewed."""
 
     profile = create_profile(client)
-    accept_consent(client)
 
     record, extraction = ingest_and_assign(
         client,
@@ -663,7 +641,6 @@ def test_ignored_candidate_leaves_no_trusted_memory(client):
     """Ignoring a previously confirmed candidate removes its active trusted memory fact."""
 
     profile = create_profile(client)
-    accept_consent(client)
 
     record, extraction = ingest_and_assign(
         client,
@@ -708,40 +685,10 @@ def test_ignored_candidate_leaves_no_trusted_memory(client):
     assert memory["facts"] == []
 
 
-def test_upload_without_accepted_consent_is_rejected(client, storage_root):
-    """Uploading without consent is rejected before database or file storage is changed."""
-
-    profile = create_profile(client)
-
-    response = client.post(
-        "/ingestions/direct-file",
-        headers=auth(),
-        files={
-            "uploads": (
-                "report.pdf",
-                b"Lab report 2026-06-01 creatinine 1.2",
-                "application/pdf",
-            )
-        },
-        data={"provisional_profile_id": profile["id"]},
-    )
-
-    assert response.status_code == 403
-
-    db = next(get_db())
-    try:
-        assert db.query(models.Ingestion).count() == 0
-        assert db.query(models.IngestionPart).count() == 0
-    finally:
-        db.close()
-    assert list(storage_root.rglob("*")) == []
-
-
 def test_another_account_cannot_read_an_owned_ingestion(client):
     """Another account cannot read records, extraction results, or jobs for an ingestion."""
 
     profile = create_profile(client)
-    accept_consent(client)
     upload = upload_document(
         client,
         content=b"Lab report 2026-06-01 creatinine 1.2",
