@@ -34,7 +34,8 @@ Implementation commit for the Google-only, contract, health-context, access-matr
 
 ## Resume From
 
-- Push the branch and require a hosted CI result, including PostgreSQL migration and API/worker startup coverage. No hosted run has ever completed, so the repaired workflow's first green run is the evidence to record here.
+- Resolve the GitHub account billing lock, then re-run CI. The workflow itself is fixed: run 34109014582 created and scheduled all five jobs, where every earlier run created none. Each job was then refused with "The job was not started because your account is locked due to a billing issue." The repository is public, so this is an account-level lock rather than exhausted minutes, and no hosted result can be produced until it clears.
+- Note that `on.push` is limited to `master`, so pushing a feature branch runs nothing. Use `gh workflow run ci.yml --ref <branch>` or open a pull request.
 - Disable the email provider in the Supabase project as defence in depth. The API already refuses every upstream method except Google with a 403 before an account exists, so this is hardening rather than a correctness gap.
 - Begin the logical-document ingestion phase: tasks 1.4, 3.1 through 3.5, 3.8, and 10.9. The account and profile foundation is otherwise complete.
 - Keep the future condition-candidate path disabled until the structured source contract and literal-span validation land behind default-off controls.
@@ -76,6 +77,7 @@ Implementation commit for the Google-only, contract, health-context, access-matr
 | 2026-09-04 | `npm run typecheck`, `npm run lint`, `npm run test`, `npm run build`, `npm run contracts:check` in `apps/web` | Pass | No type or lint findings; 58 tests across 9 files passed; the production build succeeded; the generated contract was already current. |
 | 2026-09-04 | Deliberate contract-drift check | Partly superseded | Renaming and adding a required field failed the build, but through the assignability constraint rather than the key-set check. An added *optional* field drifted silently until 552c101. |
 | 2026-09-07 | `npm run typecheck`, `npm run lint`, `npm run test`, `npm run build`, `npm run contracts:check` after `npm ci` in `apps/web` | Pass | 66 tests across 10 files passed, including the compile-level drift cases and the health-context failure paths. |
+| 2026-09-07 | `gh workflow run ci.yml --ref next-openspec-work-item` (run 34109014582) | Blocked | All five jobs were created and scheduled, which the workflow repair had to happen first for, then refused: the GitHub account is locked for billing. No job executed a step. |
 | 2026-09-07 | Repo-root replication of every CI job | Mixed | Backend quality, SQLite migrations, web quality, and OpenSpec all pass as CI invokes them. The Ruff format gate failed and is fixed in 77f398c. The PostgreSQL job cannot be run here: no Docker, no local server. Its offline DDL generation and its inline API/worker startup snippet both pass. |
 | 2026-09-04 | `npx --yes @fission-ai/openspec@1.6.0 validate --all --strict` | Pass | All 11 specs and changes passed after the Google-only reconciliation. |
 | 2026-09-07 | `pytest --cov=app --cov-report=term`, `ruff check --ignore I001`, `mypy app` in `apps/api` | Pass | 123 backend tests passed at 93.54% branch coverage; no lint findings and no type issues in 25 source files. |
