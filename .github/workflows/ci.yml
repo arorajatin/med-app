@@ -66,8 +66,6 @@ jobs:
   sqlite-migrations:
     name: SQLite migration round trip
     runs-on: ubuntu-latest
-    env:
-      DATABASE_URL: sqlite:///${{ runner.temp }}/migration-smoke.db
     steps:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -85,6 +83,10 @@ jobs:
       - name: Install frozen dependencies
         run: uv sync --frozen --package med-app-backend --extra dev
       - name: Upgrade, check, and downgrade SQLite
+        # `runner` is not one of the contexts a job-level `env` may read, so the
+        # temporary database path is set on the step that uses it.
+        env:
+          DATABASE_URL: sqlite:///${{ runner.temp }}/migration-smoke.db
         run: |
           uv run --frozen --package med-app-backend alembic -c apps/api/alembic.ini upgrade head
           uv run --frozen --package med-app-backend alembic -c apps/api/alembic.ini check
