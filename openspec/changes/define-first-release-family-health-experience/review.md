@@ -1,10 +1,11 @@
 # Review Checkpoint
 
-Status: Google-only sign-in, the API contract drift checks, the health-context read, the access matrix, and the family space implemented and locally verified; hosted CI evidence and the live Google exchange open
-Updated: 2026-09-04
+Status: The account and profile foundation is complete. The live Google exchange is verified, so task 2.3 is closed; hosted CI evidence is still outstanding, and the workflow that would produce it had never run.
+Updated: 2026-09-07
 Reviewer: Claude
 Baseline commit: 8a1e0bd662cc231532c5b91248819e9294c4f8cb
-Implementation tip before the planning-structure reconciliation: 6be40d38e3465a767869abfd6d679bfa2f82a598; no final reviewed implementation commit yet
+Implementation tip before the planning-structure reconciliation: 6be40d38e3465a767869abfd6d679bfa2f82a598
+Implementation commit for the Google-only, contract, health-context, access-matrix, and family-space slice: 09c0253; CI workflow repair: a2bcd51
 
 ## Reviewed Scope
 
@@ -33,8 +34,8 @@ Implementation tip before the planning-structure reconciliation: 6be40d38e3465a7
 
 ## Resume From
 
-- Review and record the exact current implementation commit, then require hosted CI evidence, including PostgreSQL migration and API/worker startup coverage.
-- Enable the Google provider and register the client's redirect URLs in the Supabase project, then verify the redirect end to end. Task 2.3 stays unchecked until that live exchange is exercised; its code, including the refusal of every other sign-in method, is implemented and covered by tests.
+- Push the branch and require a hosted CI result, including PostgreSQL migration and API/worker startup coverage. No hosted run has ever completed, so the repaired workflow's first green run is the evidence to record here.
+- Disable the email provider in the Supabase project as defence in depth. The API already refuses every upstream method except Google with a 403 before an account exists, so this is hardening rather than a correctness gap.
 - Begin the logical-document ingestion phase: tasks 1.4, 3.1 through 3.5, 3.8, and 10.9. The account and profile foundation is otherwise complete.
 - Keep the future condition-candidate path disabled until the structured source contract and literal-span validation land behind default-off controls.
 - No operational database inventory, data review, or row transformation is required for 2A. Provision an empty database and apply the declared current head.
@@ -75,14 +76,18 @@ Implementation tip before the planning-structure reconciliation: 6be40d38e3465a7
 | 2026-09-04 | `npm run typecheck`, `npm run lint`, `npm run test`, `npm run build`, `npm run contracts:check` in `apps/web` | Pass | No type or lint findings; 58 tests across 9 files passed; the production build succeeded; the generated contract was already current. |
 | 2026-09-04 | Deliberate contract-drift check | Pass | Renaming and adding a field in `contracts/api.ts` made `npm run typecheck` fail with the offending field names, then passed again once restored. |
 | 2026-09-04 | `npx --yes @fission-ai/openspec@1.6.0 validate --all --strict` | Pass | All 11 specs and changes passed after the Google-only reconciliation. |
-| 2026-09-03 | Google redirect against the live Supabase project | Not available | `GET /auth/v1/settings` reports the Google provider disabled for the project, so the provider exchange cannot be exercised until it is enabled in the dashboard. |
+| 2026-09-07 | `pytest --cov=app --cov-report=term`, `ruff check --ignore I001`, `mypy app` in `apps/api` | Pass | 123 backend tests passed at 93.54% branch coverage; no lint findings and no type issues in 25 source files. |
+| 2026-09-07 | `npm run typecheck`, `npm run lint`, `npm run test`, `npm run build`, `npm run contracts:check` in `apps/web` | Pass | No type or lint findings; 58 tests across 9 files passed; the production build succeeded; the generated contract was current. |
+| 2026-09-07 | `GET /auth/v1/settings` against the live Supabase project | Pass | The project now reports `"google": true`. The account holder exercised the redirect end to end, which closes task 2.3. |
+| 2026-09-07 | `gh run list --workflow ci.yml` | Fail | Every hosted run since 2026-08-17 failed in 0 seconds with a workflow file issue; no CI check has ever executed. Repaired in a2bcd51. |
+| 2026-09-03 | Google redirect against the live Supabase project | Superseded | The project reported the Google provider disabled at the time; it is enabled and verified as of 2026-09-07. |
 | 2026-08-12 | Local live PostgreSQL smoke | Not available | Docker is stopped and no local PostgreSQL server is installed; the hosted CI job runs the fresh-schema upgrade, API/worker startup, check, and teardown. |
 
 ## Open Findings
 
-- Hosted CI has not run for the current uncommitted worktree; a reviewed commit and hosted result remain release evidence.
+- Hosted CI has never produced a result. Every run since the workflow landed on 2026-08-17 failed in 0 seconds with a workflow file issue, because the SQLite job read `runner.temp` from a job-level `env`, which may not read that context. Commit a2bcd51 moves the value to the step; the first hosted run remains release evidence.
 - Application accounts and later V1 migrations, production infrastructure, provider contracts, privacy approvals, and later runtime quality gates remain unimplemented and untested.
-- Google sign-in is unverified end to end. The target Supabase project reports the Google provider disabled, so the redirect cannot yet complete; enabling it needs dashboard access and a Google OAuth client. Everything either side of the provider exchange is implemented and covered by tests.
+- The Supabase project still enables the email provider with open sign-up (`"email": true`, `"disable_signup": false`), so an email identity can be created with the project directly. It cannot reach account data: the API answers such a token with 403 before any account is created or reconciled.
 - Email and password sign-in is now a roadmap item rather than an unmet V1 requirement. The API refuses every upstream method except Google, so an email identity created directly with the provider cannot reach an account; disabling that provider in the dashboard remains worthwhile defence in depth, not a correctness gap.
 - The Google-only gate reads `app_metadata.provider`, which names the primary method for the identity. If a person later links a second method to the same Supabase user, that claim decides the outcome; the delegated-access and email/password roadmap changes should settle multi-method identities explicitly.
 - Development authentication treats the bearer value as a literal user id, so running the web client against `DEV_AUTH_ENABLED=true` would key an account on a raw access token and mint a new account on every refresh. The environment sample and both READMEs now say so; the service does not detect the mismatch itself.
@@ -91,6 +96,7 @@ Implementation tip before the planning-structure reconciliation: 6be40d38e3465a7
 
 ## Session History
 
+- 2026-09-07: Committed the Google-only, contract-drift, health-context, access-matrix, and family-space slice as 09c0253 after re-running the backend and web suites. Re-checked the Supabase project, which now enables Google; with the account holder's end-to-end redirect test that closes task 2.3 and the account and profile foundation. Found that hosted CI had never run: the workflow read `runner.temp` from a job-level `env`, which is not one of the contexts available there, so every run since 2026-08-17 failed at startup. Repaired in a2bcd51.
 - 2026-09-04: Made Google the only first-release sign-in method and moved email and password registration to the roadmap as task 8.7. The refusal is enforced in the API from provider-controlled claims, before an account is created, so the identity-provider dashboard is not the only gate. Published the OpenAPI document and generated TypeScript contract with three drift checks, added the profile health-context read endpoint and showed the recorded age and weight with their reported dates and refresh prompts, added the route-derived authorization and isolation matrix, verified that the accounts and health-context schema already satisfied tasks 2.1 and 2.2, and built the family space for creating and browsing family profiles.
 - 2026-09-04: Made account creation the authorization boundary for required AI processing. Removed the separate acceptance API and table, ingestion reference, upload gate, onboarding step, client request/configuration, and active planning dependencies. The signup screen now states that creating an account authorizes document extraction and reviewed-memory Chat processing.
 - 2026-09-03: Removed the current runtime slice switches and their future planning references, and corrected the onboarding wizard so editing or cancelling an earlier step returns an incomplete account to its next required step rather than showing a completion summary.

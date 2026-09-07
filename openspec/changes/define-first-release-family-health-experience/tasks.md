@@ -27,7 +27,7 @@ The checkbox definitions below are the canonical implementation checklist. Use t
 
 - [x] 2.1 Add migration-backed application accounts, authentication-identity mapping, onboarding progress, and a uniqueness constraint for one `self` profile per account.
 - [x] 2.2 Add age and reported time plus original/normalized weight and unit fields with validation and migration coverage.
-- [ ] 2.3 Implement Google registration, verified sign-in, sign-out, safe retries, and idempotent account activation; refuse any other upstream sign-in method, and read the method only from provider-controlled claims.
+- [x] 2.3 Implement Google registration, verified sign-in, sign-out, safe retries, and idempotent account activation; refuse any other upstream sign-in method, and read the method only from provider-controlled claims.
 - [x] 2.4 Implement resumable onboarding that creates or reuses `self`, captures health context, and records explicit empty conditions or medications.
 - [x] 2.5 Implement user-attested condition and medication provenance and immediate trusted-memory creation.
 - [x] 2.7 Add authorization, validation, duplicate-activation, onboarding-resume, and two-account isolation tests for every requirement in account onboarding, family profiles, and access control.
