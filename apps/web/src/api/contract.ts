@@ -47,3 +47,17 @@ export type ProfileHealthContextSummaryMatches = Matches<
 export type MemoryFactReadMatches = Matches<MemoryFactRead, Schemas["MemoryFactRead"]>;
 export type MemoryReadMatches = Matches<MemoryRead, Schemas["MemoryRead"]>;
 export type AttestedMemoryReadMatches = Matches<AttestedMemoryRead, Schemas["AttestedMemoryRead"]>;
+
+type Assert<T extends true> = T;
+
+/** A mismatch must be a compiler error, not just an unused diagnostic type. */
+export type ContractMatches = Assert<
+  | AccountReadMatches
+  | ProfileReadMatches
+  | OnboardingReadMatches
+  | ProfileHealthContextReadMatches
+  | ProfileHealthContextSummaryMatches
+  | MemoryFactReadMatches
+  | MemoryReadMatches
+  | AttestedMemoryReadMatches
+>;
