@@ -1,0 +1,3173 @@
+{
+  "components": {
+    "schemas": {
+      "AccountRead": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "onboarding_status": {
+            "title": "Onboarding Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "onboarding_status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AccountRead",
+        "type": "object"
+      },
+      "AppointmentCreate": {
+        "properties": {
+          "clinician_name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clinician Name"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "maxLength": 240,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "profile_id": {
+            "title": "Profile Id",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "scheduled_for": {
+            "format": "date-time",
+            "title": "Scheduled For",
+            "type": "string"
+          }
+        },
+        "required": [
+          "profile_id",
+          "scheduled_for"
+        ],
+        "title": "AppointmentCreate",
+        "type": "object"
+      },
+      "AppointmentRead": {
+        "properties": {
+          "clinician_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clinician Name"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "profile_id": {
+            "title": "Profile Id",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "scheduled_for": {
+            "format": "date-time",
+            "title": "Scheduled For",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "profile_id",
+          "scheduled_for",
+          "clinician_name",
+          "location",
+          "reason",
+          "status",
+          "created_at"
+        ],
+        "title": "AppointmentRead",
+        "type": "object"
+      },
+      "AppointmentReviewCreate": {
+        "properties": {
+          "stars": {
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Stars",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "stars"
+        ],
+        "title": "AppointmentReviewCreate",
+        "type": "object"
+      },
+      "AppointmentReviewRead": {
+        "properties": {
+          "appointment_id": {
+            "title": "Appointment Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "stars": {
+            "title": "Stars",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "appointment_id",
+          "stars",
+          "created_at"
+        ],
+        "title": "AppointmentReviewRead",
+        "type": "object"
+      },
+      "AttestedEntry": {
+        "properties": {
+          "details": {
+            "additionalProperties": true,
+            "title": "Details",
+            "type": "object"
+          },
+          "title": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "title": "AttestedEntry",
+        "type": "object"
+      },
+      "AttestedMemoryRead": {
+        "properties": {
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "declared_at": {
+            "format": "date-time",
+            "title": "Declared At",
+            "type": "string"
+          },
+          "facts": {
+            "items": {
+              "$ref": "#/components/schemas/MemoryFactRead"
+            },
+            "title": "Facts",
+            "type": "array"
+          }
+        },
+        "required": [
+          "category",
+          "declared_at",
+          "facts"
+        ],
+        "title": "AttestedMemoryRead",
+        "type": "object"
+      },
+      "AttestedMemoryUpdate": {
+        "description": "The complete current set. An empty list declares that there are none.",
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/AttestedEntry"
+            },
+            "maxItems": 100,
+            "title": "Entries",
+            "type": "array"
+          }
+        },
+        "title": "AttestedMemoryUpdate",
+        "type": "object"
+      },
+      "Body_upload_camera_capture_ingestions_camera_post": {
+        "properties": {
+          "display_filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Filename"
+          },
+          "provisional_profile_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provisional Profile Id"
+          },
+          "uploads": {
+            "items": {
+              "contentMediaType": "application/octet-stream",
+              "type": "string"
+            },
+            "title": "Uploads",
+            "type": "array"
+          },
+          "user_context": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Context"
+          }
+        },
+        "required": [
+          "uploads"
+        ],
+        "title": "Body_upload_camera_capture_ingestions_camera_post",
+        "type": "object"
+      },
+      "Body_upload_direct_file_ingestions_direct_file_post": {
+        "properties": {
+          "display_filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Filename"
+          },
+          "provisional_profile_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provisional Profile Id"
+          },
+          "uploads": {
+            "items": {
+              "contentMediaType": "application/octet-stream",
+              "type": "string"
+            },
+            "title": "Uploads",
+            "type": "array"
+          },
+          "user_context": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Context"
+          }
+        },
+        "required": [
+          "uploads"
+        ],
+        "title": "Body_upload_direct_file_ingestions_direct_file_post",
+        "type": "object"
+      },
+      "ChecklistItemRead": {
+        "properties": {
+          "appointment_id": {
+            "title": "Appointment Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "is_generic": {
+            "title": "Is Generic",
+            "type": "boolean"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "source_fact_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Fact Id"
+          }
+        },
+        "required": [
+          "id",
+          "appointment_id",
+          "question",
+          "source_fact_id",
+          "is_generic",
+          "created_at"
+        ],
+        "title": "ChecklistItemRead",
+        "type": "object"
+      },
+      "DocumentMetadataCandidateRead": {
+        "properties": {
+          "attempt_id": {
+            "title": "Attempt Id",
+            "type": "string"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "metadata_type": {
+            "title": "Metadata Type",
+            "type": "string"
+          },
+          "original_value": {
+            "additionalProperties": true,
+            "title": "Original Value",
+            "type": "object"
+          },
+          "record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Id"
+          },
+          "review_status": {
+            "title": "Review Status",
+            "type": "string"
+          },
+          "submitted_value": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submitted Value"
+          }
+        },
+        "required": [
+          "id",
+          "record_id",
+          "attempt_id",
+          "metadata_type",
+          "original_value",
+          "submitted_value",
+          "confidence",
+          "review_status"
+        ],
+        "title": "DocumentMetadataCandidateRead",
+        "type": "object"
+      },
+      "ExtractionAttemptRead": {
+        "properties": {
+          "attempt_number": {
+            "title": "Attempt Number",
+            "type": "integer"
+          },
+          "failure_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Code"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "internal_phase": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Internal Phase"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "processing_method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Method"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "provider_components": {
+            "additionalProperties": true,
+            "title": "Provider Components",
+            "type": "object"
+          },
+          "routing_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Routing Reason"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "job_id",
+          "attempt_number",
+          "status",
+          "internal_phase",
+          "provider",
+          "provider_components",
+          "processing_method",
+          "routing_reason",
+          "failure_code",
+          "started_at",
+          "finished_at"
+        ],
+        "title": "ExtractionAttemptRead",
+        "type": "object"
+      },
+      "ExtractionJobRead": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "current_phase": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Phase"
+          },
+          "failure_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Code"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "ingestion_id": {
+            "title": "Ingestion Id",
+            "type": "string"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "ingestion_id",
+          "status",
+          "current_phase",
+          "failure_code",
+          "created_at",
+          "started_at",
+          "finished_at"
+        ],
+        "title": "ExtractionJobRead",
+        "type": "object"
+      },
+      "ExtractionRead": {
+        "properties": {
+          "attempts": {
+            "items": {
+              "$ref": "#/components/schemas/ExtractionAttemptRead"
+            },
+            "title": "Attempts",
+            "type": "array"
+          },
+          "ingestion": {
+            "$ref": "#/components/schemas/IngestionRead"
+          },
+          "jobs": {
+            "items": {
+              "$ref": "#/components/schemas/ExtractionJobRead"
+            },
+            "title": "Jobs",
+            "type": "array"
+          },
+          "memory_candidates": {
+            "items": {
+              "$ref": "#/components/schemas/MemoryCandidateRead"
+            },
+            "title": "Memory Candidates",
+            "type": "array"
+          },
+          "metadata_candidates": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentMetadataCandidateRead"
+            },
+            "title": "Metadata Candidates",
+            "type": "array"
+          },
+          "observations": {
+            "items": {
+              "$ref": "#/components/schemas/MetricObservationRead"
+            },
+            "title": "Observations",
+            "type": "array"
+          },
+          "patient_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/PatientEvidenceRead"
+            },
+            "title": "Patient Evidence",
+            "type": "array"
+          },
+          "record": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MedicalRecordRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_references": {
+            "items": {
+              "$ref": "#/components/schemas/SourceReferenceRead"
+            },
+            "title": "Source References",
+            "type": "array"
+          }
+        },
+        "required": [
+          "ingestion",
+          "record",
+          "jobs",
+          "attempts",
+          "patient_evidence",
+          "metadata_candidates",
+          "observations",
+          "memory_candidates",
+          "source_references"
+        ],
+        "title": "ExtractionRead",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "IngestionPartRead": {
+        "properties": {
+          "detected_mime_type": {
+            "title": "Detected Mime Type",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "ingestion_id": {
+            "title": "Ingestion Id",
+            "type": "string"
+          },
+          "ordinal": {
+            "title": "Ordinal",
+            "type": "integer"
+          },
+          "original_filename": {
+            "title": "Original Filename",
+            "type": "string"
+          },
+          "received_at": {
+            "format": "date-time",
+            "title": "Received At",
+            "type": "string"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "ingestion_id",
+          "ordinal",
+          "original_filename",
+          "detected_mime_type",
+          "size_bytes",
+          "received_at"
+        ],
+        "title": "IngestionPartRead",
+        "type": "object"
+      },
+      "IngestionRead": {
+        "properties": {
+          "assignment_state": {
+            "title": "Assignment State",
+            "type": "string"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "display_filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Filename"
+          },
+          "extraction_state": {
+            "title": "Extraction State",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "provisional_profile_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provisional Profile Id"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          },
+          "resolved_profile_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved Profile Id"
+          },
+          "review_state": {
+            "title": "Review State",
+            "type": "string"
+          },
+          "source_channel": {
+            "title": "Source Channel",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "upload_state": {
+            "title": "Upload State",
+            "type": "string"
+          },
+          "user_context": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Context"
+          }
+        },
+        "required": [
+          "id",
+          "provisional_profile_id",
+          "resolved_profile_id",
+          "source_channel",
+          "user_context",
+          "display_filename",
+          "upload_state",
+          "assignment_state",
+          "extraction_state",
+          "review_state",
+          "completed_at",
+          "resolved_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "IngestionRead",
+        "type": "object"
+      },
+      "IngestionUploadResult": {
+        "properties": {
+          "extraction_job": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtractionJobRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ingestion": {
+            "$ref": "#/components/schemas/IngestionRead"
+          },
+          "parts": {
+            "items": {
+              "$ref": "#/components/schemas/IngestionPartRead"
+            },
+            "title": "Parts",
+            "type": "array"
+          },
+          "record": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MedicalRecordRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "ingestion",
+          "parts",
+          "record",
+          "extraction_job"
+        ],
+        "title": "IngestionUploadResult",
+        "type": "object"
+      },
+      "MedicalRecordRead": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "display_filename": {
+            "title": "Display Filename",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "ingestion_id": {
+            "title": "Ingestion Id",
+            "type": "string"
+          },
+          "issuer_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issuer Name"
+          },
+          "profile_id": {
+            "title": "Profile Id",
+            "type": "string"
+          },
+          "record_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Date"
+          },
+          "record_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Type"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "profile_id",
+          "ingestion_id",
+          "display_filename",
+          "record_type",
+          "record_date",
+          "issuer_name",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "MedicalRecordRead",
+        "type": "object"
+      },
+      "MemoryCandidateRead": {
+        "properties": {
+          "attempt_id": {
+            "title": "Attempt Id",
+            "type": "string"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "exact_condition_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exact Condition Text"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "original_value": {
+            "additionalProperties": true,
+            "title": "Original Value",
+            "type": "object"
+          },
+          "record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Id"
+          },
+          "review_status": {
+            "title": "Review Status",
+            "type": "string"
+          },
+          "submitted_value": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submitted Value"
+          },
+          "subtype": {
+            "title": "Subtype",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "record_id",
+          "attempt_id",
+          "subtype",
+          "label",
+          "original_value",
+          "submitted_value",
+          "exact_condition_text",
+          "confidence",
+          "review_status"
+        ],
+        "title": "MemoryCandidateRead",
+        "type": "object"
+      },
+      "MemoryFactRead": {
+        "properties": {
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "details": {
+            "additionalProperties": true,
+            "title": "Details",
+            "type": "object"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "profile_id": {
+            "title": "Profile Id",
+            "type": "string"
+          },
+          "provenance": {
+            "title": "Provenance",
+            "type": "string"
+          },
+          "source_candidate_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Candidate Id"
+          },
+          "source_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Record Id"
+          },
+          "source_reference_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Reference Id"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "profile_id",
+          "source_record_id",
+          "source_candidate_id",
+          "source_reference_id",
+          "provenance",
+          "category",
+          "title",
+          "details",
+          "is_active",
+          "created_at"
+        ],
+        "title": "MemoryFactRead",
+        "type": "object"
+      },
+      "MemoryRead": {
+        "properties": {
+          "facts": {
+            "items": {
+              "$ref": "#/components/schemas/MemoryFactRead"
+            },
+            "title": "Facts",
+            "type": "array"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/ProfileRead"
+          }
+        },
+        "required": [
+          "profile",
+          "facts"
+        ],
+        "title": "MemoryRead",
+        "type": "object"
+      },
+      "MetricObservationRead": {
+        "properties": {
+          "attempt_id": {
+            "title": "Attempt Id",
+            "type": "string"
+          },
+          "body_system": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body System"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "flag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "metric_identity": {
+            "title": "Metric Identity",
+            "type": "string"
+          },
+          "normalized_unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Normalized Unit"
+          },
+          "normalized_value": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Normalized Value"
+          },
+          "observed_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed On"
+          },
+          "original_unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Unit"
+          },
+          "original_value": {
+            "additionalProperties": true,
+            "title": "Original Value",
+            "type": "object"
+          },
+          "profile_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Id"
+          },
+          "quality_state": {
+            "title": "Quality State",
+            "type": "string"
+          },
+          "record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Id"
+          },
+          "reference_range": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Range"
+          }
+        },
+        "required": [
+          "id",
+          "record_id",
+          "profile_id",
+          "attempt_id",
+          "metric_identity",
+          "label",
+          "original_value",
+          "original_unit",
+          "normalized_value",
+          "normalized_unit",
+          "reference_range",
+          "flag",
+          "observed_on",
+          "body_system",
+          "confidence",
+          "quality_state",
+          "is_active"
+        ],
+        "title": "MetricObservationRead",
+        "type": "object"
+      },
+      "OnboardingRead": {
+        "properties": {
+          "completed_steps": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Completed Steps",
+            "type": "array"
+          },
+          "next_step": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Step"
+          },
+          "self_profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProfileRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "next_step",
+          "completed_steps",
+          "self_profile"
+        ],
+        "title": "OnboardingRead",
+        "type": "object"
+      },
+      "PatientEvidenceRead": {
+        "properties": {
+          "attempt_id": {
+            "title": "Attempt Id",
+            "type": "string"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "date_of_birth": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Of Birth"
+          },
+          "extracted_name": {
+            "title": "Extracted Name",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "ingestion_id": {
+            "title": "Ingestion Id",
+            "type": "string"
+          },
+          "patient_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Patient Identifier"
+          }
+        },
+        "required": [
+          "id",
+          "ingestion_id",
+          "attempt_id",
+          "extracted_name",
+          "date_of_birth",
+          "patient_identifier",
+          "confidence"
+        ],
+        "title": "PatientEvidenceRead",
+        "type": "object"
+      },
+      "ProfileCreate": {
+        "properties": {
+          "display_name": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
+          },
+          "relationship": {
+            "default": "self",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Relationship",
+            "type": "string"
+          },
+          "sex": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sex"
+          }
+        },
+        "required": [
+          "display_name"
+        ],
+        "title": "ProfileCreate",
+        "type": "object"
+      },
+      "ProfileHealthContextCreate": {
+        "properties": {
+          "age_reported_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Reported At"
+          },
+          "entered_weight": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entered Weight"
+          },
+          "reported_age": {
+            "anyOf": [
+              {
+                "maximum": 130.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reported Age"
+          },
+          "weight_reported_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight Reported At"
+          },
+          "weight_unit": {
+            "anyOf": [
+              {
+                "enum": [
+                  "kg",
+                  "lb"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight Unit"
+          }
+        },
+        "title": "ProfileHealthContextCreate",
+        "type": "object"
+      },
+      "ProfileHealthContextRead": {
+        "properties": {
+          "age_reported_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Reported At"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "entered_weight": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entered Weight"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "normalized_weight_kg": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Normalized Weight Kg"
+          },
+          "profile_id": {
+            "title": "Profile Id",
+            "type": "string"
+          },
+          "reported_age": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reported Age"
+          },
+          "weight_reported_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight Reported At"
+          },
+          "weight_unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight Unit"
+          }
+        },
+        "required": [
+          "id",
+          "profile_id",
+          "reported_age",
+          "age_reported_at",
+          "entered_weight",
+          "weight_unit",
+          "normalized_weight_kg",
+          "weight_reported_at",
+          "created_at"
+        ],
+        "title": "ProfileHealthContextRead",
+        "type": "object"
+      },
+      "ProfileHealthContextSummary": {
+        "description": "The latest reported age and weight, with a non-blocking refresh prompt.",
+        "properties": {
+          "age_refresh_due": {
+            "title": "Age Refresh Due",
+            "type": "boolean"
+          },
+          "age_reported_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Reported At"
+          },
+          "entered_weight": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entered Weight"
+          },
+          "normalized_weight_kg": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Normalized Weight Kg"
+          },
+          "profile_id": {
+            "title": "Profile Id",
+            "type": "string"
+          },
+          "reported_age": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reported Age"
+          },
+          "weight_refresh_due": {
+            "title": "Weight Refresh Due",
+            "type": "boolean"
+          },
+          "weight_reported_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight Reported At"
+          },
+          "weight_unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight Unit"
+          }
+        },
+        "required": [
+          "profile_id",
+          "reported_age",
+          "age_reported_at",
+          "age_refresh_due",
+          "entered_weight",
+          "weight_unit",
+          "normalized_weight_kg",
+          "weight_reported_at",
+          "weight_refresh_due"
+        ],
+        "title": "ProfileHealthContextSummary",
+        "type": "object"
+      },
+      "ProfileRead": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "relationship": {
+            "title": "Relationship",
+            "type": "string"
+          },
+          "sex": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sex"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "display_name",
+          "relationship",
+          "sex",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ProfileRead",
+        "type": "object"
+      },
+      "RecordReviewRequest": {
+        "properties": {
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewCandidateDecision"
+            },
+            "minItems": 1,
+            "title": "Decisions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "decisions"
+        ],
+        "title": "RecordReviewRequest",
+        "type": "object"
+      },
+      "ReviewCandidateDecision": {
+        "properties": {
+          "action": {
+            "enum": [
+              "confirm",
+              "edit",
+              "ignore"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "candidate_id": {
+            "title": "Candidate Id",
+            "type": "string"
+          },
+          "candidate_type": {
+            "enum": [
+              "metadata",
+              "memory"
+            ],
+            "title": "Candidate Type",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "candidate_type",
+          "candidate_id",
+          "action"
+        ],
+        "title": "ReviewCandidateDecision",
+        "type": "object"
+      },
+      "SelfProfileUpdate": {
+        "properties": {
+          "display_name": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
+          },
+          "sex": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sex"
+          }
+        },
+        "required": [
+          "display_name"
+        ],
+        "title": "SelfProfileUpdate",
+        "type": "object"
+      },
+      "SourceReferenceRead": {
+        "properties": {
+          "bounding_polygon": {
+            "items": {},
+            "title": "Bounding Polygon",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "logical_page": {
+            "title": "Logical Page",
+            "type": "integer"
+          },
+          "memory_candidate_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Memory Candidate Id"
+          },
+          "metadata_candidate_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata Candidate Id"
+          },
+          "metric_observation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metric Observation Id"
+          },
+          "native_word_ids": {
+            "anyOf": [
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Native Word Ids"
+          },
+          "part_id": {
+            "title": "Part Id",
+            "type": "string"
+          },
+          "patient_evidence_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Patient Evidence Id"
+          },
+          "text_span": {
+            "title": "Text Span",
+            "type": "string"
+          },
+          "textract_block_ids": {
+            "anyOf": [
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Textract Block Ids"
+          }
+        },
+        "required": [
+          "id",
+          "part_id",
+          "patient_evidence_id",
+          "metadata_candidate_id",
+          "metric_observation_id",
+          "memory_candidate_id",
+          "logical_page",
+          "native_word_ids",
+          "textract_block_ids",
+          "text_span",
+          "bounding_polygon"
+        ],
+        "title": "SourceReferenceRead",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "Medical Records Backend",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/account": {
+      "get": {
+        "operationId": "get_account_account_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Account"
+      }
+    },
+    "/account/onboarding": {
+      "get": {
+        "operationId": "get_onboarding_account_onboarding_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Onboarding"
+      }
+    },
+    "/account/onboarding/self-profile": {
+      "put": {
+        "description": "Create the account's `self` profile, or reuse it when onboarding resumes.",
+        "operationId": "put_self_profile_account_onboarding_self_profile_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SelfProfileUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Self Profile"
+      }
+    },
+    "/appointments": {
+      "post": {
+        "operationId": "create_appointment_appointments_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppointmentCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Appointment"
+      }
+    },
+    "/appointments/{appointment_id}/checklist": {
+      "get": {
+        "operationId": "get_appointment_checklist_appointments__appointment_id__checklist_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "appointment_id",
+            "required": true,
+            "schema": {
+              "title": "Appointment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ChecklistItemRead"
+                  },
+                  "title": "Response Get Appointment Checklist Appointments  Appointment Id  Checklist Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Appointment Checklist"
+      }
+    },
+    "/appointments/{appointment_id}/checklist/generate": {
+      "post": {
+        "operationId": "generate_appointment_checklist_appointments__appointment_id__checklist_generate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "appointment_id",
+            "required": true,
+            "schema": {
+              "title": "Appointment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ChecklistItemRead"
+                  },
+                  "title": "Response Generate Appointment Checklist Appointments  Appointment Id  Checklist Generate Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Generate Appointment Checklist"
+      }
+    },
+    "/appointments/{appointment_id}/review": {
+      "post": {
+        "operationId": "create_appointment_review_appointments__appointment_id__review_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "appointment_id",
+            "required": true,
+            "schema": {
+              "title": "Appointment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppointmentReviewCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentReviewRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Appointment Review"
+      }
+    },
+    "/extraction/jobs/{job_id}": {
+      "get": {
+        "operationId": "get_extraction_job_extraction_jobs__job_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractionJobRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Extraction Job"
+      }
+    },
+    "/extraction/jobs/{job_id}/retry": {
+      "post": {
+        "operationId": "retry_job_extraction_jobs__job_id__retry_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractionJobRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Retry Job"
+      }
+    },
+    "/extraction/jobs/{job_id}/run": {
+      "post": {
+        "operationId": "run_job_extraction_jobs__job_id__run_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractionJobRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Run Job"
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Health Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health"
+      }
+    },
+    "/ingestions/camera": {
+      "post": {
+        "operationId": "upload_camera_capture_ingestions_camera_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_camera_capture_ingestions_camera_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngestionUploadResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Upload Camera Capture"
+      }
+    },
+    "/ingestions/direct-file": {
+      "post": {
+        "operationId": "upload_direct_file_ingestions_direct_file_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_direct_file_ingestions_direct_file_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngestionUploadResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Upload Direct File"
+      }
+    },
+    "/ingestions/{ingestion_id}/assignment/{profile_id}": {
+      "post": {
+        "operationId": "assign_ingestion_ingestions__ingestion_id__assignment__profile_id__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ingestion_id",
+            "required": true,
+            "schema": {
+              "title": "Ingestion Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "profile_id",
+            "required": true,
+            "schema": {
+              "title": "Profile Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicalRecordRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Assign Ingestion"
+      }
+    },
+    "/ingestions/{ingestion_id}/extraction": {
+      "get": {
+        "operationId": "get_ingestion_extraction_ingestions__ingestion_id__extraction_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ingestion_id",
+            "required": true,
+            "schema": {
+              "title": "Ingestion Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Ingestion Extraction"
+      }
+    },
+    "/profiles": {
+      "get": {
+        "operationId": "list_profiles_profiles_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProfileRead"
+                  },
+                  "title": "Response List Profiles Profiles Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Profiles"
+      },
+      "post": {
+        "operationId": "create_profile_profiles_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Profile"
+      }
+    },
+    "/profiles/{profile_id}": {
+      "get": {
+        "operationId": "get_profile_profiles__profile_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profile_id",
+            "required": true,
+            "schema": {
+              "title": "Profile Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Profile"
+      }
+    },
+    "/profiles/{profile_id}/appointments": {
+      "get": {
+        "operationId": "list_appointments_profiles__profile_id__appointments_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profile_id",
+            "required": true,
+            "schema": {
+              "title": "Profile Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AppointmentRead"
+                  },
+                  "title": "Response List Appointments Profiles  Profile Id  Appointments Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Appointments"
+      }
+    },
+    "/profiles/{profile_id}/attested-conditions": {
+      "put": {
+        "operationId": "declare_attested_conditions_profiles__profile_id__attested_conditions_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profile_id",
+            "required": true,
+            "schema": {
+              "title": "Profile Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttestedMemoryUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttestedMemoryRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Declare Attested Conditions"
+      }
+    },
+    "/profiles/{profile_id}/attested-medications": {
+      "put": {
+        "operationId": "declare_attested_medications_profiles__profile_id__attested_medications_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profile_id",
+            "required": true,
+            "schema": {
+              "title": "Profile Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttestedMemoryUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttestedMemoryRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Declare Attested Medications"
+      }
+    },
+    "/profiles/{profile_id}/health-context": {
+      "get": {
+        "description": "Return the latest reported age and weight so a resumed session can show them.",
+        "operationId": "get_profile_health_context_profiles__profile_id__health_context_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profile_id",
+            "required": true,
+            "schema": {
+              "title": "Profile Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileHealthContextSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Profile Health Context"
+      },
+      "post": {
+        "operationId": "create_profile_health_context_profiles__profile_id__health_context_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profile_id",
+            "required": true,
+            "schema": {
+              "title": "Profile Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileHealthContextCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileHealthContextRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Profile Health Context"
+      }
+    },
+    "/profiles/{profile_id}/memory": {
+      "get": {
+        "operationId": "get_memory_profiles__profile_id__memory_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profile_id",
+            "required": true,
+            "schema": {
+              "title": "Profile Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Memory"
+      }
+    },
+    "/profiles/{profile_id}/records": {
+      "get": {
+        "operationId": "list_records_profiles__profile_id__records_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profile_id",
+            "required": true,
+            "schema": {
+              "title": "Profile Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MedicalRecordRead"
+                  },
+                  "title": "Response List Records Profiles  Profile Id  Records Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Records"
+      }
+    },
+    "/records/{record_id}": {
+      "get": {
+        "operationId": "get_record_records__record_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "record_id",
+            "required": true,
+            "schema": {
+              "title": "Record Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicalRecordRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Record"
+      }
+    },
+    "/records/{record_id}/extraction": {
+      "get": {
+        "operationId": "get_record_extraction_records__record_id__extraction_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "record_id",
+            "required": true,
+            "schema": {
+              "title": "Record Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Record Extraction"
+      }
+    },
+    "/records/{record_id}/review": {
+      "patch": {
+        "operationId": "review_record_extraction_records__record_id__review_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "record_id",
+            "required": true,
+            "schema": {
+              "title": "Record Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Review Record Extraction"
+      }
+    }
+  }
+}

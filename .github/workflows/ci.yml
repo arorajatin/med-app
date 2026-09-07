@@ -169,6 +169,8 @@ jobs:
         run: npm run typecheck
       - name: ESLint
         run: npm run lint
+      - name: Generated API contract is current
+        run: npm run contracts:check
       - name: Vitest
         run: npm run test
       - name: Production build

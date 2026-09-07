@@ -3,17 +3,17 @@ import { getMemory } from "../api/onboarding";
 import type {
   AttestedCategory,
   OnboardingRead,
-  ProfileHealthContextRead,
+  ProfileHealthContextSummary,
   ProfileRead,
 } from "../api/types";
-import { formatDecimal, formatReportedDate } from "../format";
 import { attestedTitles } from "./attestedMemory";
+import { RecordedHealthContext } from "./RecordedHealthContext";
 import { STEP_LABELS } from "./steps";
 import type { OnboardingStep } from "../api/types";
 
 interface SummaryPanelProps {
   onboarding: OnboardingRead;
-  healthContext: ProfileHealthContextRead | null;
+  healthContext: ProfileHealthContextSummary | null;
   onEditStep: (step: OnboardingStep) => void;
 }
 
@@ -60,7 +60,7 @@ export function SummaryPanel({
       />
       <SummaryRow
         step="health_context"
-        value={<HealthContextSummary healthContext={healthContext} />}
+        value={<RecordedHealthContext healthContext={healthContext} />}
         onEditStep={onEditStep}
       />
       <SummaryRow
@@ -106,31 +106,6 @@ function ProfileSummary({ profile }: { profile: ProfileRead | null }) {
       {profile.display_name}
       {profile.sex ? ` · ${profile.sex}` : ""}
     </span>
-  );
-}
-
-function HealthContextSummary({
-  healthContext,
-}: {
-  healthContext: ProfileHealthContextRead | null;
-}) {
-  if (healthContext === null) {
-    return (
-      <span className="muted">
-        Recorded earlier in this account. Choose Change to report today's age and weight again.
-      </span>
-    );
-  }
-  return (
-    <ul className="prose-list">
-      <li>
-        {healthContext.reported_age} years · reported {formatReportedDate(healthContext.age_reported_at)}
-      </li>
-      <li>
-        {formatDecimal(healthContext.entered_weight)} {healthContext.weight_unit} · reported{" "}
-        {formatReportedDate(healthContext.weight_reported_at)}
-      </li>
-    </ul>
   );
 }
 

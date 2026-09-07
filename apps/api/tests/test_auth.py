@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from jwt.exceptions import PyJWKClientError
 
 from app import auth as auth_module
-from app.auth import get_current_user
+from app.auth import UNSUPPORTED_PROVIDER_DETAIL, get_current_user
 from app.config import Settings, get_settings
 from app.schemas import CurrentUser
 
@@ -54,6 +54,9 @@ def token_claims(**overrides) -> dict:
         "iss": SUPABASE_ISSUER,
         "aud": "authenticated",
         "exp": datetime.now(UTC) + timedelta(minutes=5),
+        # Google is the only supported sign-in method, so a token that stands in
+        # for a normal session carries it unless a test overrides the claim.
+        "app_metadata": {"provider": "google", "providers": ["google"]},
     }
     claims.update(overrides)
     return claims
@@ -304,11 +307,11 @@ def test_production_auth_ignores_user_writable_metadata(monkeypatch, signing_mat
     )
 
     assert response.status_code == 200
-    assert response.json() == {"id": "user_123", "email": None, "upstream_provider": None}
+    assert response.json() == {"id": "user_123", "email": None, "upstream_provider": "google"}
 
 
-def test_production_auth_tolerates_a_malformed_app_metadata_claim(monkeypatch, signing_material):
-    """A token without the usual claim shapes still authenticates on its subject."""
+def test_production_auth_rejects_a_malformed_app_metadata_claim(monkeypatch, signing_material):
+    """A token that does not name its sign-in method cannot be shown to be Google."""
 
     algorithm, private_key, jwk = signing_material
     install_jwks(monkeypatch, jwk)
@@ -318,5 +321,26 @@ def test_production_auth_tolerates_a_malformed_app_metadata_claim(monkeypatch, s
         "/identity", headers={"Authorization": f"Bearer {token}"}
     )
 
-    assert response.status_code == 200
-    assert response.json() == {"id": "user_123", "email": None, "upstream_provider": None}
+    assert response.status_code == 403
+    assert response.json() == {"detail": UNSUPPORTED_PROVIDER_DETAIL}
+
+
+def test_production_auth_rejects_an_unsupported_sign_in_method(monkeypatch, signing_material):
+    """An email and password identity is post-V1, so it never reaches the account."""
+
+    algorithm, private_key, jwk = signing_material
+    install_jwks(monkeypatch, jwk)
+    token = sign_token(
+        private_key,
+        algorithm,
+        jwk["kid"],
+        email="asha@example.com",
+        app_metadata={"provider": "email", "providers": ["email"]},
+    )
+
+    response = make_auth_client(production_settings()).get(
+        "/identity", headers={"Authorization": f"Bearer {token}"}
+    )
+
+    assert response.status_code == 403
+    assert response.json() == {"detail": UNSUPPORTED_PROVIDER_DETAIL}

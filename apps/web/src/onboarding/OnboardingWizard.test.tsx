@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { OnboardingWizard } from "./OnboardingWizard";
-import { SELF_PROFILE, mockApi, onboardingState } from "../test/apiMock";
+import { SELF_PROFILE, healthContextSummary, mockApi, onboardingState } from "../test/apiMock";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -92,7 +92,9 @@ describe("OnboardingWizard", () => {
     expect(
       await screen.findByText("Enter age as whole completed years, without decimals."),
     ).toBeInTheDocument();
-    expect(calls.some((call) => call.path.endsWith("/health-context"))).toBe(false);
+    expect(
+      calls.some((call) => call.method === "POST" && call.path.endsWith("/health-context")),
+    ).toBe(false);
   });
 
   it("sends age and weight with the reported time and the entered unit", async () => {
@@ -111,6 +113,7 @@ describe("OnboardingWizard", () => {
         recorded = true;
         return { status: 201, body: { id: "hc_1", profile_id: SELF_PROFILE.id } };
       },
+      "GET /profiles/profile_1/health-context": () => ({ body: healthContextSummary() }),
       "GET /profiles/profile_1/memory": { profile: SELF_PROFILE, facts: [] },
     });
 
@@ -123,7 +126,9 @@ describe("OnboardingWizard", () => {
     await userEvent.click(screen.getByRole("button", { name: "Save and continue" }));
 
     await screen.findByRole("heading", { name: "Current conditions" });
-    const call = calls.find((entry) => entry.path.endsWith("/health-context"));
+    const call = calls.find(
+      (entry) => entry.method === "POST" && entry.path.endsWith("/health-context"),
+    );
     const body = call?.body as Record<string, unknown>;
     expect(body.reported_age).toBe(34);
     expect(body.entered_weight).toBe("150");
@@ -213,6 +218,48 @@ describe("OnboardingWizard", () => {
     });
   });
 
+  it("shows the age and weight already on the profile when the step is revisited", async () => {
+    mockApi({
+      "GET /account/onboarding": onboardingState({
+        next_step: "health_context",
+        completed_steps: ["self_profile", "health_context"],
+        self_profile: SELF_PROFILE,
+      }),
+      "GET /profiles/profile_1/health-context": healthContextSummary({
+        age_refresh_due: true,
+      }),
+    });
+
+    renderWizard();
+
+    await screen.findByRole("heading", { name: "Age and weight" });
+    expect(await screen.findByText(/34 years/)).toBeInTheDocument();
+    expect(screen.getByText(/61.5 kg/)).toBeInTheDocument();
+    expect(screen.getByText(/This age is worth reporting again/)).toBeInTheDocument();
+    expect(screen.queryByText(/This weight is worth reporting again/)).not.toBeInTheDocument();
+  });
+
+  it("shows the recorded age and weight on the completed summary", async () => {
+    mockApi({
+      "GET /account/onboarding": onboardingState({
+        status: "completed",
+        next_step: null,
+        completed_steps: ["self_profile", "health_context", "conditions", "medications"],
+        self_profile: SELF_PROFILE,
+      }),
+      "GET /profiles/profile_1/health-context": healthContextSummary(),
+      "GET /profiles/profile_1/memory": { profile: SELF_PROFILE, facts: [] },
+      "GET /profiles": [SELF_PROFILE],
+    });
+
+    renderWizard();
+
+    await screen.findByRole("heading", { name: "Onboarding complete" });
+    // The reported date is rendered in the runtime's locale, so match around it.
+    expect(await screen.findByText(/34 years · reported .*2026/)).toBeInTheDocument();
+    expect(screen.getByText(/61.5 kg · reported .*2026/)).toBeInTheDocument();
+  });
+
   it("shows the summary when every step is complete", async () => {
     mockApi({
       "GET /account/onboarding": onboardingState({
@@ -222,12 +269,16 @@ describe("OnboardingWizard", () => {
         self_profile: SELF_PROFILE,
       }),
       "GET /profiles/profile_1/memory": { profile: SELF_PROFILE, facts: [] },
+      "GET /profiles/profile_1/health-context": healthContextSummary(),
+      "GET /profiles": [SELF_PROFILE],
     });
 
     renderWizard();
 
     expect(await screen.findByRole("heading", { name: "Onboarding complete" })).toBeInTheDocument();
     expect(await screen.findByText("You reported no current conditions.")).toBeInTheDocument();
+    // The completed account lands on its family space.
+    expect(await screen.findByRole("heading", { name: "Your family" })).toBeInTheDocument();
   });
 
   it("signs the person out when the API rejects the session", async () => {

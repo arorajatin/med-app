@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { ApiError } from "../api/client";
-import { getOnboarding } from "../api/onboarding";
-import type { OnboardingRead, OnboardingStep, ProfileHealthContextRead } from "../api/types";
+import { getHealthContext, getOnboarding } from "../api/onboarding";
+import type { OnboardingRead, OnboardingStep, ProfileHealthContextSummary } from "../api/types";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { StepIndicator } from "../components/StepIndicator";
+import { FamilySpace } from "../family/FamilySpace";
 import { SummaryPanel } from "./SummaryPanel";
 import { AttestedMemoryStep } from "./steps/AttestedMemoryStep";
 import { HealthContextStep } from "./steps/HealthContextStep";
@@ -15,25 +16,45 @@ interface OnboardingWizardProps {
 
 const LOAD_FAILED = "Could not load your onboarding progress.";
 
+interface LoadedState {
+  onboarding: OnboardingRead;
+  healthContext: ProfileHealthContextSummary | null;
+}
+
+/**
+ * Onboarding progress and the recorded age and weight are read together, so a
+ * resumed session shows the values already on the profile rather than only the
+ * ones entered in this visit.
+ */
+async function loadState(): Promise<LoadedState> {
+  const onboarding = await getOnboarding();
+  if (onboarding.self_profile === null) {
+    return { onboarding, healthContext: null };
+  }
+  const healthContext = await getHealthContext(onboarding.self_profile.id).catch(() => null);
+  return { onboarding, healthContext };
+}
+
 export function OnboardingWizard({ onUnauthenticated }: OnboardingWizardProps) {
   const [onboarding, setOnboarding] = useState<OnboardingRead | null>(null);
   const [activeStep, setActiveStep] = useState<OnboardingStep | null>(null);
   const [reviewing, setReviewing] = useState(false);
-  const [healthContext, setHealthContext] = useState<ProfileHealthContextRead | null>(null);
+  const [healthContext, setHealthContext] = useState<ProfileHealthContextSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    getOnboarding()
-      .then((state) => {
+    loadState()
+      .then((loaded) => {
         if (cancelled) {
           return;
         }
-        setOnboarding(state);
+        setOnboarding(loaded.onboarding);
+        setHealthContext(loaded.healthContext);
         setError(null);
         // A resumed session opens at the first step the account has not finished.
-        setActiveStep(state.next_step);
+        setActiveStep(loaded.onboarding.next_step);
         setReviewing(false);
       })
       .catch((cause: unknown) => {
@@ -57,9 +78,9 @@ export function OnboardingWizard({ onUnauthenticated }: OnboardingWizardProps) {
   }, [onUnauthenticated]);
 
   async function handleStepCompleted() {
-    let state: OnboardingRead;
+    let loaded: LoadedState;
     try {
-      state = await getOnboarding();
+      loaded = await loadState();
     } catch (cause) {
       if (cause instanceof ApiError && cause.status === 401) {
         onUnauthenticated();
@@ -68,7 +89,9 @@ export function OnboardingWizard({ onUnauthenticated }: OnboardingWizardProps) {
       setError(cause instanceof ApiError ? cause.message : LOAD_FAILED);
       return;
     }
+    const state = loaded.onboarding;
     setOnboarding(state);
+    setHealthContext(loaded.healthContext);
     setError(null);
     // Only a completed onboarding can return to its summary. If later required
     // steps remain, correcting an earlier answer resumes at the first one.
@@ -104,11 +127,8 @@ export function OnboardingWizard({ onUnauthenticated }: OnboardingWizardProps) {
       return (
         <HealthContextStep
           profileId={profile.id}
-          alreadyRecorded={completed.includes("health_context")}
-          onCompleted={(recorded) => {
-            setHealthContext(recorded);
-            void handleStepCompleted();
-          }}
+          recorded={completed.includes("health_context") ? healthContext : null}
+          onCompleted={handleStepCompleted}
         />
       );
     }
@@ -138,6 +158,9 @@ export function OnboardingWizard({ onUnauthenticated }: OnboardingWizardProps) {
       />
       <ErrorBanner message={error} />
       {renderStep(onboarding)}
+      {onboarding.status === "completed" && activeStep === null ? (
+        <FamilySpace onUnauthenticated={onUnauthenticated} />
+      ) : null}
       {activeStep !== null && reviewing ? (
         <button
           className="button button--quiet"

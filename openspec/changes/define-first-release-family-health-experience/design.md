@@ -23,6 +23,7 @@ Three active changes own production Postgres/private storage/RLS, the selected p
 **Non-Goals:**
 
 - Implement delegated family-member identities, invitations, or profile grants.
+- Implement email and password registration, email verification, or a verification-pending state; these move to the roadmap.
 - Implement longitudinal charts or automatically treat an interpretation of an unreviewed observation as a medical fact.
 - Infer, classify for users, or rule out a condition from medication identity, dosage, lab values, ranges, symptoms, or any other implicit association.
 - Select a conversational model or external search provider.
@@ -33,7 +34,9 @@ Three active changes own production Postgres/private storage/RLS, the selected p
 
 ### Introduce an application account above authentication identities
 
-Map each verified authentication identity to one application account. Keep Google and email/password identity details in the authentication boundary and never persist passwords in application tables. The account owns profiles and every private derived resource.
+Map each verified authentication identity to one application account. Keep identity details in the authentication boundary and never persist passwords in application tables. The account owns profiles and every private derived resource.
+
+Google is the only sign-in method the first release supports. The identity provider can be configured to offer others, so the service does not assume the dashboard is the only gate: it reads the upstream sign-in method from provider-controlled token claims and refuses to create or reconcile an account for anything but Google. Refusing at the API keeps a directly created email and password identity from reaching private data even if the provider is misconfigured, and it leaves the identity table ready for a later method without an immutable `login_mode`.
 
 Create onboarding progress idempotently and enforce a unique `self` profile per account. Age and weight are reported observations with `reported_at`; they are not timeless demographics or clinical assessments. Reported age is a whole number of completed years from 0 through 130 inclusive. Weight accepts a positive decimal in `kg` or `lb` only when its unrounded normalized value is from 0.5 through 500 kilograms inclusive. Retain the entered decimal and unit unchanged. Normalize pounds with the exact conversion `1 lb = 0.45359237 kg` using decimal arithmetic, without binary floating point, intermediate rounding, or independently rounded pound boundaries; presentation rounding never overwrites the stored values.
 

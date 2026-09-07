@@ -1,7 +1,11 @@
+from datetime import UTC, datetime, timedelta
+
+import pytest
 from fastapi.testclient import TestClient
 
 from app import models
 from app.database import get_db
+from app.services.health_context import refresh_due
 
 
 def auth(user_id: str = "user_1") -> dict[str, str]:
@@ -219,3 +223,107 @@ def test_document_derived_condition_stays_hidden_while_attested_conditions_show(
 
     memory = client.get(f"/profiles/{profile['id']}/memory", headers=auth()).json()
     assert [fact["title"] for fact in memory["facts"]] == ["Asthma"]
+
+
+def report_health_context(client: TestClient, profile_id: str, payload: dict, *, user="user_1"):
+    response = client.post(
+        f"/profiles/{profile_id}/health-context", headers=auth(user), json=payload
+    )
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+def days_ago(days: int) -> str:
+    return (datetime.now(UTC) - timedelta(days=days)).isoformat()
+
+
+def test_health_context_read_is_empty_before_anything_is_reported(client):
+    """A profile with no reported values has nothing to show and nothing to refresh."""
+
+    profile = put_self_profile(client)
+
+    summary = client.get(f"/profiles/{profile['id']}/health-context", headers=auth()).json()
+
+    assert summary["reported_age"] is None
+    assert summary["entered_weight"] is None
+    assert summary["age_refresh_due"] is False
+    assert summary["weight_refresh_due"] is False
+
+
+def test_health_context_read_returns_the_latest_reported_value_of_each_kind(client):
+    """Age and weight can arrive in separate rows, and the newest of each is shown."""
+
+    profile = put_self_profile(client)
+    report_health_context(
+        client, profile["id"], {"reported_age": 34, "age_reported_at": days_ago(400)}
+    )
+    report_health_context(
+        client, profile["id"], {"reported_age": 35, "age_reported_at": days_ago(10)}
+    )
+    report_health_context(
+        client,
+        profile["id"],
+        {
+            "entered_weight": "150",
+            "weight_unit": "lb",
+            "weight_reported_at": days_ago(5),
+        },
+    )
+
+    summary = client.get(f"/profiles/{profile['id']}/health-context", headers=auth()).json()
+
+    assert summary["reported_age"] == 35
+    assert summary["age_reported_at"] is not None
+    assert summary["entered_weight"] == "150.00000000"
+    assert summary["weight_unit"] == "lb"
+    # The exact decimal product of the entered value and 0.45359237.
+    assert summary["normalized_weight_kg"] == "68.03885550"
+    assert summary["age_refresh_due"] is False
+    assert summary["weight_refresh_due"] is False
+
+
+def test_health_context_read_flags_a_stale_value_without_hiding_it(client):
+    """Age is due after one calendar year and weight after six calendar months."""
+
+    profile = put_self_profile(client)
+    report_health_context(
+        client, profile["id"], {"reported_age": 34, "age_reported_at": days_ago(400)}
+    )
+    report_health_context(
+        client,
+        profile["id"],
+        {"entered_weight": "61.5", "weight_unit": "kg", "weight_reported_at": days_ago(200)},
+    )
+
+    summary = client.get(f"/profiles/{profile['id']}/health-context", headers=auth()).json()
+
+    assert summary["reported_age"] == 34
+    assert summary["entered_weight"] == "61.50000000"
+    assert summary["age_refresh_due"] is True
+    assert summary["weight_refresh_due"] is True
+
+
+def test_health_context_read_rejects_another_accounts_profile(client):
+    """The summary is private to the owning account, like the profile itself."""
+
+    profile = put_self_profile(client, user="user_1")
+    put_self_profile(client, user="user_2", name="Other")
+
+    response = client.get(f"/profiles/{profile['id']}/health-context", headers=auth("user_2"))
+
+    assert response.status_code == 404
+
+
+@pytest.mark.parametrize(
+    ("reported_at", "months", "now", "expected"),
+    [
+        # The day the refresh becomes due, and the day before it.
+        (datetime(2026, 3, 1, tzinfo=UTC), 12, datetime(2027, 3, 1, tzinfo=UTC), True),
+        (datetime(2026, 3, 1, tzinfo=UTC), 12, datetime(2027, 2, 28, tzinfo=UTC), False),
+        # A short target month clamps to its last day rather than overflowing.
+        (datetime(2026, 8, 31, tzinfo=UTC), 6, datetime(2027, 2, 28, tzinfo=UTC), True),
+        (datetime(2026, 8, 31, tzinfo=UTC), 6, datetime(2027, 2, 27, tzinfo=UTC), False),
+    ],
+)
+def test_refresh_due_uses_calendar_months(reported_at, months, now, expected):
+    assert refresh_due(reported_at, months=months, now=now) is expected

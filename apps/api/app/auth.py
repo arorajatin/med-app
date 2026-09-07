@@ -5,6 +5,14 @@ from fastapi import Depends, HTTPException, Request, status
 from app.config import Settings, get_settings
 from app.schemas import CurrentUser
 
+# Google is the only sign-in method the first release supports. The identity
+# provider can be configured to offer others, so the service checks the method
+# itself rather than trusting the provider dashboard to be the only gate.
+SUPPORTED_UPSTREAM_PROVIDERS = frozenset({"google"})
+UNSUPPORTED_PROVIDER_DETAIL = (
+    "Sign in with Google. This release does not support other sign-in methods."
+)
+
 
 def _bearer_token(request: Request) -> str | None:
     authorization = request.headers.get("authorization")
@@ -77,10 +85,19 @@ def _verify_supabase_jwt(token: str, settings: Settings) -> CurrentUser:
             detail="Supabase access token is missing a subject.",
         )
 
+    upstream_provider = _upstream_provider(claims)
+    if upstream_provider not in SUPPORTED_UPSTREAM_PROVIDERS:
+        # Deny before any account is created or reconciled, so an identity made
+        # with an unsupported method never reaches private data.
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=UNSUPPORTED_PROVIDER_DETAIL,
+        )
+
     return CurrentUser(
         id=user_id,
         email=_string_claim(claims.get("email")),
-        upstream_provider=_upstream_provider(claims),
+        upstream_provider=upstream_provider,
     )
 
 

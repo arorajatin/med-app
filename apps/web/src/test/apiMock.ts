@@ -65,3 +65,29 @@ export function onboardingState(
     ...overrides,
   };
 }
+
+export function healthContextSummary(
+  overrides: Partial<{
+    reported_age: number | null;
+    age_reported_at: string | null;
+    age_refresh_due: boolean;
+    entered_weight: string | null;
+    weight_unit: string | null;
+    normalized_weight_kg: string | null;
+    weight_reported_at: string | null;
+    weight_refresh_due: boolean;
+  }> = {},
+) {
+  return {
+    profile_id: SELF_PROFILE.id,
+    reported_age: 34,
+    age_reported_at: "2026-07-01T00:00:00Z",
+    age_refresh_due: false,
+    entered_weight: "61.50000000",
+    weight_unit: "kg",
+    normalized_weight_kg: "61.50000000",
+    weight_reported_at: "2026-07-01T00:00:00Z",
+    weight_refresh_due: false,
+    ...overrides,
+  };
+}

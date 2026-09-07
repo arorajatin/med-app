@@ -1,7 +1,8 @@
 # Web Client
 
 The V1 web client. This first slice is the sign-up and onboarding journey: the one `self` profile,
-age and weight, and user-attested conditions and medications.
+age and weight, and user-attested conditions and medications. A completed account then sees its
+family space, where family profiles are created and browsed.
 
 ## Stack
 
@@ -39,9 +40,12 @@ npm run build
 
 ## Signing in
 
-Google is the only way in. Supabase Auth brokers the OAuth exchange, the browser receives a Supabase
-access token, and the API verifies that token's signature, issuer, audience, and expiry against the
-project's published keys before mapping its subject to an application account.
+Google is the only way in, and that is a product decision rather than only a dashboard setting.
+Supabase Auth brokers the OAuth exchange, the browser receives a Supabase access token, and the API
+verifies that token's signature, issuer, audience, and expiry against the project's published keys.
+It then reads the sign-in method from the provider-controlled `app_metadata` claim and refuses
+anything other than Google with a 403, before any account is created. Email and password sign-in is
+a roadmap item.
 
 The flow uses PKCE, so an authorization code comes back on the redirect and is exchanged for a
 session; no access token is ever placed in the URL. The Supabase client persists and refreshes the
@@ -80,13 +84,15 @@ a request.
 
 ## Contract
 
-`src/api/types.ts` mirrors the response models in `apps/api/app/schemas.py` by hand. Replace it with
-a generated client once `contracts/` publishes one from the backend's OpenAPI document.
+`src/api/types.ts` still mirrors the response models in `apps/api/app/schemas.py` by hand, because
+the hand-written types narrow some strings the backend declares as plain text. It can no longer
+drift silently: `src/api/contract.ts` checks it against the generated types in `contracts/api.ts`
+during `npm run typecheck`, and `npm run contracts:check` fails when `contracts/api.ts` was not
+regenerated from the backend's OpenAPI document. See [contracts/README.md](../../contracts/README.md).
 
 ## Known gaps
 
-- Email and password registration, verification, and sign-in are not built. Google is the only
-  supported method, so the account-onboarding requirement covering email identities is unmet.
-- The API has no read endpoint for profile health context, so a resumed session cannot show the age
-  and weight recorded in an earlier visit. The summary offers to record them again instead.
-- Feed, Upload, Drive, and Chat are not built here yet; onboarding ends on a summary.
+- The Google redirect is unverified end to end. Everything either side of the provider exchange is
+  built and tested, but the target Supabase project still reports the Google provider disabled.
+- Feed, Upload, Drive, and Chat are not built here yet. A completed account lands on its onboarding
+  summary and its family space.

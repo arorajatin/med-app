@@ -1,8 +1,8 @@
 # Review Checkpoint
 
-Status: 2B onboarding, the web onboarding client, and Google sign-in implemented and locally verified; hosted CI evidence open
+Status: Google-only sign-in, the API contract drift checks, the health-context read, the access matrix, and the family space implemented and locally verified; hosted CI evidence and the live Google exchange open
 Updated: 2026-09-04
-Reviewer: Codex
+Reviewer: Claude
 Baseline commit: 8a1e0bd662cc231532c5b91248819e9294c4f8cb
 Implementation tip before the planning-structure reconciliation: 6be40d38e3465a767869abfd6d679bfa2f82a598; no final reviewed implementation commit yet
 
@@ -23,15 +23,19 @@ Implementation tip before the planning-structure reconciliation: 6be40d38e3465a7
 - Implemented the sign-up and onboarding journey in the client, driven by `GET /account/onboarding` so the resume point comes from the service rather than a client-side counter, and recorded the remaining web work as tasks 10.5 through 10.15.
 - Implemented Google sign-in through Supabase Auth with PKCE, session restore, background token refresh, and sign-out, and removed the development token entry so the client has one way in.
 - Retained verified identity provenance, reading the upstream sign-in method and email only from provider-controlled token claims, while keeping the account key on the stable authentication subject.
+- Made Google the only first-release sign-in method. Moved email and password registration, verification, and the verification-pending state to the roadmap, and reconciled the proposal, design, `account-onboarding` delta, tasks, sign-up journey, roadmap journey, and both client READMEs around that decision.
+- Enforced the decision in code rather than only in the identity-provider dashboard: production authentication refuses any upstream sign-in method other than Google with a 403, before an account is created or reconciled.
+- Published `contracts/openapi.json` from the app and generated `contracts/api.ts` from it, with three drift checks: a backend test for a stale document, `npm run contracts:check` for stale generated types, and type-level assertions that tie the hand-written `apps/web/src/api/types.ts` to the generated contract.
+- Added `GET /profiles/{id}/health-context`, returning the latest reported age and weight with their reported dates and calendar-month refresh flags, and showed them on the resumed onboarding step and the completed summary with a non-blocking refresh note.
+- Added the authorization, validation, duplicate-activation, and two-account isolation matrix. It is checked against the application's own route table, so a new endpoint cannot be added without deciding how it answers a caller who does not own the resource.
+- Added the family space: browsing every profile the account manages and creating a family member, with the service remaining the authority on its one `self` profile rule.
+- Verified that tasks 2.1 and 2.2 were already satisfied by the shipped schema: accounts, identity mapping, onboarding progress, the partial unique index for one `self` profile per account, and the age and unit-aware weight columns with their check constraints, all inside the single `20260721_0001` baseline.
 
 ## Resume From
 
 - Review and record the exact current implementation commit, then require hosted CI evidence, including PostgreSQL migration and API/worker startup coverage.
-- Finish task 2.3 registration, verification, sign-in, and sign-out, which onboarding now assumes but does not provide.
-- Keep task 2.7 open until the full authorization, validation, and isolation matrix covers every account-onboarding, family-profile, and access-control requirement.
-- Publish the backend OpenAPI document and generate or validate the typed client under `contracts/` (task 10.6). Until then `apps/web/src/api/types.ts` mirrors `apps/api/app/schemas.py` by hand and can drift silently.
-- Add a profile health-context read endpoint (task 10.7). The client cannot show a previously recorded age and weight on a resumed session because no endpoint returns them.
-- Enable the Google provider and register the client's redirect URLs in the Supabase project. Task 2.3's remaining email and password registration, verification, and sign-in are still unimplemented, and task 10.16 tracks their client screens.
+- Enable the Google provider and register the client's redirect URLs in the Supabase project, then verify the redirect end to end. Task 2.3 stays unchecked until that live exchange is exercised; its code, including the refusal of every other sign-in method, is implemented and covered by tests.
+- Begin the logical-document ingestion phase: tasks 1.4, 3.1 through 3.5, 3.8, and 10.9. The account and profile foundation is otherwise complete.
 - Keep the future condition-candidate path disabled until the structured source contract and literal-span validation land behind default-off controls.
 - No operational database inventory, data review, or row transformation is required for 2A. Provision an empty database and apply the declared current head.
 
@@ -66,6 +70,11 @@ Implementation tip before the planning-structure reconciliation: 6be40d38e3465a7
 | 2026-09-04 | `pytest --cov=app --cov-report=term`, targeted Ruff format/import checks, and `mypy app` in `apps/api` | Pass | 81 backend tests passed at 92.54% branch coverage; changed backend files passed formatting and import checks, and all 24 source files passed type checking. |
 | 2026-09-04 | `npm run typecheck`, `npm run lint`, `npm run test`, `npm run build` in `apps/web` | Pass | No type or lint findings; 51 tests across 8 files passed; the production build succeeded after removing the separate acceptance step. |
 | 2026-09-04 | `npx --yes @fission-ai/openspec@1.6.0 validate --all --strict` | Pass | All 11 specs and changes passed after account-creation authorization replaced separate acceptance records and snapshots. |
+| 2026-09-04 | `pytest --cov=app --cov-report=term`, targeted Ruff lint/format checks, and `mypy app` | Pass | 123 backend tests passed at 93.54% branch coverage, including the Google-only provider gate, the health-context read, the route-derived access matrix, and the bootstrap checks; no lint findings and no type issues in 25 source files. |
+| 2026-09-04 | SQLite `alembic upgrade head`, `check`, and `downgrade base` | Pass | The `20260721_0001` baseline still matches model metadata; no new schema was needed for this slice. |
+| 2026-09-04 | `npm run typecheck`, `npm run lint`, `npm run test`, `npm run build`, `npm run contracts:check` in `apps/web` | Pass | No type or lint findings; 58 tests across 9 files passed; the production build succeeded; the generated contract was already current. |
+| 2026-09-04 | Deliberate contract-drift check | Pass | Renaming and adding a field in `contracts/api.ts` made `npm run typecheck` fail with the offending field names, then passed again once restored. |
+| 2026-09-04 | `npx --yes @fission-ai/openspec@1.6.0 validate --all --strict` | Pass | All 11 specs and changes passed after the Google-only reconciliation. |
 | 2026-09-03 | Google redirect against the live Supabase project | Not available | `GET /auth/v1/settings` reports the Google provider disabled for the project, so the provider exchange cannot be exercised until it is enabled in the dashboard. |
 | 2026-08-12 | Local live PostgreSQL smoke | Not available | Docker is stopped and no local PostgreSQL server is installed; the hosted CI job runs the fresh-schema upgrade, API/worker startup, check, and teardown. |
 
@@ -74,13 +83,15 @@ Implementation tip before the planning-structure reconciliation: 6be40d38e3465a7
 - Hosted CI has not run for the current uncommitted worktree; a reviewed commit and hosted result remain release evidence.
 - Application accounts and later V1 migrations, production infrastructure, provider contracts, privacy approvals, and later runtime quality gates remain unimplemented and untested.
 - Google sign-in is unverified end to end. The target Supabase project reports the Google provider disabled, so the redirect cannot yet complete; enabling it needs dashboard access and a Google OAuth client. Everything either side of the provider exchange is implemented and covered by tests.
-- Email and password identities remain unimplemented, so the account-onboarding requirement covering them and its verification-pending behavior is unmet. The project still accepts email sign-ups directly through Supabase; consider disabling that provider while Google is the only supported route.
+- Email and password sign-in is now a roadmap item rather than an unmet V1 requirement. The API refuses every upstream method except Google, so an email identity created directly with the provider cannot reach an account; disabling that provider in the dashboard remains worthwhile defence in depth, not a correctness gap.
+- The Google-only gate reads `app_metadata.provider`, which names the primary method for the identity. If a person later links a second method to the same Supabase user, that claim decides the outcome; the delegated-access and email/password roadmap changes should settle multi-method identities explicitly.
 - Development authentication treats the bearer value as a literal user id, so running the web client against `DEV_AUTH_ENABLED=true` would key an account on a raw access token and mint a new account on every refresh. The environment sample and both READMEs now say so; the service does not detect the mismatch itself.
 - The client's weight range check uses binary floating point, while the service uses exact decimal arithmetic. The service remains the authority, so a value at the exact boundary may be reported differently by the two; the client's job is only to catch obvious mistakes early.
 - Databases created by prototype builds are outside this release contract. If such data must be retained, that requires a separately authorized and designed import project; it is not part of 2A.
 
 ## Session History
 
+- 2026-09-04: Made Google the only first-release sign-in method and moved email and password registration to the roadmap as task 8.7. The refusal is enforced in the API from provider-controlled claims, before an account is created, so the identity-provider dashboard is not the only gate. Published the OpenAPI document and generated TypeScript contract with three drift checks, added the profile health-context read endpoint and showed the recorded age and weight with their reported dates and refresh prompts, added the route-derived authorization and isolation matrix, verified that the accounts and health-context schema already satisfied tasks 2.1 and 2.2, and built the family space for creating and browsing family profiles.
 - 2026-09-04: Made account creation the authorization boundary for required AI processing. Removed the separate acceptance API and table, ingestion reference, upload gate, onboarding step, client request/configuration, and active planning dependencies. The signup screen now states that creating an account authorizes document extraction and reviewed-memory Chat processing.
 - 2026-09-03: Removed the current runtime slice switches and their future planning references, and corrected the onboarding wizard so editing or cancelling an earlier step returns an incomplete account to its next required step rather than showing a completion summary.
 - 2026-09-03: Consolidated implementation order into `tasks.md`, moved the cross-change dependency sequence into `openspec/README.md`, promoted affirmative patient-subject condition safety into the extraction specs, and removed the parallel implementation plan so requirements, work state, and resume state each have one owner.

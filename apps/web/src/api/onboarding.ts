@@ -7,6 +7,7 @@ import type {
   MemoryRead,
   OnboardingRead,
   ProfileHealthContextRead,
+  ProfileHealthContextSummary,
   ProfileRead,
   WeightUnit,
 } from "./types";
@@ -43,6 +44,11 @@ export function createHealthContext(
       weight_reported_at: input.reportedAt,
     },
   });
+}
+
+/** The latest reported age and weight, so a resumed session can show them. */
+export function getHealthContext(profileId: string): Promise<ProfileHealthContextSummary> {
+  return request<ProfileHealthContextSummary>(`/profiles/${profileId}/health-context`);
 }
 
 /** The route paths use the plural category, matching the backend. */

@@ -1,4 +1,9 @@
-/** Mirrors the response models in `apps/api/app/schemas.py`. */
+/**
+ * Mirrors the response models in `apps/api/app/schemas.py`.
+ *
+ * `./contract.ts` checks these against the generated `contracts/api.ts`, so the
+ * mirror cannot drift from the backend without failing the type check.
+ */
 
 export type OnboardingStep =
   | "self_profile"
@@ -45,6 +50,18 @@ export interface ProfileHealthContextRead {
   normalized_weight_kg: string | null;
   weight_reported_at: string | null;
   created_at: string;
+}
+
+export interface ProfileHealthContextSummary {
+  profile_id: string;
+  reported_age: number | null;
+  age_reported_at: string | null;
+  age_refresh_due: boolean;
+  entered_weight: string | null;
+  weight_unit: WeightUnit | null;
+  normalized_weight_kg: string | null;
+  weight_reported_at: string | null;
+  weight_refresh_due: boolean;
 }
 
 export interface MemoryFactRead {
