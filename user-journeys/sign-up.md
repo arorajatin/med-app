@@ -6,13 +6,12 @@ Create the sole account-manager identity, establish `self`, and capture starting
 
 ## Sign-up
 
-1. The person chooses Google or email and password.
+1. The person signs up with Google. It is the only sign-in method in the first release.
 2. Google sign-up completes through the provider and its verified email is treated as verified.
-3. Email/password sign-up creates a verification-pending identity and sends an email-verification action.
-4. An email/password user cannot enter protected application areas until verification succeeds.
-5. A verified identity establishes an authenticated account session.
-6. Creating the application account authorizes document extraction and use of reviewed personal memory in Chat; signup states this processing boundary clearly.
-7. Safe recovery is available for provider cancellation, duplicate activation attempts, invalid or expired verification, and temporary identity-provider failure.
+3. A credential from any other sign-in method is refused, and the person is told to continue with Google. Nothing about that identity is stored.
+4. A verified identity establishes an authenticated account session.
+5. Creating the application account authorizes document extraction and use of reviewed personal memory in Chat; signup states this processing boundary clearly.
+6. Safe recovery is available for provider cancellation, duplicate activation attempts, and temporary identity-provider failure.
 
 ## Self onboarding
 
@@ -34,6 +33,7 @@ Create the sole account-manager identity, establish `self`, and capture starting
 - Retrying or resuming onboarding reuses the existing `self` profile.
 - Fractional or out-of-range age and weight that violates the shared profile rules keep the person on the relevant step with a correction message. These are broad input-quality limits, not clinical judgements.
 - Onboarding has no separate AI-processing step or AI-disabled mode.
+- Email and password sign-up is a roadmap item. See the [User-Journey Roadmap](roadmap.md#email-and-password-sign-in).
 - Post-creation AI-processing controls and account deletion are not part of the first release.
 
 ## First-release boundary

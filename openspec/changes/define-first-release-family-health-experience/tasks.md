@@ -1,14 +1,14 @@
 The checkbox definitions below are the canonical implementation checklist. Use this dependency order for delivery; tasks within a phase may proceed in parallel when their direct prerequisites are satisfied. `review.md` records the actual resume point when implementation pauses.
 
 1. **Completed safety and client baseline:** 0.1-0.2, 2.4-2.5, 2.8, 9.3, and 10.1-10.5.
-2. **Account and profile foundation:** 2.1-2.3, 2.7, 7.1, 10.6-10.8, and 10.16.
+2. **Account and profile foundation:** 2.1-2.3, 2.7, 7.1, and 10.6-10.8.
 3. **Logical-document ingestion:** 1.4, 3.1-3.5, 3.8, and 10.9.
 4. **Normalized extraction and assignment:** 1.5, 3.6-3.7, and 4.1.
 5. **Observations, review, records, Feed, and Drive:** 4.3-4.10, 5.1-5.7, 7.2, and 10.10-10.12.
 6. **Production data, extraction, and worker integration:** 1.1-1.3, 4.2, and 4.11-4.12. Implement the specialized changes in the cross-change order documented in `openspec/README.md`.
 7. **Chat:** 6.1-6.6 and 10.13.
 8. **Release verification:** 7.4-7.5, 9.1-9.2, 9.4, and 10.14-10.15.
-9. **Post-V1 proposals:** 8.1-8.6; these are outside the V1 implementation path but must move to separate changes before this change can archive.
+9. **Post-V1 proposals:** 8.1-8.7; these are outside the V1 implementation path but must move to separate changes before this change can archive.
 
 ## 0. Immediate Condition-Safety Baseline
 
@@ -25,12 +25,12 @@ The checkbox definitions below are the canonical implementation checklist. Use t
 
 ## 2. Accounts, Onboarding, and Profiles
 
-- [ ] 2.1 Add migration-backed application accounts, authentication-identity mapping, onboarding progress, and a uniqueness constraint for one `self` profile per account.
-- [ ] 2.2 Add age and reported time plus original/normalized weight and unit fields with validation and migration coverage.
-- [ ] 2.3 Implement Google and email/password registration, email verification, verified sign-in, sign-out, safe retries, and idempotent account activation.
+- [x] 2.1 Add migration-backed application accounts, authentication-identity mapping, onboarding progress, and a uniqueness constraint for one `self` profile per account.
+- [x] 2.2 Add age and reported time plus original/normalized weight and unit fields with validation and migration coverage.
+- [x] 2.3 Implement Google registration, verified sign-in, sign-out, safe retries, and idempotent account activation; refuse any other upstream sign-in method, and read the method only from provider-controlled claims.
 - [x] 2.4 Implement resumable onboarding that creates or reuses `self`, captures health context, and records explicit empty conditions or medications.
 - [x] 2.5 Implement user-attested condition and medication provenance and immediate trusted-memory creation.
-- [ ] 2.7 Add authorization, validation, duplicate-activation, onboarding-resume, and two-account isolation tests for every requirement in account onboarding, family profiles, and access control.
+- [x] 2.7 Add authorization, validation, duplicate-activation, onboarding-resume, and two-account isolation tests for every requirement in account onboarding, family profiles, and access control.
 - [x] 2.8 Remove date of birth and year of birth from the profile schema, API, and every profile display; keep reported age as the profile's only age context; preserve optional source-linked date of birth in patient evidence without using it for assignment; and cover the boundary with schema and API tests.
 
 ## 3. Staged Logical Document Ingestion
@@ -80,7 +80,7 @@ The checkbox definitions below are the canonical implementation checklist. Use t
 
 ## 7. Migration and Rollout
 
-- [ ] 7.1 Create application accounts and profiles only through the registration and onboarding flows defined in section 2; do not add historical-data import paths.
+- [x] 7.1 Create application accounts and profiles only through the registration and onboarding flows defined in section 2; do not add historical-data import paths.
 - [ ] 7.2 Verify a fresh database begins without extracted fields or memory facts and that all new derived data enters through the V1 observation and reviewed-memory contracts.
 - [ ] 7.4 Verify all new ownership constraints and RLS policies against local and disposable Supabase environments with two-account direct-data tests.
 - [ ] 7.5 Exercise fresh database bootstrap, current-head startup, deployment rollback, and tombstone cleanup without losing private data or audit provenance.
@@ -93,6 +93,7 @@ The checkbox definitions below are the canonical implementation checklist. Use t
 - [ ] 8.4 Propose post-V1 WhatsApp ingestion covering provider approval, account/phone linking, webhook authentication, sender authorization, message grouping, encrypted phone provenance, idempotency, and India-residency review.
 - [ ] 8.5 Propose V2 native clients under `apps/ios` and `apps/android`, including authentication, generated API contracts, upload/camera UX, local-data security, and profile isolation; do not scaffold them in V1.
 - [ ] 8.6 Record separate follow-up changes for Chat actions/reminders, account export/deletion and post-creation processing controls, and any full family-relationship graph.
+- [ ] 8.7 Propose post-V1 email and password registration, verification, resend, and sign-in, including how such an identity links to or reconciles with an existing Google-created account.
 
 ## 9. Verification and Review
 
@@ -108,10 +109,9 @@ The checkbox definitions below are the canonical implementation checklist. Use t
 - [x] 10.3 Mirror the backend's age, weight, and declaration validation rules in the client so a person sees a problem before a round trip, while the service remains the authority and its rejection message is shown.
 - [x] 10.4 Establish and end a session, restore it on reload, and sign out and clear it when the API rejects the credential.
 - [x] 10.5 Implement Google sign-in through Supabase Auth with PKCE, session restore, background token refresh, sign-out, and safe handling of a cancelled or rejected redirect; remove the development token entry from the client.
-- [ ] 10.16 Implement email and password registration, the verification-pending state, resend verification, and sign-in in the client once task 2.3 provides them.
-- [ ] 10.6 Publish the backend OpenAPI document, generate or validate a typed client under `contracts/`, and add a drift check so the hand-mirrored types in `src/api/types.ts` cannot silently diverge.
-- [ ] 10.7 Add a profile health-context read endpoint and show the latest recorded age and weight with their reported dates on a resumed session, including the non-blocking refresh prompt.
-- [ ] 10.8 Implement family-profile creation and browsing screens.
+- [x] 10.6 Publish the backend OpenAPI document, generate or validate a typed client under `contracts/`, and add a drift check so the hand-mirrored types in `src/api/types.ts` cannot silently diverge.
+- [x] 10.7 Add a profile health-context read endpoint and show the latest recorded age and weight with their reported dates on a resumed session, including the non-blocking refresh prompt.
+- [x] 10.8 Implement family-profile creation and browsing screens.
 - [ ] 10.9 Implement every upload mode and its error states, including direct file, camera capture, ordered multi-image documents, and size and type rejections.
 - [ ] 10.10 Implement Feed, pending-assignment resolution, and processing state.
 - [ ] 10.11 Implement the review screens with exact source display, including document metadata, prescription candidates, and documented-condition `confirm`, `edit`, or `ignore`.

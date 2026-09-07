@@ -48,6 +48,20 @@ Email and WhatsApp intake are excluded from V1. Create and approve a separate po
 
 Each future change must decide the user journey, account and source authorization, supported report formats, report grouping, provider and security approach, privacy and residency requirements, profile assignment, provenance, deletion, failure handling, duplicate delivery, and testing. V1 makes no commitment to a provider, inbound-address scheme, phone-linking method, or transport design.
 
+## Email and password sign-in
+
+Google is the only first-release sign-in method. Create a follow-up OpenSpec change before accepting an email and password identity.
+
+That change must define:
+
+- registration, the verification-pending state, and resending verification;
+- what a person can reach before verification succeeds;
+- how an email identity links to or reconciles with an account already created through Google;
+- password reset and rate limiting;
+- which identity-provider settings are turned on, and how the service keeps refusing methods the release does not support.
+
+Until then the service refuses every upstream sign-in method except Google, even if the identity provider is configured to offer one.
+
 ## Other deferred journeys
 
 - Chat-created actions, reminders, or appointments

@@ -5,26 +5,20 @@ Define how the sole first-release account manager registers, verifies an identit
 ## ADDED Requirements
 
 ### Requirement: Register with a supported identity method
-The system SHALL allow a new account manager to register with Google or with an email address and password without storing the password in application-managed medical data.
-
-#### Scenario: Register with email and password
-- **WHEN** a new user submits a valid email address and acceptable password
-- **THEN** the system SHALL create a verification-pending identity
-- **AND** the system SHALL send an email-verification action
-- **AND** protected application access SHALL remain unavailable until verification succeeds
-
-#### Scenario: Verify an email identity
-- **WHEN** a verification-pending user completes a valid email-verification action
-- **THEN** the system SHALL mark that identity verified
-- **AND** the system SHALL allow the user to establish an authenticated session
+The first release SHALL allow a new account manager to register only through Google, and SHALL NOT store an application-managed password. The system SHALL refuse to create or reconcile an application account for a credential whose upstream sign-in method is anything other than Google, including an email and password identity created directly with the identity provider. Email and password registration is a post-V1 roadmap item.
 
 #### Scenario: Register with Google
 - **WHEN** a user completes a valid Google authorization flow
 - **THEN** the system SHALL treat the provider-verified email as verified
 - **AND** the system SHALL create or safely reconcile the corresponding application account
 
+#### Scenario: Present an unsupported identity method
+- **WHEN** a verified credential names an upstream sign-in method other than Google, or names no method at all
+- **THEN** the system SHALL deny protected application access
+- **AND** the system SHALL NOT create or reconcile an application account for that identity
+
 #### Scenario: Registration fails
-- **WHEN** identity validation, verification, or the external authorization flow fails or is cancelled
+- **WHEN** identity validation or the external authorization flow fails or is cancelled
 - **THEN** the system SHALL NOT create an active duplicate account
 - **AND** the user SHALL receive a safe retryable outcome that does not disclose another account's private details
 
@@ -35,10 +29,10 @@ The system SHALL allow a verified registered identity to sign in and the account
 - **WHEN** a registered user successfully authenticates with a linked identity
 - **THEN** the system SHALL establish a session mapped to exactly one application account
 
-#### Scenario: Sign in with an unverified email identity
-- **WHEN** an email/password identity has not completed verification
-- **THEN** the system SHALL deny protected application access
-- **AND** the system SHALL offer a safe way to resend verification
+#### Scenario: Sign in after the provider flow is cancelled
+- **WHEN** the Google authorization flow is cancelled or fails
+- **THEN** the system SHALL NOT establish a session
+- **AND** the user SHALL be able to retry sign-in without losing an existing account
 
 #### Scenario: Sign out
 - **WHEN** the account manager signs out

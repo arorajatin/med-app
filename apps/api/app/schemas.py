@@ -96,6 +96,22 @@ class ProfileHealthContextRead(BaseModel):
     created_at: datetime
 
 
+class ProfileHealthContextSummary(BaseModel):
+    """The latest reported age and weight, with a non-blocking refresh prompt."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    profile_id: str
+    reported_age: int | None
+    age_reported_at: datetime | None
+    age_refresh_due: bool
+    entered_weight: Decimal | None
+    weight_unit: str | None
+    normalized_weight_kg: Decimal | None
+    weight_reported_at: datetime | None
+    weight_refresh_due: bool
+
+
 class IngestionRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

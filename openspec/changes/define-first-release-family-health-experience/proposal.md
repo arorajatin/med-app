@@ -4,7 +4,7 @@ The current user-journey drafts describe the application's tabs and a partial up
 
 ## What Changes
 
-- Add Google and email/password onboarding for one account holder, automatically create the account holder's `self` profile, and capture initial health context. Account creation authorizes the AI processing required by the product.
+- Add Google-only onboarding for one account holder, automatically create the account holder's `self` profile, and capture initial health context. Account creation authorizes the AI processing required by the product. The service refuses any other upstream sign-in method, so an email and password identity created directly with the identity provider cannot reach an application account.
 - Keep the first release single-manager: one authenticated account owns and manages every family profile. Record delegated family-member login and self-upload as a roadmap follow-up.
 - Expand document intake through the authenticated web app to camera capture, a single image or PDF, and a multi-image document, with immutable `direct_file` or `camera` provenance.
 - Deliver the V1 client from `apps/web` against the backend in `apps/api`; reserve unscaffolded `apps/ios` and `apps/android` homes for separate V2 native-client changes.
@@ -20,6 +20,7 @@ The current user-journey drafts describe the application's tabs and a partial up
 Explicit non-goals for this change:
 
 - Separate login or direct self-upload access for family members; this remains a roadmap change.
+- Email and password registration, email verification, and the verification-pending state; Google is the only first-release sign-in method and email/password registration moves to the roadmap.
 - The interactive family-member → body-system → metric trend visualization; this change creates the observation contract needed by that future experience.
 - Post-creation AI-processing controls, family sharing, clinician access, public file links, arbitrary family-relationship graphs, chat-initiated actions or reminders, medical diagnosis, condition-severity classification, a condition allowlist, condition inference from medications, lab values, ranges, symptoms, or other implicit associations, selection of a Chat model provider, or document ingestion through email, Amazon SES, WhatsApp, or any other external connector. External connector ingestion requires a separate post-V1 change.
 
@@ -29,7 +30,7 @@ This change affects medical-data privacy, AI trust, and account-creation terms. 
 
 ### New Capabilities
 
-- `account-onboarding`: Google and email/password signup, verification, account creation, and first-run health context.
+- `account-onboarding`: Google signup, account creation, and first-run health context.
 - `metric-observations`: Automatic, auditable storage and retrieval of deterministic report measurements without treating them as reviewed medical memory.
 - `record-feed`: Account-wide completed-upload browsing with upload-date and report-date ordering.
 - `record-organization`: Person-scoped dynamic organization of reports by month or reviewed condition.

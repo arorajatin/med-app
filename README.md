@@ -9,7 +9,7 @@ apps/
   api/        FastAPI backend and workers
   web/        V1 web client: React, TypeScript, and Vite
 
-contracts/    Shared API-contract documentation and generated-client boundary
+contracts/    The backend's OpenAPI document and the TypeScript types generated from it
 infra/        Supabase and AWS infrastructure definitions
 openspec/     Product specifications and proposed changes
 user-journeys/ First-release and roadmap journeys
@@ -43,8 +43,12 @@ uv run --frozen --package med-app-backend mypy --config-file apps/api/pyproject.
 uv run --frozen --package med-app-backend pytest -c apps/api/pyproject.toml --cov=app --cov-config=apps/api/pyproject.toml --cov-report=term-missing
 uv run --frozen --package med-app-backend alembic -c apps/api/alembic.ini check
 uv run --package med-app-backend python -m app.worker once
+uv run --frozen --package med-app-backend python apps/api/scripts/export_openapi.py
 npx --yes @fission-ai/openspec@1.6.0 validate --all --strict
 ```
+
+Regenerate `contracts/openapi.json` with the export command above whenever a route or response model
+changes, then run `npm run contracts:generate` in `apps/web`. CI fails if either file is stale.
 
 ## Web setup
 
@@ -67,6 +71,7 @@ npm run typecheck
 npm run lint
 npm run test
 npm run build
+npm run contracts:check
 ```
 
 Backend-specific notes are in [apps/api/README.md](apps/api/README.md). Web notes are in

@@ -2,6 +2,7 @@ import type { WeightUnit } from "../api/types";
 
 export const MAX_DISPLAY_NAME_LENGTH = 160;
 export const MAX_SEX_LENGTH = 40;
+export const MAX_RELATIONSHIP_LENGTH = 80;
 export const MIN_AGE = 0;
 export const MAX_AGE = 130;
 export const LB_TO_KG = 0.45359237;
@@ -23,6 +24,22 @@ export function validateDisplayName(raw: string): Validated<string> {
   }
   if (value.length > MAX_DISPLAY_NAME_LENGTH) {
     return invalid(`Use ${MAX_DISPLAY_NAME_LENGTH} characters or fewer.`);
+  }
+  return { ok: true, value };
+}
+
+/**
+ * How the person relates to the account manager, such as "mother". The first
+ * release stores free text: it is a label on a medical context, not a claim
+ * about a family structure.
+ */
+export function validateRelationship(raw: string): Validated<string> {
+  const value = raw.trim();
+  if (value === "") {
+    return invalid("Say how this person relates to you, for example mother.");
+  }
+  if (value.length > MAX_RELATIONSHIP_LENGTH) {
+    return invalid(`Use ${MAX_RELATIONSHIP_LENGTH} characters or fewer.`);
   }
   return { ok: true, value };
 }

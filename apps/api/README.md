@@ -40,6 +40,25 @@ run `alembic upgrade head` before starting the API or worker. Databases created 
 are outside the supported contract; provision a new database instead of importing or transforming
 prototype rows.
 
+## Sign-in
+
+Google is the only sign-in method in the first release. With `DEV_AUTH_ENABLED=false` the API
+verifies the Supabase access token, then reads the upstream sign-in method from the
+provider-controlled `app_metadata` claim and answers 403 for anything but Google, before an account
+is created or reconciled. That way an email and password identity created directly with the identity
+provider cannot reach private data, even if the provider is configured to offer it.
+
+## API contract
+
+`contracts/openapi.json` is exported from this app and is the source clients generate from.
+Regenerate it after changing a route or response model:
+
+```bash
+uv run --frozen --package med-app-backend python apps/api/scripts/export_openapi.py
+```
+
+`tests/test_api_contract.py` fails while the checked-in document is stale.
+
 ## Onboarding
 
 `GET /account/onboarding` reports progress through `self_profile`, `health_context`,
@@ -49,6 +68,10 @@ cannot drift from the data.
 
 Creating an account authorizes the AI processing required by the product. The API does not store a
 separate processing-consent record or repeat that choice on an ingestion or medical record.
+
+`GET /profiles/{id}/health-context` returns the latest reported age and weight with their reported
+dates, and marks age due for a non-blocking refresh after one calendar year and weight after six
+calendar months. A stale value stays visible and is never re-derived or replaced.
 
 `PUT /account/onboarding/self-profile` creates the account's one `self` profile or updates the
 existing one. `PUT /profiles/{id}/attested-conditions` and `PUT /profiles/{id}/attested-medications`

@@ -12,5 +12,7 @@ __pycache__/
 med_app.db
 .local_storage/
 
+contracts/.api.check.ts
+
 .opencode
 

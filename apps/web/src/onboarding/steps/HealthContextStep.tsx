@@ -1,22 +1,20 @@
 import { useState } from "react";
 import { ApiError } from "../../api/client";
 import { createHealthContext } from "../../api/onboarding";
-import type { ProfileHealthContextRead, WeightUnit } from "../../api/types";
+import type { ProfileHealthContextSummary, WeightUnit } from "../../api/types";
 import { ErrorBanner } from "../../components/ErrorBanner";
 import { FormField } from "../../components/FormField";
+import { RecordedHealthContext } from "../RecordedHealthContext";
 import { MAX_AGE, MIN_AGE, validateAge, validateWeight } from "../validation";
 
 interface HealthContextStepProps {
   profileId: string;
-  alreadyRecorded: boolean;
-  onCompleted: (recorded: ProfileHealthContextRead) => void;
+  /** What the profile already carries, or null when nothing is recorded yet. */
+  recorded: ProfileHealthContextSummary | null;
+  onCompleted: () => void;
 }
 
-export function HealthContextStep({
-  profileId,
-  alreadyRecorded,
-  onCompleted,
-}: HealthContextStepProps) {
+export function HealthContextStep({ profileId, recorded, onCompleted }: HealthContextStepProps) {
   const [age, setAge] = useState("");
   const [weight, setWeight] = useState("");
   const [unit, setUnit] = useState<WeightUnit>("kg");
@@ -39,13 +37,13 @@ export function HealthContextStep({
     try {
       // Both values are stamped with the moment they were reported; the backend
       // never ages them on afterwards.
-      const recorded = await createHealthContext(profileId, {
+      await createHealthContext(profileId, {
         reportedAge: validAge.value,
         enteredWeight: validWeight.value.entered,
         weightUnit: validWeight.value.unit,
         reportedAt: new Date().toISOString(),
       });
-      onCompleted(recorded);
+      onCompleted();
     } catch (cause) {
       setError(cause instanceof ApiError ? cause.message : "Could not save your health context.");
     } finally {
@@ -60,12 +58,14 @@ export function HealthContextStep({
         Both values are saved with today's date and are always shown with the date you reported
         them. They are never updated on their own.
       </p>
-      {alreadyRecorded ? (
-        <p className="banner banner--info">
-          You have recorded these before. Saving again adds a newer reported value and keeps the
-          earlier one.
-        </p>
-      ) : null}
+      {recorded === null ? null : (
+        <div className="banner banner--info">
+          <p>
+            Already recorded. Saving again adds a newer reported value and keeps the earlier one.
+          </p>
+          <RecordedHealthContext healthContext={recorded} />
+        </div>
+      )}
       <ErrorBanner message={error} />
       <FormField
         id="reported-age"

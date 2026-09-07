@@ -30,6 +30,7 @@ from app.schemas import (
     ProfileCreate,
     ProfileHealthContextCreate,
     ProfileHealthContextRead,
+    ProfileHealthContextSummary,
     ProfileRead,
     RecordReviewRequest,
     SelfProfileUpdate,
@@ -43,6 +44,7 @@ from app.services.common import (
     require_record,
 )
 from app.services.extraction import create_extraction_job, retry_extraction_job, run_extraction_job
+from app.services.health_context import latest_health_context
 from app.services.ingestions import resolve_ingestion_assignment
 from app.services.memory import apply_record_review
 from app.services.onboarding import (
@@ -198,6 +200,25 @@ def create_profile_health_context(
     db.refresh(health_context)
     refresh_onboarding_status(db, account=context.account)
     return health_context
+
+
+@router.get(
+    "/profiles/{profile_id}/health-context",
+    response_model=ProfileHealthContextSummary,
+)
+def get_profile_health_context(
+    profile_id: str,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+    settings: Settings = Depends(get_settings),
+) -> ProfileHealthContextSummary:
+    """Return the latest reported age and weight so a resumed session can show them."""
+
+    account_id = _account_context(db, user=user, settings=settings).account.id
+    require_profile(db, account_id=account_id, profile_id=profile_id)
+    return ProfileHealthContextSummary.model_validate(
+        latest_health_context(db, profile_id=profile_id)
+    )
 
 
 @router.put("/profiles/{profile_id}/attested-conditions", response_model=AttestedMemoryRead)
