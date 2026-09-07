@@ -31,7 +31,7 @@ async function loadState(): Promise<LoadedState> {
   if (onboarding.self_profile === null) {
     return { onboarding, healthContext: null };
   }
-  const healthContext = await getHealthContext(onboarding.self_profile.id).catch(() => null);
+  const healthContext = await getHealthContext(onboarding.self_profile.id);
   return { onboarding, healthContext };
 }
 

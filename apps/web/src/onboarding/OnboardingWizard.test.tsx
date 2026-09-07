@@ -16,6 +16,7 @@ function renderWizard(onUnauthenticated = vi.fn()) {
 describe("OnboardingWizard", () => {
   it("resumes at the first step the account has not finished", async () => {
     mockApi({
+      "GET /profiles/profile_1/health-context": healthContextSummary(),
       "GET /account/onboarding": onboardingState({
         next_step: "health_context",
         completed_steps: ["self_profile"],
@@ -40,6 +41,7 @@ describe("OnboardingWizard", () => {
       self_profile: SELF_PROFILE,
     });
     mockApi({
+      "GET /profiles/profile_1/health-context": healthContextSummary(),
       "GET /account/onboarding": state,
       "PUT /account/onboarding/self-profile": SELF_PROFILE,
     });
@@ -56,6 +58,7 @@ describe("OnboardingWizard", () => {
 
   it("returns to the next required step when cancelling an earlier edit", async () => {
     mockApi({
+      "GET /profiles/profile_1/health-context": healthContextSummary(),
       "GET /account/onboarding": onboardingState({
         next_step: "health_context",
         completed_steps: ["self_profile"],
@@ -75,6 +78,7 @@ describe("OnboardingWizard", () => {
 
   it("keeps an invalid age on the step and sends nothing", async () => {
     const { calls } = mockApi({
+      "GET /profiles/profile_1/health-context": healthContextSummary(),
       "GET /account/onboarding": onboardingState({
         next_step: "health_context",
         completed_steps: ["self_profile"],
@@ -139,6 +143,7 @@ describe("OnboardingWizard", () => {
 
   it("prefills declared conditions and replaces them with the submitted set", async () => {
     const { calls } = mockApi({
+      "GET /profiles/profile_1/health-context": healthContextSummary(),
       "GET /account/onboarding": onboardingState({
         next_step: "conditions",
         completed_steps: ["self_profile", "health_context"],
@@ -193,6 +198,7 @@ describe("OnboardingWizard", () => {
 
   it("records an explicit none answer for medications", async () => {
     const { calls } = mockApi({
+      "GET /profiles/profile_1/health-context": healthContextSummary(),
       "GET /account/onboarding": onboardingState({
         next_step: "medications",
         completed_steps: ["self_profile", "health_context", "conditions"],
@@ -289,5 +295,77 @@ describe("OnboardingWizard", () => {
     const onUnauthenticated = renderWizard();
 
     await waitFor(() => expect(onUnauthenticated).toHaveBeenCalled());
+  });
+
+  it.each(["server", "network"])("shows a %s health-context failure instead of missing data", async (failure) => {
+    mockApi({
+      "GET /account/onboarding": onboardingState({
+        status: "completed",
+        next_step: null,
+        self_profile: SELF_PROFILE,
+      }),
+      "GET /profiles/profile_1/health-context": () => {
+        if (failure === "network") {
+          throw new TypeError("Failed to fetch");
+        }
+        return { status: 500, body: { detail: "Could not load your health context." } };
+      },
+    });
+
+    const onUnauthenticated = renderWizard();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      failure === "network" ? "Could not reach the server" : "Could not load your health context",
+    );
+    expect(screen.queryByText("Not recorded yet.")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Onboarding complete" })).not.toBeInTheDocument();
+    expect(onUnauthenticated).not.toHaveBeenCalled();
+  });
+
+  it("signs out when the health-context read rejects the session", async () => {
+    mockApi({
+      "GET /account/onboarding": onboardingState({ self_profile: SELF_PROFILE }),
+      "GET /profiles/profile_1/health-context": () => ({
+        status: 401,
+        body: { detail: "Your session has ended." },
+      }),
+    });
+
+    const onUnauthenticated = renderWizard();
+
+    await waitFor(() => expect(onUnauthenticated).toHaveBeenCalledOnce());
+  });
+
+  it("keeps recorded values when the health-context reload fails after saving", async () => {
+    let saved = false;
+    mockApi({
+      "GET /account/onboarding": onboardingState({
+        status: "completed",
+        next_step: null,
+        completed_steps: ["self_profile", "health_context", "conditions", "medications"],
+        self_profile: SELF_PROFILE,
+      }),
+      "GET /profiles/profile_1/health-context": () => saved
+        ? { status: 500, body: { detail: "Could not reload your health context." } }
+        : { body: healthContextSummary() },
+      "GET /profiles/profile_1/memory": { profile: SELF_PROFILE, facts: [] },
+      "GET /profiles": [SELF_PROFILE],
+      "PUT /account/onboarding/self-profile": () => {
+        saved = true;
+        return { body: SELF_PROFILE };
+      },
+    });
+
+    renderWizard();
+
+    await screen.findByRole("heading", { name: "Onboarding complete" });
+    await userEvent.click(screen.getByRole("button", { name: "Your name" }));
+    await userEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not reload your health context.");
+    await userEvent.click(screen.getByRole("button", { name: "Back to summary" }));
+    expect(await screen.findByText(/34 years/)).toBeInTheDocument();
+    expect(screen.getByText(/61.5 kg/)).toBeInTheDocument();
+    expect(screen.queryByText("Not recorded yet.")).not.toBeInTheDocument();
   });
 });
