@@ -41,16 +41,9 @@ jobs:
       - name: Install frozen dependencies
         run: uv sync --frozen --package med-app-backend --extra dev
       - name: Ruff lint
-        run: |
-          uv run --frozen --package med-app-backend ruff check --no-cache --ignore I001 apps/api
-          cp -R apps/api "${RUNNER_TEMP}/api-lint"
-          uv run --frozen --package med-app-backend ruff check --no-cache --select I001 --fix "${RUNNER_TEMP}/api-lint"
-          git diff --no-index --exit-code --ignore-blank-lines apps/api "${RUNNER_TEMP}/api-lint"
+        run: uv run --frozen --package med-app-backend ruff check --no-cache apps/api
       - name: Ruff format
-        run: |
-          cp -R apps/api "${RUNNER_TEMP}/api-format"
-          uv run --frozen --package med-app-backend ruff format --no-cache "${RUNNER_TEMP}/api-format"
-          git diff --no-index --exit-code --ignore-blank-lines apps/api "${RUNNER_TEMP}/api-format"
+        run: uv run --frozen --package med-app-backend ruff format --no-cache --check apps/api
       - name: Mypy
         run: >-
           uv run --frozen --package med-app-backend

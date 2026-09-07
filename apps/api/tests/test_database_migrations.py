@@ -18,7 +18,6 @@ from app.database import (
 from app.main import create_app
 from app.worker import run_once
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 

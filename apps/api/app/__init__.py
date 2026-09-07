@@ -1,2 +1,1 @@
 """Medical records backend package."""
-

@@ -9,9 +9,7 @@ CONDITION_FIELD_TOKENS = frozenset({"condition", "diagnosis", "disease", "impres
 CONDITION_SAFETY_POLICY = "literal_source_validation_required"
 BASELINE_DOCUMENT_TYPES = frozenset({"medical_record", "lab_report", "prescription"})
 BASELINE_METADATA_TYPES = frozenset({"document_type", "record_date"})
-BASELINE_MEMORY_SUBTYPES = frozenset(
-    {"prescription_medication", "prescription_instruction"}
-)
+BASELINE_MEMORY_SUBTYPES = frozenset({"prescription_medication", "prescription_instruction"})
 BASELINE_MEMORY_CATEGORIES = frozenset({"medication", "test_result", "follow_up"})
 USER_ATTESTED_PROVENANCE = "user_attested"
 USER_ATTESTED_CATEGORIES = frozenset({"condition", "medication"})
