@@ -90,6 +90,10 @@ Retain the provisional selection, extracted value, confidence, match version, re
 
 Fuzzy, scored, phonetic, or cross-account matching is not permitted in V1. Confidence is retained for audit and evaluation but cannot relax the exact-match rule.
 
+The phase-4 implementation requires every extracted patient name to resolve uniquely to the same owned profile. A matched name beside an unmatched or conflicting name requires manual assignment. Managers explicitly maintain aliases through an owned-profile API that replaces the complete set, allows at most 20 distinct names of 1–160 characters, and rejects normalized duplicates. Alias removal changes future matching without rewriting assignment history.
+
+Pending assignment can resolve only after a successful extraction. Repeating the same resolution is idempotent; selecting another profile after resolution returns a conflict until the later audited correction flow exists. A retry of the immutable source preserves a manual decision. An automatic retry must agree with its previous resolved profile or fail with `assignment_conflict`, preserving committed output. Assignment events retain the attempt, evidence IDs, candidate profiles, match version, and resolver; patient evidence from prior attempts is retained.
+
 ### Split extraction output into four trust classes
 
 Keep raw provider output and normalized source references, then classify normalized items as:
@@ -114,6 +118,8 @@ Use stable/versioned memory facts or explicit supersession instead of destructiv
 Every normalized item has at least one `SourceReference` containing source part, logical page, native word or Textract block identifiers, text span, and normalized bounding polygon. Each documented-condition candidate must cite the exact source span that contains the condition itself; a medication name, measurement, abnormal flag, symptom, or generic association is not a valid condition reference. Missing, fabricated, inferred, or unresolved condition text invalidates that candidate. Successful raw native/Textract output and Bedrock response are encrypted, hidden from routine APIs, and retained until report deletion for audit; provider staging copies are deleted promptly.
 
 The baseline gate remains in force until this structured contract, resolvable source-span validation, protected raw-output storage, negative fixtures, and reviewed enablement evidence all land together. The future candidate path must replace the gate atomically with the source-validating contract; widening the baseline field allowlist is prohibited. Generic `condition`, `diagnosis`, and other condition-shaped field types remain invalid.
+
+Phase 4 implements and tests this normalized contract with the local mock. The service independently parses PDF words and geometry, validates every reference against that layout, and verifies stored source checksums before processing. Lab labels, values, and units must share a cited source line. The condition validator is testable but disabled in runtime extraction; the baseline provider gate remains unchanged. The private local audit artifact contains source layout and a sanitized summary. Encrypted provider-output storage, the all-pages native gate, OCR, and production provider admission remain phase-6 work.
 
 ### Select the V1 document-processing path deterministically
 
@@ -180,7 +186,7 @@ Every new private table receives explicit account ownership, owner-aware foreign
 
 ## Migration Plan
 
-This change targets fresh installations only. Revision `20260721_0001` is the sole schema baseline for the current release. Databases produced by prototype builds are not supported inputs, and this change adds no row inventory, data import, historical transformation, or parallel historical-data path.
+This change targets fresh installations only. Revision `20260721_0001` remains the sole schema baseline; forward revision `20260908_0002` adds owned aliases and assignment history. Fresh installations apply both revisions, and installations at the supported baseline upgrade explicitly to the new head before API or worker startup. Databases produced by prototype builds are not supported inputs, and this change adds no row inventory, data import, historical transformation, or parallel historical-data path.
 
 1. Provision an empty PostgreSQL database in `ap-south-1` and apply the current Alembic head before any API or worker starts.
 2. Reconcile the three active infrastructure changes with stable ingestion keys, logical-document jobs, classified extraction output, private download, and all new RLS tables.

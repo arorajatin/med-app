@@ -49,6 +49,27 @@ async function selectFiles(files: File | File[]) {
 }
 
 describe("UploadTab", () => {
+  it("shows the matched patient when extraction changes the provisional selection", async () => {
+    const matched = { ...SELF_PROFILE, id: "profile_2", display_name: "Ravi", relationship: "father" };
+    mockApi({ "GET /profiles": [SELF_PROFILE, matched] });
+    const xhrs = mockUploadTransport();
+    render(<UploadTab active onUnauthenticated={vi.fn()} />);
+    await selectProfile();
+    await selectFiles(pdf());
+    await userEvent.click(screen.getByRole("button", { name: "Upload report" }));
+    await act(async () => xhrs[0]!.respond({
+      ...UPLOAD_RESULT,
+      ingestion: {
+        ...UPLOAD_RESULT.ingestion,
+        resolved_profile_id: matched.id,
+        assignment_state: "resolved",
+        extraction_state: "ready",
+      },
+    }));
+    expect(screen.getByText("Assigned · Ravi")).toBeInTheDocument();
+    expect(screen.getByText(/assignment has changed from your initial selection/)).toBeInTheDocument();
+  });
+
   it("opens on the account's own profile as a provisional selection", async () => {
     render(<UploadTab active onUnauthenticated={vi.fn()} />);
     await screen.findByRole("option", { name: "Asha · You" });

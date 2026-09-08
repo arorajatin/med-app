@@ -95,6 +95,13 @@ def owned_resource_cases(world: dict[str, str]) -> list[tuple[str, str, str, dic
     reported_at = datetime.now(UTC).isoformat()
     return [
         ("GET", "/profiles/{profile_id}", f"/profiles/{profile_id}", None),
+        ("GET", "/profiles/{profile_id}/aliases", f"/profiles/{profile_id}/aliases", None),
+        (
+            "PUT",
+            "/profiles/{profile_id}/aliases",
+            f"/profiles/{profile_id}/aliases",
+            {"aliases": ["Asha Test"]},
+        ),
         (
             "GET",
             "/profiles/{profile_id}/health-context",

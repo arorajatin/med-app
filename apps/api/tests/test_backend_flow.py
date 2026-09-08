@@ -178,7 +178,7 @@ def test_extracted_date_of_birth_is_retained_as_patient_evidence(client, monkeyp
         reference = SourceReferenceData(
             part_ordinal=0,
             logical_page=1,
-            text_span="Date of birth: 1980-05-04",
+            text_span="Patient: Self\nDate of birth: 1980-05-04",
             bounding_polygon=[[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]],
         )
         return DocumentExtraction(
@@ -202,7 +202,7 @@ def test_extracted_date_of_birth_is_retained_as_patient_evidence(client, monkeyp
 
     record, extraction = ingest_and_assign(
         client,
-        content=b"Lab report for Self. Date of birth: 1980-05-04",
+        content=b"Lab report\nPatient: Self\nDate of birth: 1980-05-04",
         profile_id=profile["id"],
     )
 

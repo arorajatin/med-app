@@ -1,13 +1,26 @@
 """Small, real source files for upload tests; no medical data from real people."""
 
 from io import BytesIO
+from textwrap import wrap
 
 from PIL import Image
 
 
 def pdf_bytes(text: bytes = b"Lab report", *, pages: int = 1) -> bytes:
-    escaped = text.replace(b"\\", b"\\\\").replace(b"(", b"\\(").replace(b")", b"\\)")
-    stream = b"BT /F1 12 Tf 40 700 Td (" + escaped.replace(b"\n", b" ") + b") Tj ET"
+    lines = [
+        line
+        for source_line in text.decode("latin-1").splitlines()
+        for line in wrap(source_line, 70)
+    ]
+    escaped = [
+        line.encode("latin-1").replace(b"\\", b"\\\\").replace(b"(", b"\\(").replace(b")", b"\\)")
+        for line in lines
+    ]
+    stream = (
+        b"BT /F1 12 Tf 16 TL 40 700 Td "
+        + b" T* ".join(b"(" + line + b") Tj" for line in escaped)
+        + b" ET"
+    )
     objects = [
         b"<< /Type /Catalog /Pages 2 0 R >>",
         b"<< /Type /Pages /Kids ["

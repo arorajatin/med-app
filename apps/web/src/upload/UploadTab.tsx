@@ -224,6 +224,9 @@ export function UploadTab({
   }
 
   if (result) {
+    const assignedProfile = profiles?.find(
+      (profile) => profile.id === result.ingestion.resolved_profile_id,
+    );
     return (
       <section className="panel">
         <div className="flex items-center gap-4">
@@ -267,11 +270,20 @@ export function UploadTab({
             <dt className="muted">Profile</dt>
             <dd className="m-0 text-right font-medium">
               {result.ingestion.assignment_state === "resolved"
-                ? "Assigned"
+                ? assignedProfile
+                  ? `Assigned · ${assignedProfile.display_name}`
+                  : "Assigned"
                 : "Awaiting assignment"}
             </dd>
           </div>
         </dl>
+        {assignedProfile &&
+          result.ingestion.resolved_profile_id !== result.ingestion.provisional_profile_id && (
+            <p className="muted text-sm">
+              The patient name in this report matched {assignedProfile.display_name}.
+              The report’s assignment has changed from your initial selection.
+            </p>
+          )}
         <p className="muted text-sm">
           Uploading a report does not confirm its extracted health information.
         </p>

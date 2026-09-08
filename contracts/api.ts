@@ -297,6 +297,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/profiles/{profile_id}/aliases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Profile Aliases */
+        get: operations["get_profile_aliases_profiles__profile_id__aliases_get"];
+        /** Put Profile Aliases */
+        put: operations["put_profile_aliases_profiles__profile_id__aliases_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/profiles/{profile_id}/appointments": {
         parameters: {
             query?: never;
@@ -683,6 +701,8 @@ export interface components {
         };
         /** ExtractionRead */
         ExtractionRead: {
+            /** Assignment History */
+            assignment_history: components["schemas"]["IngestionAssignmentRead"][];
             /** Attempts */
             attempts: components["schemas"]["ExtractionAttemptRead"][];
             ingestion: components["schemas"]["IngestionRead"];
@@ -704,6 +724,28 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** IngestionAssignmentRead */
+        IngestionAssignmentRead: {
+            /** Attempt Id */
+            attempt_id: string;
+            /** Candidate Profile Ids */
+            candidate_profile_ids: string[];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Evidence Ids */
+            evidence_ids: string[];
+            /** Id */
+            id: string;
+            /** Match Version */
+            match_version: string;
+            /** Method */
+            method: string;
+            /** Profile Id */
+            profile_id: string | null;
         };
         /** IngestionPartRead */
         IngestionPartRead: {
@@ -929,6 +971,25 @@ export interface components {
             ingestion_id: string;
             /** Patient Identifier */
             patient_identifier: string | null;
+        };
+        /** ProfileAliasRead */
+        ProfileAliasRead: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Profile Id */
+            profile_id: string;
+        };
+        /** ProfileAliasesUpdate */
+        ProfileAliasesUpdate: {
+            /** Aliases */
+            aliases: string[];
         };
         /** ProfileCreate */
         ProfileCreate: {
@@ -1620,6 +1681,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProfileRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_profile_aliases_profiles__profile_id__aliases_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profile_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileAliasRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_profile_aliases_profiles__profile_id__aliases_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profile_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileAliasesUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileAliasRead"][];
                 };
             };
             /** @description Validation Error */

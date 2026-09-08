@@ -33,6 +33,8 @@ from app.schemas import (
     MedicalRecordRead,
     MemoryRead,
     OnboardingRead,
+    ProfileAliasesUpdate,
+    ProfileAliasRead,
     ProfileCreate,
     ProfileHealthContextCreate,
     ProfileHealthContextRead,
@@ -51,7 +53,7 @@ from app.services.common import (
 )
 from app.services.extraction import create_extraction_job, retry_extraction_job, run_extraction_job
 from app.services.health_context import latest_health_context
-from app.services.ingestions import resolve_ingestion_assignment
+from app.services.ingestions import latest_successful_attempt, resolve_ingestion_assignment
 from app.services.memory import apply_record_review
 from app.services.onboarding import (
     attested_facts,
@@ -60,6 +62,7 @@ from app.services.onboarding import (
     refresh_onboarding_status,
     self_profile,
 )
+from app.services.patient_matching import normalize_patient_name
 from app.storage import LocalPrivateStorage
 
 router = APIRouter()
@@ -162,6 +165,67 @@ def get_profile(
 ) -> models.Profile:
     account_id = _account_context(db, user=user, settings=settings).account.id
     return require_profile(db, account_id=account_id, profile_id=profile_id)
+
+
+@router.get("/profiles/{profile_id}/aliases", response_model=list[ProfileAliasRead])
+def get_profile_aliases(
+    profile_id: str,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+    settings: Settings = Depends(get_settings),
+) -> list[models.ProfileAlias]:
+    account_id = _account_context(db, user=user, settings=settings).account.id
+    require_profile(db, account_id=account_id, profile_id=profile_id)
+    return (
+        db.query(models.ProfileAlias)
+        .filter(
+            models.ProfileAlias.account_id == account_id,
+            models.ProfileAlias.profile_id == profile_id,
+        )
+        .order_by(models.ProfileAlias.normalized_name)
+        .all()
+    )
+
+
+@router.put("/profiles/{profile_id}/aliases", response_model=list[ProfileAliasRead])
+def put_profile_aliases(
+    profile_id: str,
+    payload: ProfileAliasesUpdate,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+    settings: Settings = Depends(get_settings),
+) -> list[models.ProfileAlias]:
+    context = _account_context(db, user=user, settings=settings)
+    require_profile(db, account_id=context.account.id, profile_id=profile_id)
+    db.query(models.Profile).filter(models.Profile.id == profile_id).with_for_update().one()
+    existing = (
+        db.query(models.ProfileAlias)
+        .filter(
+            models.ProfileAlias.account_id == context.account.id,
+            models.ProfileAlias.profile_id == profile_id,
+        )
+        .all()
+    )
+    requested = {normalize_patient_name(name): name for name in payload.aliases}
+    retained = {alias.normalized_name for alias in existing}
+    for alias in existing:
+        if alias.normalized_name not in requested:
+            db.delete(alias)
+        else:
+            alias.name = requested[alias.normalized_name]
+    for normalized, name in requested.items():
+        if normalized not in retained:
+            db.add(
+                models.ProfileAlias(
+                    account_id=context.account.id,
+                    profile_id=profile_id,
+                    name=name,
+                    normalized_name=normalized,
+                    created_by_identity_id=context.identity.id,
+                )
+            )
+    db.commit()
+    return get_profile_aliases(profile_id, db, user, settings)
 
 
 @router.post(
@@ -785,7 +849,9 @@ async def _receive_ingestion(
         {
             "ingestion": ingestion,
             "parts": parts,
-            "record": None,
+            "record": db.query(models.MedicalRecord)
+            .filter(models.MedicalRecord.ingestion_id == ingestion.id)
+            .one_or_none(),
             "extraction_job": job,
         }
     )
@@ -812,9 +878,13 @@ def _extraction_read(db: Session, *, ingestion: models.Ingestion) -> ExtractionR
         if job_ids
         else []
     )
+    active_attempt = latest_successful_attempt(db, ingestion_id=ingestion.id)
     patient_evidence = (
         db.query(models.PatientEvidence)
-        .filter(models.PatientEvidence.ingestion_id == ingestion.id)
+        .filter(
+            models.PatientEvidence.ingestion_id == ingestion.id,
+            models.PatientEvidence.attempt_id == (active_attempt.id if active_attempt else None),
+        )
         .all()
     )
     metadata_candidates = (
@@ -852,5 +922,12 @@ def _extraction_read(db: Session, *, ingestion: models.Ingestion) -> ExtractionR
             "observations": observations,
             "memory_candidates": memory_candidates,
             "source_references": source_references,
+            "assignment_history": db.query(models.IngestionAssignment)
+            .filter(
+                models.IngestionAssignment.account_id == ingestion.account_id,
+                models.IngestionAssignment.ingestion_id == ingestion.id,
+            )
+            .order_by(models.IngestionAssignment.created_at, models.IngestionAssignment.id)
+            .all(),
         }
     )

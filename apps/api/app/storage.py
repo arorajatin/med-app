@@ -97,7 +97,11 @@ class LocalPrivateStorage:
         )
         target = self.root / object_key
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(payload)
+        try:
+            target.write_bytes(payload)
+        except Exception:
+            target.unlink(missing_ok=True)
+            raise
         return "local-private", str(object_key)
 
     def read_bytes(self, object_key: str) -> bytes:

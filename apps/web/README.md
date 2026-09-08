@@ -120,7 +120,9 @@ service controls source provenance. Clear the document to switch between those i
 The browser sends ordered multipart files to the authenticated API with a current access token.
 It never writes directly to storage. Progress measures transport; upload completion is shown
 only after the API confirms that every source part and its extraction job were saved together.
-The receipt shows upload, extraction, and assignment separately. Upload drafts survive tab
+The receipt shows upload, extraction, and assignment separately. When inline extraction matches
+another family member, it names that person and explains the changed assignment. The receipt is a
+snapshot; later background changes will be surfaced by the future Feed. Upload drafts survive tab
 switches but are not persisted across reloads or sign-out. Camera streams stop when capture
 closes, the tab is hidden, or the account signs out. Camera capture needs browser permission and
 a secure context (HTTPS or localhost); file selection remains available if capture is unavailable.
@@ -135,5 +137,6 @@ report names allow 260 characters and notes allow 4,000. Notes remain separate f
 - Google sign-in was enabled and verified end to end on 2026-09-07. The upload browser smoke
   test uses a synthetic development identity; real-device camera permissions remain a release check.
 - Feed, Drive, and Chat show placeholders. Assignment and review screens belong to later milestones.
-- Production OCR and automatic patient matching remain pending. The local mock can read digital
-  PDF text but performs no image OCR; an upload receipt does not imply reviewed health information.
+- Exact patient-name and explicit-alias matching work with the local digital-PDF mock. Production
+  OCR remains pending; images produce no patient evidence yet. Alias management and pending
+  assignment are API-only. An upload receipt does not imply reviewed health information.

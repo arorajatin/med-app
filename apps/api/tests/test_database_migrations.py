@@ -5,7 +5,9 @@ from alembic import command
 from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 from app import models  # noqa: F401
 from app.config import get_settings
@@ -99,7 +101,7 @@ def test_upgrade_empty_database_to_head_matches_model_contract(tmp_path):
 
     command.upgrade(migration_config(url), "head")
 
-    assert current_revisions(url) == {"20260721_0001"}
+    assert current_revisions(url) == {"20260908_0002"}
     assert_schema_matches_metadata(url)
 
 
@@ -120,7 +122,7 @@ def test_production_api_and_worker_start_at_head_without_metadata_creation(tmp_p
         assert client.get("/health").json() == {"status": "ok"}
 
     assert run_once() == 0
-    assert current_revisions(url) == {"20260721_0001"}
+    assert current_revisions(url) == {"20260908_0002"}
     get_settings.cache_clear()
 
 
@@ -130,7 +132,7 @@ def test_runtime_startup_rejects_an_unmigrated_database(tmp_path, monkeypatch):
     monkeypatch.setenv("DATABASE_URL", url)
     get_settings.cache_clear()
 
-    with pytest.raises(RuntimeError, match=r"current: none; expected: 20260721_0001"):
+    with pytest.raises(RuntimeError, match=r"current: none; expected: 20260908_0002"):
         with TestClient(create_app()):
             pass
 
@@ -161,6 +163,76 @@ def test_downgrade_initial_revision_returns_database_to_base(tmp_path):
     finally:
         engine.dispose()
     assert current_revisions(url) == set()
+
+
+def test_assignment_migration_preserves_baseline_rows_and_enforces_alias_ownership(tmp_path):
+    url = database_url(tmp_path / "assignment-upgrade.db")
+    config = migration_config(url)
+    command.upgrade(config, "20260721_0001")
+    engine = create_engine(url)
+    with Session(engine) as db:
+        db.add_all([models.Account(id="owner"), models.Account(id="other")])
+        db.flush()
+        db.add(
+            models.Profile(
+                id="person", account_id="owner", display_name="Asha", relationship="self"
+            )
+        )
+        db.add(
+            models.AuthIdentity(
+                id="identity",
+                account_id="owner",
+                provider="test",
+                provider_subject="owner",
+                verified_at=models.utcnow(),
+            )
+        )
+        db.commit()
+    command.upgrade(config, "head")
+    assert_schema_matches_metadata(url)
+    with engine.connect() as connection:
+        connection.execute(text("PRAGMA foreign_keys=ON"))
+        with Session(connection) as db:
+            assert db.query(models.Profile).one().display_name == "Asha"
+            db.add(
+                models.ProfileAlias(
+                    account_id="owner",
+                    profile_id="person",
+                    name="Asha Rao",
+                    normalized_name="asha rao",
+                    created_by_identity_id="identity",
+                )
+            )
+            db.commit()
+            db.add(
+                models.ProfileAlias(
+                    account_id="other",
+                    profile_id="person",
+                    name="Foreign",
+                    normalized_name="foreign",
+                    created_by_identity_id="identity",
+                )
+            )
+            with pytest.raises(IntegrityError):
+                db.commit()
+            db.rollback()
+    command.downgrade(config, "20260721_0001")
+    with Session(engine) as db:
+        assert db.query(models.Profile).one().id == "person"
+    assert "profile_aliases" not in inspect(engine).get_table_names()
+    engine.dispose()
+
+
+def test_runtime_rejects_baseline_until_assignment_migration_is_applied(tmp_path, monkeypatch):
+    url = database_url(tmp_path / "baseline-only.db")
+    command.upgrade(migration_config(url), "20260721_0001")
+    monkeypatch.setenv("DATABASE_URL", url)
+    monkeypatch.setenv("ENVIRONMENT", "local")
+    get_settings.cache_clear()
+    with pytest.raises(RuntimeError, match="current: 20260721_0001; expected: 20260908_0002"):
+        with TestClient(create_app()):
+            pass
+    get_settings.cache_clear()
 
 
 @pytest.mark.parametrize(

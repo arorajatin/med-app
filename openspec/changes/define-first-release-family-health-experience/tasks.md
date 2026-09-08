@@ -21,7 +21,7 @@ The checkbox definitions below are the canonical implementation checklist. Use t
 - [ ] 1.2 Implement the reconciled production-extraction contract with pdfplumber, Textract, Bedrock Mistral Large 3, four output classes, required source references, and zero-data-retention preflight.
 - [ ] 1.3 Implement the reconciled queue-worker contract so one claimed job targets one immutable logical document and atomic attempt, including ordered multi-image input and Textract callbacks.
 - [x] 1.4 Enforce PDF/JPEG/PNG input, 15,000,000-byte logical-document, 20-page/part, 10,000,000-byte image, and 10,000-pixel image-dimension ceilings with stable safe failures.
-- [ ] 1.5 Implement Unicode NFKC/case-folded exact full-name or explicit-alias matching with ambiguous-match blocking; do not match on date of birth and do not add fuzzy automatic matching.
+- [x] 1.5 Implement Unicode NFKC/case-folded exact full-name or explicit-alias matching with ambiguous-match blocking; do not match on date of birth and do not add fuzzy automatic matching.
 
 ## 2. Accounts, Onboarding, and Profiles
 
@@ -40,13 +40,13 @@ The checkbox definitions below are the canonical implementation checklist. Use t
 - [x] 3.3 Implement ordered multi-image assembly that finalizes exactly one logical document atomically.
 - [x] 3.4 Implement optional user context, immutable original filename, mutable display filename, upload completion, and safe partial-upload cleanup.
 - [x] 3.5 Adapt extraction dispatch so every authenticated, account-owned, upload-complete logical document creates one attempt-aware job.
-- [ ] 3.6 Implement account-local patient matching in which exactly one normalized full-name or explicit-alias match replaces the provisional selection and every other result, including no match, becomes `needs_assignment`.
-- [ ] 3.7 Implement manual pending-assignment resolution without AI-created profiles and publish derived data only after assignment resolves.
-- [ ] 3.8 Add supported, multipart, partial, MIME-sniffing, encrypted, corrupt, oversized, route-controlled source-channel, client-override rejection, exact-match, unmatched, ambiguous, manual-resolution, authorization, and retry tests for every medical-record and ingestion requirement.
+- [x] 3.6 Implement account-local patient matching in which exactly one normalized full-name or explicit-alias match replaces the provisional selection and every other result, including no match, becomes `needs_assignment`.
+- [x] 3.7 Implement manual pending-assignment resolution without AI-created profiles and publish derived data only after assignment resolves.
+- [x] 3.8 Add supported, multipart, partial, MIME-sniffing, encrypted, corrupt, oversized, route-controlled source-channel, client-override rejection, exact-match, unmatched, ambiguous, manual-resolution, authorization, and retry tests for every medical-record and ingestion requirement.
 
 ## 4. Extraction, Observations, and Reviewed Memory
 
-- [ ] 4.1 Extend the normalized extractor contract with `native_text`/`textract_ocr`, routing reason, patient evidence, document-metadata candidates, metric observations, prescription-memory candidates, literal `documented_condition_candidate` items, affirmative patient-subject assertion validation, and required `SourceReference` values.
+- [x] 4.1 Extend the normalized extractor contract with `native_text`/`textract_ocr`, routing reason, patient evidence, document-metadata candidates, metric observations, prescription-memory candidates, literal `documented_condition_candidate` items, affirmative patient-subject assertion validation, and required `SourceReference` values.
 - [ ] 4.2 Implement the all-pages native PDF gate with pdfplumber, whole-document Textract fallback, Textract-only image processing, and schema-constrained Bedrock Mistral Large 3 normalization in Mumbai.
 - [ ] 4.3 Implement source-linked document-metadata review so confirmation/edit can drive report date, issuer, type, or generated display name, ignore leaves it untrusted, and an explicit rename always wins.
 - [ ] 4.4 Add migration-backed observations with original and normalized values/units, ranges, dates, optional body-system classification, source locations, attempt identity, confidence, and quality state.
