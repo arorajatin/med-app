@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ApiError } from "../api/client";
 import { listProfiles } from "../api/profiles";
 import type { ProfileRead } from "../api/types";
+import { Avatar } from "../components/Avatar";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { AddFamilyMemberForm } from "./AddFamilyMemberForm";
 
@@ -55,22 +56,30 @@ export function FamilySpace({ onUnauthenticated }: FamilySpaceProps) {
 
   return (
     <section className="panel">
-      <h2>Your family</h2>
-      <p>
-        Everyone here is managed from your account. Family members do not sign in themselves in this
-        release.
-      </p>
+      <div>
+        <h2>Your family</h2>
+        <p className="muted mt-1.5">
+          Everyone here is managed from your account. Family members do not sign in themselves in
+          this release.
+        </p>
+      </div>
       <ErrorBanner message={error} />
       {profiles === null ? (
         <p className="muted">Loading your family profiles…</p>
       ) : (
-        <ul className="entry-list" aria-label="Family profiles">
+        <ul className="grid gap-2 sm:grid-cols-2" aria-label="Family profiles">
           {profiles.map((profile) => (
-            <li className="entry-list__item" key={profile.id}>
-              <span>{profile.display_name}</span>
-              <span className="muted">
-                {profile.relationship === "self" ? "You" : profile.relationship}
-                {profile.sex ? ` · ${profile.sex}` : ""}
+            <li
+              className="border-line bg-surface-sunk/60 flex items-center gap-3 rounded-2xl border p-3"
+              key={profile.id}
+            >
+              <Avatar name={profile.display_name} />
+              <span className="flex min-w-0 flex-col">
+                <span className="truncate font-semibold">{profile.display_name}</span>
+                <span className="muted truncate text-sm capitalize">
+                  {profile.relationship === "self" ? "You" : profile.relationship}
+                  {profile.sex ? ` · ${profile.sex}` : ""}
+                </span>
               </span>
             </li>
           ))}
@@ -80,6 +89,9 @@ export function FamilySpace({ onUnauthenticated }: FamilySpaceProps) {
         <AddFamilyMemberForm onAdded={handleAdded} onCancel={() => setAdding(false)} />
       ) : (
         <button className="button" type="button" onClick={() => setAdding(true)}>
+          <span aria-hidden="true" className="text-lg leading-none">
+            +
+          </span>
           Add a family member
         </button>
       )}

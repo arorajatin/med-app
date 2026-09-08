@@ -54,6 +54,10 @@ AI processing is inherent to the product. Creating an account authorizes documen
 
 ### Stage ingestion before creating a profile-bound report
 
+The document-upload milestone introduces the five-tab web shell in the order Feed, Chat, Upload, Drive, Profile. Completed onboarding and restored completed accounts open Upload while Feed is unimplemented. Feed, Chat, and Drive show placeholders; Profile retains the existing family settings and health-summary edits. Upload drafts remain in memory across tab changes and clear on reload or sign-out. Camera streams stop when capture closes or Upload is hidden. The later Feed milestone restores Feed as the launch destination.
+
+The existing baseline `Ingestion` and ordered `IngestionPart` rows jointly retain canonical source provenance; no additional source table or migration is needed for this slice. Source receipt and its queued extraction job commit in one transaction. File type is detected from validated content rather than the browser's MIME header. Optional user display names are bounded to 260 characters and descriptive context to 4,000 characters. Receipt validation returns a safe message and stable `X-Upload-Error-Code` for invalid source content.
+
 Do not make `profile_id` a prerequisite for receiving private content. Introduce an account-owned ingestion aggregate:
 
 ```text

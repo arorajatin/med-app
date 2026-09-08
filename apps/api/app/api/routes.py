@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app import models
@@ -11,6 +11,12 @@ from app.api.deps import get_extractor, get_storage
 from app.auth import get_current_user
 from app.config import Settings, get_settings
 from app.database import get_db
+from app.document_inputs import (
+    IMAGE_MIME_TYPES,
+    MAX_DOCUMENT_BYTES,
+    MAX_LOGICAL_PARTS,
+    UploadValidationError,
+)
 from app.schemas import (
     AccountRead,
     AppointmentCreate,
@@ -57,11 +63,6 @@ from app.services.onboarding import (
 from app.storage import LocalPrivateStorage
 
 router = APIRouter()
-
-SUPPORTED_MIME_TYPES = {"application/pdf", "image/jpeg", "image/png"}
-IMAGE_MIME_TYPES = {"image/jpeg", "image/png"}
-MAX_LOGICAL_PARTS = 20
-MAX_IMAGE_BYTES = 10_000_000
 
 
 @router.get("/health")
@@ -263,6 +264,7 @@ def declare_attested_medications(
     status_code=status.HTTP_201_CREATED,
 )
 async def upload_direct_file(
+    request: Request,
     uploads: list[UploadFile] = File(...),
     provisional_profile_id: str | None = Form(default=None),
     display_filename: str | None = Form(default=None),
@@ -274,6 +276,7 @@ async def upload_direct_file(
     extractor: Extractor = Depends(get_extractor),
 ) -> IngestionUploadResult:
     return await _receive_ingestion(
+        request=request,
         uploads=uploads,
         provisional_profile_id=provisional_profile_id,
         display_filename=display_filename,
@@ -293,6 +296,7 @@ async def upload_direct_file(
     status_code=status.HTTP_201_CREATED,
 )
 async def upload_camera_capture(
+    request: Request,
     uploads: list[UploadFile] = File(...),
     provisional_profile_id: str | None = Form(default=None),
     display_filename: str | None = Form(default=None),
@@ -304,6 +308,7 @@ async def upload_camera_capture(
     extractor: Extractor = Depends(get_extractor),
 ) -> IngestionUploadResult:
     return await _receive_ingestion(
+        request=request,
         uploads=uploads,
         provisional_profile_id=provisional_profile_id,
         display_filename=display_filename,
@@ -654,6 +659,7 @@ def _declare_attested_memory(
 
 async def _receive_ingestion(
     *,
+    request: Request,
     uploads: list[UploadFile],
     provisional_profile_id: str | None,
     display_filename: str | None,
@@ -665,26 +671,43 @@ async def _receive_ingestion(
     storage: LocalPrivateStorage,
     extractor: Extractor,
 ) -> IngestionUploadResult:
-    if not uploads or len(uploads) > MAX_LOGICAL_PARTS:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail="A logical document must contain between 1 and 20 source parts.",
-        )
-    allowed_mime_types = IMAGE_MIME_TYPES if source_channel == "camera" else SUPPORTED_MIME_TYPES
-    if any((upload.content_type or "") not in allowed_mime_types for upload in uploads):
-        raise HTTPException(
-            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail="Only unencrypted PDF, JPEG, and PNG documents are supported.",
-        )
-
     context = _account_context(db, user=user, settings=settings)
     if provisional_profile_id is not None:
         require_profile(db, account_id=context.account.id, profile_id=provisional_profile_id)
+    form = await request.form()
+    allowed_fields = {"uploads", "provisional_profile_id", "display_filename", "user_context"}
+    if (
+        set(form) - allowed_fields
+        or request.query_params
+        or any(len(form.getlist(key)) != 1 for key in form if key != "uploads")
+    ):
+        raise HTTPException(
+            422, "Upload fields are invalid. Source and account are set by the service."
+        )
+    if display_filename is not None:
+        display_filename = display_filename.strip()
+        if (
+            not display_filename
+            or len(display_filename) > 260
+            or any(ord(character) < 32 or ord(character) == 127 for character in display_filename)
+        ):
+            raise HTTPException(
+                422, "Use a report name between 1 and 260 characters without control characters."
+            )
+    if user_context is not None and len(user_context) > 4000:
+        raise HTTPException(422, "Keep the optional context to 4,000 characters or fewer.")
+    if not uploads or len(uploads) > MAX_LOGICAL_PARTS:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail="A logical document must contain between 1 and 20 source parts.",
+            headers={"X-Upload-Error-Code": "too_many_parts"},
+        )
     ingestion = models.Ingestion(
         account_id=context.account.id,
         provisional_profile_id=provisional_profile_id,
         source_channel=source_channel,
         display_filename=display_filename,
+        user_renamed=display_filename is not None,
         user_context=user_context,
     )
     db.add(ingestion)
@@ -704,10 +727,20 @@ async def _receive_ingestion(
             )
             stored_keys.append(stored.object_key)
             total_size += stored.size_bytes
-            if total_size > settings.max_upload_bytes or (
-                stored.mime_type in IMAGE_MIME_TYPES and stored.size_bytes > MAX_IMAGE_BYTES
+            if total_size > min(settings.max_upload_bytes, MAX_DOCUMENT_BYTES):
+                raise UploadValidationError(
+                    "document_too_large",
+                    "The report exceeds the upload size limit (at most 15 MB).",
+                    413,
+                )
+            if stored.mime_type not in IMAGE_MIME_TYPES and (
+                source_channel == "camera" or len(uploads) > 1
             ):
-                raise ValueError("Logical document exceeds the configured size limits.")
+                raise UploadValidationError(
+                    "invalid_document_group",
+                    "Upload one PDF or a set of JPEG/PNG pages for one report.",
+                    415,
+                )
             part = models.IngestionPart(
                 id=part_id,
                 account_id=context.account.id,
@@ -728,16 +761,20 @@ async def _receive_ingestion(
         ingestion.upload_state = "complete"
         ingestion.completed_at = datetime.now(UTC)
         ingestion.display_filename = ingestion.display_filename or parts[0].original_filename
+        job = create_extraction_job(db, ingestion=ingestion)
         db.commit()
-    except ValueError as exc:
+    except Exception as exc:
         db.rollback()
         for object_key in stored_keys:
             storage.delete_object(object_key)
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=str(exc)
-        ) from exc
+        if isinstance(exc, UploadValidationError):
+            raise HTTPException(
+                status_code=exc.status_code,
+                detail=str(exc),
+                headers={"X-Upload-Error-Code": exc.code},
+            ) from exc
+        raise HTTPException(503, "The report could not be saved. Try uploading it again.") from exc
 
-    job = create_extraction_job(db, ingestion=ingestion)
     if settings.extraction_run_inline:
         job = run_extraction_job(db, job_id=job.id, storage=storage, extractor=extractor)
 

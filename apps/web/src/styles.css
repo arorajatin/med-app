@@ -1,311 +1,345 @@
-:root {
-  --page: #f6f7f9;
-  --surface: #ffffff;
-  --border: #d9dde3;
-  --text: #1b1f24;
-  --muted: #5b636d;
-  --accent: #1f5f9c;
-  --accent-text: #ffffff;
-  --error: #9c1f2e;
-  --error-surface: #fdeced;
-  --info-surface: #eef4fb;
-  color-scheme: light dark;
+@import "tailwindcss";
+
+@source "../index.html";
+@source "./**/*.{ts,tsx}";
+
+/*
+ * FamCare's palette is warm rather than clinical: paper and sand for surfaces,
+ * a calm sage for anything the person acts on, and terracotta for warmth.
+ * Every colour below is semantic, so the dark theme is a single override of
+ * these variables rather than a `dark:` variant on each element.
+ */
+@theme {
+  --color-canvas: #fbf6ef;
+  --color-canvas-deep: #f4ebe0;
+  --color-surface: #fffdfa;
+  --color-surface-sunk: #f7f1e8;
+  --color-line: #ebe0d1;
+  --color-line-strong: #ddcdb8;
+  --color-ink: #2c231c;
+  --color-ink-soft: #7a6a5c;
+
+  --color-sage: #3f6b52;
+  --color-sage-deep: #33573f;
+  --color-sage-soft: #e6efe6;
+  --color-on-sage: #fdfcf8;
+
+  --color-clay: #c0603a;
+  --color-clay-soft: #fae9de;
+  --color-honey: #d9992b;
+  --color-honey-soft: #fbf0d8;
+  --color-plum: #8a5674;
+  --color-plum-soft: #f6e9f1;
+
+  --color-alarm: #a5332e;
+  --color-alarm-soft: #fbe8e5;
+
+  --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --shadow-soft: 0 1px 2px rgb(66 46 28 / 0.04), 0 8px 24px -12px rgb(66 46 28 / 0.14);
+  --shadow-lift: 0 2px 6px rgb(66 46 28 / 0.06), 0 22px 44px -20px rgb(66 46 28 / 0.28);
+
+  --radius-card: 1.5rem;
 }
 
-@media (prefers-color-scheme: dark) {
+@layer base {
+  /*
+   * The evening palette. A boot script in index.html puts `data-theme` on the
+   * document before first paint, from a stored choice or the system setting,
+   * so the toggle and the operating system share one switch.
+   */
+  :root[data-theme="dark"] {
+    --color-canvas: #17130f;
+    --color-canvas-deep: #120f0c;
+    --color-surface: #221d18;
+    --color-surface-sunk: #1c1813;
+    --color-line: #362e26;
+    --color-line-strong: #4a4036;
+    --color-ink: #f3ece2;
+    --color-ink-soft: #b3a595;
+
+    --color-sage: #8ec19f;
+    --color-sage-deep: #a7d3b5;
+    --color-sage-soft: #1f2c24;
+    --color-on-sage: #14201a;
+
+    --color-clay: #e59468;
+    --color-clay-soft: #2f2019;
+    --color-honey: #e7b458;
+    --color-honey-soft: #2e2415;
+    --color-plum: #d3a3c0;
+    --color-plum-soft: #2b1f27;
+
+    --color-alarm: #f0a09a;
+    --color-alarm-soft: #32201e;
+
+    --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+    --shadow-lift: 0 2px 6px rgb(0 0 0 / 0.35), 0 22px 44px -20px rgb(0 0 0 / 0.8);
+  }
+
   :root {
-    --page: #14171b;
-    --surface: #1d2126;
-    --border: #333941;
-    --text: #eef1f4;
-    --muted: #a5adb7;
-    --accent: #7fb3e3;
-    --accent-text: #12161a;
-    --error: #ff9aa4;
-    --error-surface: #3a1f24;
-    --info-surface: #1e2a35;
+    color-scheme: light;
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    margin: 0;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-sage);
+    outline-offset: 2px;
+    border-radius: 0.35rem;
   }
 }
 
-* {
-  box-sizing: border-box;
-}
+@layer components {
+  /* A card of the family's records: paper-like, softly lifted off the canvas. */
+  .panel {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-soft);
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+    padding: 1.5rem;
+  }
 
-body {
-  margin: 0;
-  background: var(--page);
-  color: var(--text);
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  line-height: 1.5;
-}
+  @media (width >= 40rem) {
+    .panel {
+      padding: 2rem;
+    }
+  }
 
-.app {
-  margin: 0 auto;
-  max-width: 46rem;
-  padding: 2rem 1rem 4rem;
-}
+  .panel h2 {
+    font-size: 1.5rem;
+  }
 
-.app__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
+  .panel--narrow {
+    max-width: 26rem;
+  }
 
-.app__header h1 {
-  font-size: 1.6rem;
-  margin: 0;
-}
+  .button {
+    align-items: center;
+    align-self: flex-start;
+    background-color: var(--color-sage);
+    border: 1px solid var(--color-sage);
+    border-radius: 999px;
+    color: var(--color-on-sage);
+    cursor: pointer;
+    display: inline-flex;
+    font: inherit;
+    font-weight: 600;
+    gap: 0.5rem;
+    justify-content: center;
+    line-height: 1.2;
+    min-height: 2.75rem;
+    padding: 0.7rem 1.35rem;
+    transition:
+      background-color 150ms ease,
+      box-shadow 150ms ease,
+      transform 150ms ease;
+  }
 
-.app__eyebrow {
-  color: var(--muted);
-  font-size: 0.8rem;
-  letter-spacing: 0.08em;
-  margin: 0;
-  text-transform: uppercase;
-}
+  .button:hover:not(:disabled) {
+    background-color: var(--color-sage-deep);
+    border-color: var(--color-sage-deep);
+    box-shadow: var(--shadow-soft);
+  }
 
-.wizard {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
+  .button:active:not(:disabled) {
+    transform: translateY(1px);
+  }
 
-.panel {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding: 1.5rem;
-}
+  .button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
 
-.panel h2 {
-  font-size: 1.25rem;
-  margin: 0;
-}
+  .button--quiet {
+    background-color: transparent;
+    border-color: var(--color-line-strong);
+    color: var(--color-ink);
+    font-weight: 500;
+  }
 
-.panel p {
-  margin: 0;
-}
+  .button--quiet:hover:not(:disabled) {
+    background-color: var(--color-surface-sunk);
+    border-color: var(--color-line-strong);
+  }
 
-.steps {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
+  /* Google asks that its button keep a neutral surface and its own mark. */
+  .button--google {
+    background-color: #fff;
+    border-color: #747775;
+    color: #1f1f1f;
+    font-weight: 600;
+    padding: 0.75rem 1.4rem;
+  }
 
-.steps__item {
-  align-items: center;
-  border-radius: 0.5rem;
-  display: flex;
-  gap: 0.75rem;
-  padding: 0.5rem 0.75rem;
-}
+  .button--google:hover:not(:disabled) {
+    background-color: #f6f6f6;
+    border-color: #747775;
+  }
 
-.steps__item--current {
-  background: var(--info-surface);
-}
+  .input {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-line-strong);
+    border-radius: 0.85rem;
+    color: inherit;
+    font: inherit;
+    padding: 0.7rem 0.85rem;
+    transition:
+      border-color 150ms ease,
+      box-shadow 150ms ease;
+    width: 100%;
+  }
 
-.steps__number {
-  align-items: center;
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  display: inline-flex;
-  flex: none;
-  height: 1.75rem;
-  justify-content: center;
-  width: 1.75rem;
-}
+  .input::placeholder {
+    color: var(--color-ink-soft);
+    opacity: 0.75;
+  }
 
-.steps__item--done .steps__number {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-text);
-}
+  .input:hover:not(:disabled) {
+    border-color: var(--color-sage);
+  }
 
-.steps__state {
-  color: var(--muted);
-  font-size: 0.85rem;
-  margin-left: auto;
-}
+  .input:focus-visible {
+    border-color: var(--color-sage);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-sage) 22%, transparent);
+    outline: none;
+  }
 
-.steps__link {
-  background: none;
-  border: 0;
-  color: var(--accent);
-  cursor: pointer;
-  font: inherit;
-  padding: 0;
-  text-align: left;
-  text-decoration: underline;
-}
+  .input:disabled {
+    background-color: var(--color-surface-sunk);
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
 
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
+  select.input {
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+      linear-gradient(135deg, currentColor 50%, transparent 50%);
+    background-position:
+      calc(100% - 1.1rem) 1.25rem,
+      calc(100% - 0.75rem) 1.25rem;
+    background-repeat: no-repeat;
+    background-size:
+      0.35rem 0.35rem,
+      0.35rem 0.35rem;
+    padding-right: 2.25rem;
+  }
 
-.field__label {
-  font-weight: 600;
-}
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
 
-.field__hint {
-  color: var(--muted);
-  font-size: 0.9rem;
-  margin: 0;
-}
+  .field__label {
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
 
-.field__error {
-  color: var(--error);
-  font-size: 0.9rem;
-  margin: 0;
-}
+  .field__hint {
+    color: var(--color-ink-soft);
+    font-size: 0.875rem;
+  }
 
-.input {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 0.4rem;
-  color: inherit;
-  font: inherit;
-  padding: 0.55rem 0.65rem;
-  width: 100%;
-}
+  .field__error {
+    color: var(--color-alarm);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
 
-.input:focus-visible,
-.button:focus-visible,
-.steps__link:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
+  .banner {
+    border-radius: 1rem;
+    font-size: 0.925rem;
+    padding: 0.85rem 1rem;
+  }
 
-.input-row {
-  display: flex;
-  gap: 0.5rem;
-}
+  .banner--error {
+    background-color: var(--color-alarm-soft);
+    border: 1px solid color-mix(in oklab, var(--color-alarm) 30%, transparent);
+    color: var(--color-alarm);
+  }
 
-.input--unit {
-  width: 6rem;
-}
+  .banner--info {
+    background-color: var(--color-sage-soft);
+    border: 1px solid color-mix(in oklab, var(--color-sage) 25%, transparent);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
 
-.button {
-  align-self: flex-start;
-  background: var(--accent);
-  border: 1px solid var(--accent);
-  border-radius: 0.4rem;
-  color: var(--accent-text);
-  cursor: pointer;
-  font: inherit;
-  font-weight: 600;
-  padding: 0.55rem 1rem;
-}
+  .muted {
+    color: var(--color-ink-soft);
+  }
 
-.button:disabled {
-  cursor: progress;
-  opacity: 0.6;
-}
+  .prose-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
 
-.button--quiet {
-  background: transparent;
-  border-color: var(--border);
-  color: inherit;
-  font-weight: 500;
-}
+  .prose-list > li {
+    padding-left: 1rem;
+    position: relative;
+  }
 
-/* Google asks that its button keep a neutral surface and its own mark. */
-.button--google {
-  align-items: center;
-  background: #fff;
-  border-color: #747775;
-  color: #1f1f1f;
-  display: flex;
-  gap: 0.65rem;
-  padding: 0.6rem 1.1rem;
-}
+  .prose-list > li::before {
+    background-color: var(--color-sage);
+    border-radius: 999px;
+    content: "";
+    height: 0.35rem;
+    left: 0;
+    position: absolute;
+    top: 0.72em;
+    width: 0.35rem;
+  }
 
-.google-mark {
-  height: 1.15rem;
-  width: 1.15rem;
-}
+  .visually-hidden {
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  }
 
-.panel--narrow {
-  max-width: 30rem;
-}
-
-.app__account {
-  align-items: center;
-  display: flex;
-  gap: 0.75rem;
-}
-
-.checkbox {
-  align-items: flex-start;
-  display: flex;
-  gap: 0.5rem;
-}
-
-.banner {
-  border-radius: 0.4rem;
-  padding: 0.75rem;
-}
-
-.banner--error {
-  background: var(--error-surface);
-  color: var(--error);
-}
-
-.banner--info {
-  background: var(--info-surface);
-}
-
-.muted {
-  color: var(--muted);
-}
-
-.prose-list {
-  margin: 0;
-  padding-left: 1.2rem;
-}
-
-.entry-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.entry-list__item {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.summary-row {
-  border-top: 1px solid var(--border);
-  display: flex;
-  gap: 1rem;
-  justify-content: space-between;
-  padding-top: 1rem;
-}
-
-.summary-row__title {
-  font-size: 1rem;
-  margin: 0 0 0.25rem;
-}
-
-.visually-hidden {
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  height: 1px;
-  overflow: hidden;
-  position: absolute;
-  white-space: nowrap;
-  width: 1px;
+  /* An eyebrow above a heading, in the family of small-caps labels. */
+  .eyebrow {
+    color: var(--color-ink-soft);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
 }

@@ -1,14 +1,18 @@
 # Review Checkpoint
 
-Status: The account and profile foundation is complete. The live Google exchange is verified, so task 2.3 is closed; hosted CI evidence is still outstanding, and the workflow that would produce it had never run.
-Updated: 2026-09-07
-Reviewer: Claude
+Status: The document-upload milestone is implemented and locally verified, including its frontend and post-onboarding tab shell. Normalized extraction and assignment are next; hosted CI and production infrastructure evidence remain outstanding.
+Updated: 2026-09-08
+Reviewer: Codex (document-upload milestone); prior reviews retained below
 Baseline commit: 8a1e0bd662cc231532c5b91248819e9294c4f8cb
 Implementation tip before the planning-structure reconciliation: 6be40d38e3465a767869abfd6d679bfa2f82a598
 Implementation commit for the Google-only, contract, health-context, access-matrix, and family-space slice: 09c0253; CI workflow repair: a2bcd51
+Document-upload review: working-tree changes against exact commit `639072dd9d10e53008253389cc43949809f0342b` (not yet committed).
 
 ## Reviewed Scope
 
+- Document-upload tasks 1.4, 3.1-3.5, the upload portion of 3.8, 10.9, and 10.16: validated content detection, inclusive product limits, private ordered receipt, immutable route provenance, optional names/context, atomic job creation, partial-file cleanup, and the five-tab frontend. Verified the existing migration-backed ingestion/part/attempt schema; no new migration is required.
+- Reviewed `document_inputs.py`, storage receipt, upload routes, logical-document provider input, and account-creation retry; new upload and regression tests; the typed multipart client, Upload form, camera lifecycle, tab navigation, and onboarding transition. A real-browser first-login test exposed concurrent identity creation; the losing request now rolls back and reuses the winning account instead of returning 500.
+- Verified keyboard tab navigation, labelled controls, error announcements, completion focus, camera teardown, preview revocation, and upload cancellation on unmount. This is the upload-specific accessibility pass; task 10.15 stays open for the remaining screens.
 - Reconciled proposal, design, delta specs, tasks, and journeys around authenticated web uploads with immutable `direct_file` or `camera` provenance; email, WhatsApp, and other connectors are post-V1.
 - Fixed exact-only patient assignment, four extraction trust classes, literal source-cited `documented_condition_candidate` output, `confirm`/`edit`/`ignore` review, and the separation between metric observations and trusted memory.
 - Reconciled the selected pdfplumber/Textract/Bedrock Mumbai pipeline, API-mediated private storage, logical-document queue policy, deletion cancellation, authenticated account ownership, ZDR, and rollout quality gates across all three dependent changes.
@@ -37,7 +41,8 @@ Implementation commit for the Google-only, contract, health-context, access-matr
 - Resolve the GitHub account billing lock, then re-run CI. The workflow itself is fixed: run 34109014582 created and scheduled all five jobs, where every earlier run created none. Each job was then refused with "The job was not started because your account is locked due to a billing issue." The repository is public, so this is an account-level lock rather than exhausted minutes, and no hosted result can be produced until it clears.
 - Note that `on.push` is limited to `master`, so pushing a feature branch runs nothing. Use `gh workflow run ci.yml --ref <branch>` or open a pull request.
 - Disable the email provider in the Supabase project as defence in depth. The API already refuses every upstream method except Google with a 403 before an account exists, so this is hardening rather than a correctness gap.
-- Begin the logical-document ingestion phase: tasks 1.4, 3.1 through 3.5, 3.8, and 10.9. The account and profile foundation is otherwise complete.
+- Begin normalized extraction and assignment: tasks 1.5, 3.6-3.7, and 4.1, then finish the matching/assignment cases in 3.8. The upload validation, multipart receipt, storage-failure, route-provenance, authorization, and receipt-retry cases in 3.8 are covered by `test_uploads.py` and the existing access matrix; the whole task remains unchecked because exact/unmatched/ambiguous matching is later work.
+- Keep Upload as the launch tab until Feed is implemented. Feed, Chat, and Drive intentionally show placeholders; the existing Profile settings remain usable. The receipt reports saved state without adding a Feed or assignment/review UI.
 - Keep the future condition-candidate path disabled until the structured source contract and literal-span validation land behind default-off controls.
 - No operational database inventory, data review, or row transformation is required for 2A. Provision an empty database and apply the declared current head.
 
@@ -45,6 +50,16 @@ Implementation commit for the Google-only, contract, health-context, access-matr
 
 | Date | Command | Result | Notes |
 | --- | --- | --- | --- |
+| 2026-09-08 | Upload checkpoint: frozen backend pytest with branch coverage, Ruff lint/format checks, mypy, and `uv lock --check` | Pass | 164 tests; 94.78% coverage; all 41 Python files pass formatting and all 26 application modules pass typing. |
+| 2026-09-08 | Node 24.18.0 `npm ci`, web typecheck/lint/test/build/contracts checks | Pass | 88 tests across 13 files. Reinstalled native dependencies using the same Node executable as npm; added root `.nvmrc` and documented `nvm use` plus locked installation. Corrected the stale Google-disabled README note. |
+| 2026-09-08 | `node .context/upload-smoke.mjs`, isolated API on 8017 and Vite on 5177 | Pass | Browser assertions cover onboarding, ordered multipart receipt, tab draft retention, camera capture/retake, mobile overflow, reload, and sign-out. Synthetic development identity/camera; real API, fresh `.context/upload-checkpoint.db`, and private filesystem storage. Receipt screenshot inspected. |
+| 2026-09-08 | Fresh SQLite upgrade/check, strict all-change OpenSpec validation, and `git diff --check` | Pass | Schema matches; all 11 specs/changes validate. Hosted CI/billing deliberately excluded at the user's request. |
+| 2026-09-07 | `uv run --frozen --package med-app-backend pytest -c apps/api/pyproject.toml --cov=app --cov-config=apps/api/pyproject.toml --cov-report=term` | Pass | 163 tests passed; 94.75% coverage. Includes real PDF/JPEG/PNG fixtures, encrypted/corrupt/spoofed sources, inclusive limits, ordered job input, rollback/retry, and concurrent first-login recovery. |
+| 2026-09-07 | `uv lock --check`, `ruff check apps/api`, `ruff format --check apps/api`, and `mypy --config-file apps/api/pyproject.toml apps/api/app` | Pass | Frozen dependencies match; all 41 Python files pass format checks; all 26 application modules pass typing. |
+| 2026-09-07 | `npm run typecheck`, `npm run lint`, `npm run test`, `npm run build`, and `npm run contracts:check` in `apps/web` | Pass | 88 tests across 13 files; upload transport, ordering, retakes, failures, session cleanup, keyboard navigation, and onboarding redirect covered. No generated-contract change was required. |
+| 2026-09-07 | SQLite `alembic upgrade head` and `alembic check` on `.context/upload-smoke.db` | Pass | Fresh baseline applied and matched model metadata. |
+| 2026-09-07 | `npx --yes @fission-ai/openspec@1.6.0 validate --all --strict` and `git diff --check` | Pass | All 11 specs/changes validate after the upload-shell additions; no whitespace errors. |
+| 2026-09-07 | `node .context/upload-smoke.mjs` against Vite and a real local API | Pass | Real Chromium completed all onboarding steps, entered central Upload, sent reordered images as one report, captured/retook camera input, reloaded, and signed out. Desktop and 390px mobile views inspected; no horizontal overflow or browser errors. Only the auth-provider module was replaced with a synthetic development identity; API, multipart transport, storage, and database were real. Camera used Chromium's synthetic media device. Screenshots and the result are under `.context/upload-*`. |
 | 2026-07-29 | `openspec status --change define-first-release-family-health-experience` | Pass | Proposal, specs, design, and tasks are complete. |
 | 2026-08-10 | `npx --yes @fission-ai/openspec@1.6.0 validate --all --strict` | Pass | All current specs and changes passed after the web-only and literal-condition reconciliation. |
 | 2026-08-12 | `uv lock --check` | Pass | The lock matches backend and development dependency declarations. |
@@ -89,6 +104,8 @@ Implementation commit for the Google-only, contract, health-context, access-matr
 
 ## Open Findings
 
+- Production OCR, exact patient matching, pending-assignment/review UI, Feed/Drive/Chat, private production Storage/RLS, and durable queue dispatch remain in their later milestones. The built-in local mock extracts digital-PDF text but has no image OCR. The browser check uses development auth and a synthetic camera, so real-device permissions and production-provider behavior remain release checks.
+- The upload receipt is a snapshot; live processing updates and extraction retry actions belong to the later Feed/processing UI. Upload drafts deliberately are not persisted across reloads.
 - Hosted CI has never produced a result. Every run since the workflow landed on 2026-08-17 failed in 0 seconds with a workflow file issue, because the SQLite job read `runner.temp` from a job-level `env`, which may not read that context. Commit a2bcd51 moves the value to the step; the first hosted run remains release evidence.
 - Application accounts and later V1 migrations, production infrastructure, provider contracts, privacy approvals, and later runtime quality gates remain unimplemented and untested.
 - The Supabase project still enables the email provider with open sign-up (`"email": true`, `"disable_signup": false`), so an email identity can be created with the project directly. It cannot reach account data: the API answers such a token with 403 before any account is created or reconciled.
@@ -100,6 +117,7 @@ Implementation commit for the Google-only, contract, health-context, access-matr
 
 ## Session History
 
+- 2026-09-07: Implemented the document-upload milestone against `639072dd9d10e53008253389cc43949809f0342b`. Closed 1.4, 3.1-3.5, 10.9, and added/completed 10.16. The existing ingestion/part schema provides canonical provenance; receipt and one extraction job now commit together. Content validation replaces browser-MIME trust, storage failures clean all receipt objects, logical-document providers receive separate ordered inputs, and the account-creation race found by live onboarding is fixed. Added the central Upload frontend, camera capture/retake, ordered previews, progress/errors, and Profile-preserving tab shell. Recorded Upload as the interim launch tab in the design, onboarding delta, and journey. Matching/assignment cases keep 3.8 open; the umbrella change remains active.
 - 2026-09-07: Reviewed and committed the compile-level contract assertion (552c101) and the health-context error handling (52becf8). The first closes a hole in the drift check: `SameKeys` returned a descriptive object type on a key-set mismatch, and an exported alias resolving to an object is not a compile error, so a field the backend added as optional drifted silently. The second stops a failed health-context read from rendering as "Not recorded yet.", which told a person their recorded age and weight were absent.
 - 2026-09-07: Committed the Google-only, contract-drift, health-context, access-matrix, and family-space slice as 09c0253 after re-running the backend and web suites. Re-checked the Supabase project, which now enables Google; with the account holder's end-to-end redirect test that closes task 2.3 and the account and profile foundation. Found that hosted CI had never run: the workflow read `runner.temp` from a job-level `env`, which is not one of the contexts available there, so every run since 2026-08-17 failed at startup. Repaired in a2bcd51.
 - 2026-09-04: Made Google the only first-release sign-in method and moved email and password registration to the roadmap as task 8.7. The refusal is enforced in the API from provider-controlled claims, before an account is created, so the identity-provider dashboard is not the only gate. Published the OpenAPI document and generated TypeScript contract with three drift checks, added the profile health-context read endpoint and showed the recorded age and weight with their reported dates and refresh prompts, added the route-derived authorization and isolation matrix, verified that the accounts and health-context schema already satisfied tasks 2.1 and 2.2, and built the family space for creating and browsing family profiles.

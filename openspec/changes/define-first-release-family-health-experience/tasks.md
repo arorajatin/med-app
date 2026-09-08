@@ -2,7 +2,7 @@ The checkbox definitions below are the canonical implementation checklist. Use t
 
 1. **Completed safety and client baseline:** 0.1-0.2, 2.4-2.5, 2.8, 9.3, and 10.1-10.5.
 2. **Account and profile foundation:** 2.1-2.3, 2.7, 7.1, and 10.6-10.8.
-3. **Logical-document ingestion:** 1.4, 3.1-3.5, 3.8, and 10.9.
+3. **Logical-document ingestion:** 1.4, 3.1-3.5, the upload portion of 3.8, 10.9, and 10.16. The matching and assignment portion of 3.8 completes in phase 4.
 4. **Normalized extraction and assignment:** 1.5, 3.6-3.7, and 4.1.
 5. **Observations, review, records, Feed, and Drive:** 4.3-4.10, 5.1-5.7, 7.2, and 10.10-10.12.
 6. **Production data, extraction, and worker integration:** 1.1-1.3, 4.2, and 4.11-4.12. Implement the specialized changes in the cross-change order documented in `openspec/README.md`.
@@ -20,7 +20,7 @@ The checkbox definitions below are the canonical implementation checklist. Use t
 - [ ] 1.1 Implement the reconciled Supabase boundary with `ap-south-1`, stable account-and-ingestion object keys, private download, and RLS for every web-upload source, extraction, and owner-scoped table.
 - [ ] 1.2 Implement the reconciled production-extraction contract with pdfplumber, Textract, Bedrock Mistral Large 3, four output classes, required source references, and zero-data-retention preflight.
 - [ ] 1.3 Implement the reconciled queue-worker contract so one claimed job targets one immutable logical document and atomic attempt, including ordered multi-image input and Textract callbacks.
-- [ ] 1.4 Enforce PDF/JPEG/PNG input, 15,000,000-byte logical-document, 20-page/part, 10,000,000-byte image, and 10,000-pixel image-dimension ceilings with stable safe failures.
+- [x] 1.4 Enforce PDF/JPEG/PNG input, 15,000,000-byte logical-document, 20-page/part, 10,000,000-byte image, and 10,000-pixel image-dimension ceilings with stable safe failures.
 - [ ] 1.5 Implement Unicode NFKC/case-folded exact full-name or explicit-alias matching with ambiguous-match blocking; do not match on date of birth and do not add fuzzy automatic matching.
 
 ## 2. Accounts, Onboarding, and Profiles
@@ -35,11 +35,11 @@ The checkbox definitions below are the canonical implementation checklist. Use t
 
 ## 3. Staged Logical Document Ingestion
 
-- [ ] 3.1 Add migration-backed ingestion, ordered part, canonical immutable `IngestionSource`, orthogonal lifecycle, assignment evidence, and stable private-object identity.
-- [ ] 3.2 Implement validated single-image/PDF and camera-capture receipt through route-stamped `direct_file` and `camera` private-upload contracts.
-- [ ] 3.3 Implement ordered multi-image assembly that finalizes exactly one logical document atomically.
-- [ ] 3.4 Implement optional user context, immutable original filename, mutable display filename, upload completion, and safe partial-upload cleanup.
-- [ ] 3.5 Adapt extraction dispatch so every authenticated, account-owned, upload-complete logical document creates one attempt-aware job.
+- [x] 3.1 Add migration-backed ingestion, ordered part, canonical immutable `IngestionSource`, orthogonal lifecycle, assignment evidence, and stable private-object identity.
+- [x] 3.2 Implement validated single-image/PDF and camera-capture receipt through route-stamped `direct_file` and `camera` private-upload contracts.
+- [x] 3.3 Implement ordered multi-image assembly that finalizes exactly one logical document atomically.
+- [x] 3.4 Implement optional user context, immutable original filename, mutable display filename, upload completion, and safe partial-upload cleanup.
+- [x] 3.5 Adapt extraction dispatch so every authenticated, account-owned, upload-complete logical document creates one attempt-aware job.
 - [ ] 3.6 Implement account-local patient matching in which exactly one normalized full-name or explicit-alias match replaces the provisional selection and every other result, including no match, becomes `needs_assignment`.
 - [ ] 3.7 Implement manual pending-assignment resolution without AI-created profiles and publish derived data only after assignment resolves.
 - [ ] 3.8 Add supported, multipart, partial, MIME-sniffing, encrypted, corrupt, oversized, route-controlled source-channel, client-override rejection, exact-match, unmatched, ambiguous, manual-resolution, authorization, and retry tests for every medical-record and ingestion requirement.
@@ -112,10 +112,11 @@ The checkbox definitions below are the canonical implementation checklist. Use t
 - [x] 10.6 Publish the backend OpenAPI document, generate or validate a typed client under `contracts/`, and add a drift check so the hand-mirrored types in `src/api/types.ts` cannot silently diverge.
 - [x] 10.7 Add a profile health-context read endpoint and show the latest recorded age and weight with their reported dates on a resumed session, including the non-blocking refresh prompt.
 - [x] 10.8 Implement family-profile creation and browsing screens.
-- [ ] 10.9 Implement every upload mode and its error states, including direct file, camera capture, ordered multi-image documents, and size and type rejections.
+- [x] 10.9 Implement every upload mode and its error states, including direct file, camera capture, ordered multi-image documents, and size and type rejections.
 - [ ] 10.10 Implement Feed, pending-assignment resolution, and processing state.
 - [ ] 10.11 Implement the review screens with exact source display, including document metadata, prescription candidates, and documented-condition `confirm`, `edit`, or `ignore`.
 - [ ] 10.12 Implement observation retrieval and correction, Drive projections, and report rename, download, and delete.
 - [ ] 10.13 Implement Chat with retained history, personal and external citation attribution, and profile selection.
 - [ ] 10.14 Add web end-to-end tests that run against a live backend, covering the onboarding journey, upload, review, and two-account isolation.
 - [ ] 10.15 Complete an accessibility pass covering keyboard operation, focus management, form labelling, and error announcement across every screen.
+- [x] 10.16 Open the five-tab interface after completed onboarding, start on the central Upload tab for this milestone, retain existing Profile settings, show placeholders for Feed/Chat/Drive, and preserve upload drafts across tab switches while clearing private state on sign-out.

@@ -89,6 +89,55 @@ async function readErrorMessage(response: Response): Promise<string> {
   return fallbackMessage(response.status);
 }
 
+/** Multipart receipt uses XHR for actual upload progress; the browser sets the boundary. */
+export async function uploadRequest<T>(
+  path: string,
+  body: FormData,
+  onProgress: (percent: number) => void,
+  signal: AbortSignal,
+): Promise<T> {
+  const token = await provideAccessToken();
+  if (token === null) {
+    throw new ApiError(401, "Your session has ended. Sign in again.");
+  }
+  if (signal.aborted) throw new DOMException("Upload cancelled", "AbortError");
+  return new Promise<T>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const abort = () => xhr.abort();
+    xhr.open("POST", `${apiBaseUrl()}${path}`);
+    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    xhr.timeout = 120_000;
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress(Math.round(event.loaded / event.total * 100));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText) as T);
+        } catch {
+          reject(new ApiError(
+            0,
+            "Could not read the upload result. Check your connection before trying again.",
+          ));
+        }
+      } else {
+        void readErrorMessage(new Response(xhr.responseText, { status: xhr.status }))
+          .then((message) => reject(new ApiError(xhr.status, message)));
+      }
+    };
+    xhr.onerror = () => reject(new ApiError(
+      0, "Could not reach the server. Check your connection and try again.",
+    ));
+    xhr.ontimeout = () => reject(new ApiError(
+      0, "The upload timed out. Check your connection and try again.",
+    ));
+    xhr.onabort = () => reject(new DOMException("Upload cancelled", "AbortError"));
+    xhr.onloadend = () => signal.removeEventListener("abort", abort);
+    signal.addEventListener("abort", abort, { once: true });
+    xhr.send(body);
+  });
+}
+
 function stripPydanticPrefix(message: string): string {
   return message.replace(/^Value error,\s*/, "");
 }

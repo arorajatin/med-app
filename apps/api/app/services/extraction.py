@@ -5,7 +5,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app import models
-from app.ai.base import Extractor, SourceReferenceData
+from app.ai.base import DocumentPart, Extractor, SourceReferenceData
 from app.ai.condition_safety import enforce_condition_safety
 from app.ai.mock_provider import MockExtractor
 from app.services.common import recalculate_review_state
@@ -17,6 +17,8 @@ def create_extraction_job(
     *,
     ingestion: models.Ingestion,
 ) -> models.ExtractionJob:
+    if ingestion.upload_state != "complete":
+        raise ValueError("Extraction requires a complete logical document.")
     job = models.ExtractionJob(
         account_id=ingestion.account_id,
         ingestion_id=ingestion.id,
@@ -24,8 +26,8 @@ def create_extraction_job(
     )
     ingestion.extraction_state = "queued"
     db.add(job)
-    db.commit()
-    db.refresh(job)
+    # Receipt and its job must commit together; a worker cannot see half an upload.
+    db.flush()
     return job
 
 
@@ -77,11 +79,16 @@ def run_extraction_job(
     db.refresh(attempt)
 
     try:
-        file_bytes = b"\n".join(storage.read_bytes(part.object_key) for part in parts)
-        extraction = extractor.extract_document(
-            file_bytes=file_bytes,
-            filename=parts[0].original_filename,
-            mime_type=parts[0].detected_mime_type,
+        extraction = extractor.extract_logical_document(
+            parts=tuple(
+                DocumentPart(
+                    ordinal=part.ordinal,
+                    file_bytes=storage.read_bytes(part.object_key),
+                    filename=part.original_filename,
+                    mime_type=part.detected_mime_type,
+                )
+                for part in parts
+            )
         )
         extraction = enforce_condition_safety(
             extraction,

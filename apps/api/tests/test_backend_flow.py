@@ -3,6 +3,7 @@ import re
 from datetime import date
 
 import pytest
+from document_fixtures import pdf_bytes
 from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 
@@ -53,7 +54,7 @@ def upload_document(
     response = client.post(
         "/ingestions/direct-file",
         headers=auth(user),
-        files={"uploads": (filename, content, "application/pdf")},
+        files={"uploads": (filename, pdf_bytes(content), "application/pdf")},
         data={"provisional_profile_id": profile_id},
     )
     assert response.status_code == 201, response.text

@@ -53,11 +53,13 @@ export function HealthContextStep({ profileId, recorded, onCompleted }: HealthCo
 
   return (
     <form className="panel" onSubmit={handleSubmit} noValidate>
-      <h2>Age and weight</h2>
-      <p>
+      <div>
+        <h2>Age and weight</h2>
+        <p className="muted mt-2">
         Both values are saved with today's date and are always shown with the date you reported
         them. They are never updated on their own.
-      </p>
+        </p>
+      </div>
       {recorded === null ? null : (
         <div className="banner banner--info">
           <p>
@@ -93,7 +95,7 @@ export function HealthContextStep({ profileId, recorded, onCompleted }: HealthCo
         error={weightError}
       >
         {(describedBy) => (
-          <div className="input-row">
+          <div className="flex gap-2">
             <input
               id="entered-weight"
               className="input"
@@ -105,7 +107,7 @@ export function HealthContextStep({ profileId, recorded, onCompleted }: HealthCo
               onChange={(event) => setWeight(event.target.value)}
             />
             <select
-              className="input input--unit"
+              className="input w-24 flex-none"
               value={unit}
               aria-label="Weight unit"
               onChange={(event) => setUnit(event.target.value as WeightUnit)}

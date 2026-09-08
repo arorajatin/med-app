@@ -47,11 +47,13 @@ export function SelfProfileStep({ profile, onCompleted }: SelfProfileStepProps) 
 
   return (
     <form className="panel" onSubmit={handleSubmit} noValidate>
-      <h2>Your name</h2>
-      <p>
+      <div>
+        <h2>Your name</h2>
+        <p className="muted mt-2">
         This account has one profile for you, and you can add family profiles later. Resuming
         onboarding updates this profile instead of creating another one.
-      </p>
+        </p>
+      </div>
       <ErrorBanner message={error} />
       <FormField
         id="display-name"

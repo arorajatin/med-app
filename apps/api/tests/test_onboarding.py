@@ -327,3 +327,30 @@ def test_health_context_read_rejects_another_accounts_profile(client):
 )
 def test_refresh_due_uses_calendar_months(reported_at, months, now, expected):
     assert refresh_due(reported_at, months=months, now=now) is expected
+
+
+def test_concurrent_account_creation_reuses_the_winning_identity(client, monkeypatch):
+    """A stale initial lookup must not fail a second first-login request."""
+    from app.services.accounts import resolve_account_context
+
+    with next(get_db()) as db:
+        first = resolve_account_context(db, provider="development", provider_subject="race-user")
+        account_id = first.account.id
+        original_query = db.query
+        missed_identity = original_query(models.AuthIdentity)
+        monkeypatch.setattr(missed_identity, "filter", lambda *args: missed_identity)
+        monkeypatch.setattr(missed_identity, "one_or_none", lambda: None)
+        missed = False
+
+        def query(*entities):
+            nonlocal missed
+            if entities == (models.AuthIdentity,) and not missed:
+                missed = True
+                return missed_identity
+            return original_query(*entities)
+
+        monkeypatch.setattr(db, "query", query)
+        second = resolve_account_context(db, provider="development", provider_subject="race-user")
+        assert second.account.id == account_id
+        assert original_query(models.Account).count() == 1
+        assert original_query(models.AuthIdentity).count() == 1

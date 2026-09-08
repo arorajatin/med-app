@@ -18,9 +18,11 @@ Upload is the central primary action.
 
 1. A signed-out person is directed to sign in or create an account.
 2. A verified account that has not completed onboarding resumes onboarding.
-3. A fully onboarded account enters Feed.
+3. A fully onboarded account enters Upload during the document-upload milestone. Feed becomes the launch destination when its milestone is implemented.
 4. Persistent navigation exposes all five primary areas.
 5. Returning from a detail view restores the prior tab, ordering, and selected family profile when applicable.
+
+During the document-upload milestone, Feed, Chat, and Drive show `Coming soon` placeholders. Profile retains the existing onboarding summary, health-context edits, and family-profile creation and browsing. An upload draft survives tab switches but clears on reload or sign-out; camera access stops while Upload is hidden.
 
 ## Family-context rules
 

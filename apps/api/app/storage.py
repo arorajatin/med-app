@@ -1,11 +1,14 @@
+import re
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
 from uuid import uuid4
 
 from fastapi import UploadFile
+from starlette.concurrency import run_in_threadpool
 
 from app.config import Settings
+from app.document_inputs import MAX_DOCUMENT_BYTES, UploadValidationError, validate_source
 
 
 @dataclass(frozen=True)
@@ -21,7 +24,7 @@ class StoredFile:
 class LocalPrivateStorage:
     def __init__(self, settings: Settings):
         self.root = Path(settings.local_storage_root)
-        self.max_upload_bytes = settings.max_upload_bytes
+        self.max_upload_bytes = min(settings.max_upload_bytes, MAX_DOCUMENT_BYTES)
 
     async def save_upload(
         self,
@@ -31,8 +34,13 @@ class LocalPrivateStorage:
         part_id: str,
         upload: UploadFile,
     ) -> StoredFile:
-        filename = Path(upload.filename or "upload.bin").name
-        mime_type = upload.content_type or "application/octet-stream"
+        filename = re.sub(
+            r"[\x00-\x1f\x7f]", "", (upload.filename or "upload").replace("\\", "/").split("/")[-1]
+        )
+        if not filename.strip() or len(filename) > 260:
+            raise UploadValidationError(
+                "invalid_filename", "Use a filename between 1 and 260 characters."
+            )
         object_key = (
             Path("accounts")
             / account_id
@@ -44,18 +52,27 @@ class LocalPrivateStorage:
         )
         target = self.root / object_key
         target_dir = target.parent
-        target_dir.mkdir(parents=True, exist_ok=True)
-
         size = 0
         digest = sha256()
-        with target.open("wb") as out:
-            while chunk := await upload.read(1024 * 1024):
-                size += len(chunk)
-                if size > self.max_upload_bytes:
-                    target.unlink(missing_ok=True)
-                    raise ValueError("File exceeds configured upload size limit.")
-                out.write(chunk)
-                digest.update(chunk)
+        try:
+            target_dir.mkdir(parents=True, exist_ok=True)
+            with target.open("wb") as out:
+                while chunk := await upload.read(1024 * 1024):
+                    size += len(chunk)
+                    if size > self.max_upload_bytes:
+                        raise UploadValidationError(
+                            "document_too_large",
+                            "The report exceeds the upload size limit (at most 15 MB).",
+                            413,
+                        )
+                    out.write(chunk)
+                    digest.update(chunk)
+            # Decoding images and parsing PDF pages is slow and CPU-bound; keep it off
+            # the event loop so one upload cannot stall every other in-flight request.
+            mime_type = await run_in_threadpool(validate_source, target, size_bytes=size)
+        except Exception:
+            target.unlink(missing_ok=True)
+            raise
 
         return StoredFile(
             storage_bucket="local-private",

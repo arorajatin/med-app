@@ -58,8 +58,13 @@ export function AddFamilyMemberForm({ onAdded, onCancel }: AddFamilyMemberFormPr
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate aria-label="Add a family member">
-      <h3>Add a family member</h3>
+    <form
+      className="border-line bg-surface-sunk/60 flex flex-col gap-4 rounded-2xl border p-4 sm:p-5"
+      onSubmit={handleSubmit}
+      noValidate
+      aria-label="Add a family member"
+    >
+      <h3 className="text-lg">Add a family member</h3>
       <ErrorBanner message={error} />
       <FormField
         id="family-name"
@@ -116,7 +121,7 @@ export function AddFamilyMemberForm({ onAdded, onCancel }: AddFamilyMemberFormPr
           </select>
         )}
       </FormField>
-      <div className="input-row">
+      <div className="flex flex-wrap gap-2.5">
         <button className="button" type="submit" disabled={submitting}>
           {submitting ? "Adding…" : "Add family member"}
         </button>

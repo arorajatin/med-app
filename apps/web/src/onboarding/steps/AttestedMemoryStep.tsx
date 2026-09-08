@@ -111,13 +111,15 @@ export function AttestedMemoryStep({
 
   return (
     <form className="panel" onSubmit={handleSubmit} noValidate>
-      <h2>{copy.heading}</h2>
-      <p>{copy.intro}</p>
+      <div>
+        <h2>{copy.heading}</h2>
+        <p className="muted mt-2">{copy.intro}</p>
+      </div>
       <ErrorBanner message={error} />
       {loading ? <p className="muted">Loading what you saved before…</p> : null}
-      <ul className="entry-list">
+      <ul className="flex flex-col gap-2">
         {titles.map((title, index) => (
-          <li className="entry-list__item" key={index}>
+          <li className="flex items-center gap-2" key={index}>
             <label className="visually-hidden" htmlFor={`${category}-${index}`}>
               {`${copy.heading} ${index + 1}`}
             </label>
@@ -132,7 +134,7 @@ export function AttestedMemoryStep({
               onChange={(event) => updateTitle(index, event.target.value)}
             />
             <button
-              className="button button--quiet"
+              className="button button--quiet flex-none px-3.5"
               type="button"
               disabled={declaredNone}
               onClick={() => removeTitle(index)}
@@ -143,20 +145,24 @@ export function AttestedMemoryStep({
         ))}
       </ul>
       <button
-        className="button button--quiet"
+        className="button button--quiet -mt-1"
         type="button"
         disabled={declaredNone}
         onClick={() => setTitles((current) => [...current, ""])}
       >
+        <span aria-hidden="true" className="text-lg leading-none">
+          +
+        </span>
         Add another
       </button>
-      <label className="checkbox">
+      <label className="border-line bg-surface-sunk/60 flex cursor-pointer items-start gap-3 rounded-2xl border p-3.5">
         <input
           type="checkbox"
+          className="accent-sage mt-0.5 h-[1.15rem] w-[1.15rem] flex-none"
           checked={declaredNone}
           onChange={(event) => setDeclaredNone(event.target.checked)}
         />
-        {copy.none}
+        <span className="text-sm">{copy.none}</span>
       </label>
       <button className="button" type="submit" disabled={submitting}>
         {submitting ? "Saving…" : "Save and continue"}

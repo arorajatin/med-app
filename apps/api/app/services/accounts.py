@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app import models
@@ -49,7 +50,27 @@ def resolve_account_context(
         verified_at=datetime.now(UTC),
     )
     db.add(identity)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # Concurrent first requests may both see no identity. The uniqueness
+        # constraint selects the winner; discard this request's unowned account.
+        db.rollback()
+        identity = (
+            db.query(models.AuthIdentity)
+            .filter(
+                models.AuthIdentity.provider == provider,
+                models.AuthIdentity.provider_subject == provider_subject,
+            )
+            .one_or_none()
+        )
+        if identity is None:
+            raise
+        account = db.query(models.Account).filter(models.Account.id == identity.account_id).one()
+        _refresh_identity_provenance(
+            db, identity=identity, upstream_provider=upstream_provider, email=email
+        )
+        return AccountContext(account=account, identity=identity)
     db.refresh(account)
     db.refresh(identity)
     return AccountContext(account=account, identity=identity)

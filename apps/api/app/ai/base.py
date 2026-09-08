@@ -68,8 +68,24 @@ class DocumentExtraction:
     memory_candidates: list[MemoryCandidateDatum] = field(default_factory=list)
 
 
+@dataclass(frozen=True)
+class DocumentPart:
+    ordinal: int
+    file_bytes: bytes
+    filename: str
+    mime_type: str
+
+
 class Extractor:
     provider_name = "base"
+
+    def extract_logical_document(self, *, parts: tuple[DocumentPart, ...]) -> DocumentExtraction:
+        if len(parts) != 1:
+            raise ValueError("This extractor does not support ordered multi-image documents.")
+        part = parts[0]
+        return self.extract_document(
+            file_bytes=part.file_bytes, filename=part.filename, mime_type=part.mime_type
+        )
 
     def extract_document(
         self,

@@ -1,20 +1,64 @@
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 from datetime import date
+from io import BytesIO
+
+import pdfplumber
 
 from app.ai.base import (
     DocumentExtraction,
     DocumentMetadataDatum,
+    DocumentPart,
     Extractor,
     MemoryCandidateDatum,
     MetricObservationDatum,
+    PatientEvidenceDatum,
     SourceReferenceData,
 )
 
 
 class MockExtractor(Extractor):
     provider_name = "mock"
+
+    def extract_logical_document(self, *, parts: tuple[DocumentPart, ...]) -> DocumentExtraction:
+        metadata: list[DocumentMetadataDatum] = []
+        observations: list[MetricObservationDatum] = []
+        memory: list[MemoryCandidateDatum] = []
+        patients: list[PatientEvidenceDatum] = []
+        logical_page = 0
+        document_type = "medical_record"
+        for part in parts:
+            if part.mime_type == "application/pdf":
+                with pdfplumber.open(BytesIO(part.file_bytes)) as pdf:
+                    texts = [page.extract_text() or "" for page in pdf.pages]
+            else:
+                # The local mock has no OCR. Never interpret encoded image bytes as text.
+                texts = [""]
+            for text in texts:
+                logical_page += 1
+                result = self.extract_document(
+                    file_bytes=text.encode(), filename=part.filename, mime_type=part.mime_type
+                )
+                if result.document_type != "medical_record":
+                    document_type = result.document_type
+                metadata.extend(
+                    _locate_items(result.metadata_candidates, part.ordinal, logical_page)
+                )
+                observations.extend(_locate_items(result.observations, part.ordinal, logical_page))
+                memory.extend(_locate_items(result.memory_candidates, part.ordinal, logical_page))
+                patients.extend(_locate_items(result.patient_evidence, part.ordinal, logical_page))
+        return DocumentExtraction(
+            document_type=document_type,
+            raw_output={"document_type": document_type, "part_count": len(parts)},
+            processing_method="native_text",
+            routing_reason="deterministic_mock_text",
+            metadata_candidates=metadata,
+            observations=observations,
+            memory_candidates=memory,
+            patient_evidence=patients,
+        )
 
     def extract_document(
         self,
@@ -158,3 +202,18 @@ class MockExtractor(Extractor):
     def _extract_number_after(text: str, label: str) -> tuple[float, str] | None:
         match = re.search(rf"{label}\D+(\d+(?:\.\d+)?)", text, re.IGNORECASE)
         return (float(match.group(1)), match.group(0)) if match else None
+
+
+def _locate_items[
+    T: (DocumentMetadataDatum, MetricObservationDatum, MemoryCandidateDatum, PatientEvidenceDatum)
+](items: list[T], ordinal: int, logical_page: int) -> list[T]:
+    return [
+        replace(
+            item,
+            source_references=[
+                replace(reference, part_ordinal=ordinal, logical_page=logical_page)
+                for reference in item.source_references
+            ],
+        )
+        for item in items
+    ]

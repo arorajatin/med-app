@@ -25,15 +25,18 @@ export function SignInScreen({ redirectError }: SignInScreenProps) {
   }
 
   return (
-    <section className="panel panel--narrow">
-      <h2>Sign in</h2>
-      <p>
-        Your medical records are private to this account. Signing in with Google confirms your
-        email address with Google, so there is no separate password to manage here.
-      </p>
+    <section className="panel">
+      <div>
+        <p className="eyebrow">Welcome</p>
+        <h2 className="mt-2 text-3xl">Sign in</h2>
+        <p className="text-ink-soft mt-3">
+          Your medical records are private to this account. Signing in with Google confirms your
+          email address with Google, so there is no separate password to manage here.
+        </p>
+      </div>
       <ErrorBanner message={failure ?? redirectError} />
       <button
-        className="button button--google"
+        className="button button--google w-full self-stretch"
         type="button"
         onClick={() => void handleGoogle()}
         disabled={starting}
@@ -41,13 +44,15 @@ export function SignInScreen({ redirectError }: SignInScreenProps) {
         <GoogleMark />
         {starting ? "Taking you to Google…" : "Continue with Google"}
       </button>
-      <p className="muted">
-        We receive your name and email address from Google. We never receive your Google password.
-      </p>
-      <p className="muted">
-        Creating an account authorizes AI processing of the medical records you upload and the
-        reviewed personal memory used in Chat.
-      </p>
+      <div className="border-line flex flex-col gap-2.5 border-t pt-5">
+        <p className="muted text-sm">
+          We receive your name and email address from Google. We never receive your Google password.
+        </p>
+        <p className="muted text-sm">
+          Creating an account authorizes AI processing of the medical records you upload and the
+          reviewed personal memory used in Chat.
+        </p>
+      </div>
     </section>
   );
 }

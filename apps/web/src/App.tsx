@@ -11,6 +11,7 @@ import {
   signOut,
 } from "./auth/session";
 import { ErrorBanner } from "./components/ErrorBanner";
+import { EntryLayout } from "./navigation/EntryLayout";
 import { OnboardingWizard } from "./onboarding/OnboardingWizard";
 
 export function App() {
@@ -40,40 +41,39 @@ export function App() {
     void signOut();
   }, []);
 
-  return (
-    <div className="app">
-      <header className="app__header">
-        <div>
-          <p className="app__eyebrow">Family Health</p>
-          <h1>Set up your account</h1>
-        </div>
-        {session === null ? null : (
-          <div className="app__account">
-            {session.email === null ? null : <span className="muted">{session.email}</span>}
-            <button className="button button--quiet" type="button" onClick={handleSignOut}>
-              Sign out
-            </button>
-          </div>
-        )}
-      </header>
-      <main>{renderMain()}</main>
-    </div>
-  );
-
-  function renderMain() {
-    if (!isAuthConfigured) {
-      return (
-        <ErrorBanner message="Sign-in is not configured for this build. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY, then reload." />
-      );
-    }
-    if (!restored) {
-      return <p className="muted">Restoring your session…</p>;
-    }
-    if (session === null) {
-      return <SignInScreen redirectError={redirectError} />;
-    }
+  if (!isAuthConfigured) {
     return (
-      <OnboardingWizard key={session.userId} onUnauthenticated={handleSignOut} />
+      <EntryLayout>
+        <section className="panel">
+          <h2>Almost there</h2>
+          <ErrorBanner message="Sign-in is not configured for this build. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY, then reload." />
+        </section>
+      </EntryLayout>
     );
   }
+  if (!restored) {
+    return (
+      <EntryLayout>
+        <section className="panel items-center text-center">
+          <span className="border-sage/40 border-t-sage h-9 w-9 animate-spin rounded-full border-2" />
+          <p className="muted">Restoring your session…</p>
+        </section>
+      </EntryLayout>
+    );
+  }
+  if (session === null) {
+    return (
+      <EntryLayout>
+        <SignInScreen redirectError={redirectError} />
+      </EntryLayout>
+    );
+  }
+  return (
+    <OnboardingWizard
+      key={session.userId}
+      email={session.email}
+      onSignOut={handleSignOut}
+      onUnauthenticated={handleSignOut}
+    />
+  );
 }
