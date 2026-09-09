@@ -186,11 +186,11 @@ Every new private table receives explicit account ownership, owner-aware foreign
 
 ## Migration Plan
 
-This change targets fresh installations only. Revision `20260721_0001` remains the sole schema baseline; forward revision `20260908_0002` adds owned aliases and assignment history. Fresh installations apply both revisions, and installations at the supported baseline upgrade explicitly to the new head before API or worker startup. Databases produced by prototype builds are not supported inputs, and this change adds no row inventory, data import, historical transformation, or parallel historical-data path.
+This change targets fresh installations only. Revision `20260721_0001` is the only schema revision and includes owned aliases and assignment history. Until the first deployment, schema changes amend this baseline; new revisions are reserved for changes after deployment. Fresh installations apply the baseline explicitly before API or worker startup. Databases produced by prototype builds are not supported inputs, and this change adds no row inventory, data import, historical transformation, or parallel historical-data path.
 
 1. Provision an empty PostgreSQL database in `ap-south-1` and apply the current Alembic head before any API or worker starts.
 2. Reconcile the three active infrastructure changes with stable ingestion keys, logical-document jobs, classified extraction output, private download, and all new RLS tables.
-3. Add account, unique-`self`, profile health-context, and provenance structures through reviewed forward migrations from the sole baseline.
+3. Add account, unique-`self`, profile health-context, and provenance structures by amending the sole undeployed baseline.
 4. Create accounts, profiles, ingestions, and derived data only through the V1 application flows.
 5. Add staged ingestion and ordered parts as the only document-ingestion persistence path.
 6. Adapt private storage and queue dispatch to stable logical-document identity.

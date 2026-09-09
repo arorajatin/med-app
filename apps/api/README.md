@@ -35,10 +35,10 @@ tables. Test-only metadata bootstrapping remains guarded by `ENVIRONMENT=test`.
 
 ## Fresh-schema policy
 
-Revision `20260721_0001` remains the fresh-install baseline. The current head is `20260908_0002`,
-which adds owned profile aliases and assignment history without changing existing account rows.
-Run `alembic upgrade head` on a fresh database or an installation at the supported baseline before
-starting the API or worker. Databases created by prototype builds
+Revision `20260721_0001` is the only schema revision and includes owned profile aliases and
+assignment history. Until the first deployment, schema changes amend this baseline; new revisions
+are reserved for changes after deployment. Create an empty database and run `alembic upgrade head`
+before starting the API or worker. Databases created by prototype builds
 are outside the supported contract; provision a new database instead of importing or transforming
 prototype rows.
 

@@ -40,7 +40,6 @@ This change affects medical-data privacy, AI trust, and account-creation terms. 
 
 - `access-control`: Extend private owner isolation to accounts, conversations, observations, organization views, and staged web uploads.
 - `family-profiles`: Automatically create `self`, capture age and unit-aware weight, accept user-attested conditions and medications, manage explicit full-name aliases, and support the single-manager family context.
-- `database-schema-management`: Keep the fresh-install baseline and explicitly advance the declared head for owned aliases and assignment history.
 - `medical-records`: Remove per-record processing choices, support first-release input modes, stage safe patient assignment, and add download, rename, and delete behavior.
 - `document-extraction`: Use native PDF text or Amazon Textract plus Bedrock Mistral Large 3 to produce patient evidence, document-metadata candidates, deterministic observations, reviewable prescription-memory candidates, and documented-condition candidates copied only from condition text literally present in the submitted prescription or lab report with auditable references.
 - `reviewed-medical-memory`: Add preselected-but-explicit review of prescription medication and instruction candidates, require confirmation or edit before a literally documented condition becomes trusted, accept user-attested onboarding facts, and exclude unreviewed metric observations and unconfirmed documented-condition candidates.
