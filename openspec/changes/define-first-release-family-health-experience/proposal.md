@@ -4,12 +4,12 @@ The current user-journey drafts describe the application's tabs and a partial up
 
 ## What Changes
 
-- Add Google-only onboarding for one account holder, automatically create the account holder's `self` profile, and capture initial health context. Account creation authorizes the AI processing required by the product. The service refuses any other upstream sign-in method, so an email and password identity created directly with the identity provider cannot reach an application account.
+- Add Google-only onboarding for one account holder, automatically create their `self` profile, and capture initial health context. Enforce the sign-in restriction at the API even if the identity provider allows other methods.
 - Keep the first release single-manager: one authenticated account owns and manages every family profile. Record delegated family-member login and self-upload as a roadmap follow-up.
 - Expand document intake through the authenticated web app to camera capture, a single image or PDF, and a multi-image document, with immutable `direct_file` or `camera` provenance.
 - Deliver the V1 client from `apps/web` against the backend in `apps/api`; reserve unscaffolded `apps/ios` and `apps/android` homes for separate V2 native-client changes.
 - Require Upload and Chat to begin with a selected family profile while allowing exactly matched extracted patient evidence to select a different existing profile. Ambiguous or unmatched identity remains pending and cannot update metrics or memory.
-- Separate deterministic lab measurements from medical memory. Measurements are stored automatically as untrusted, source-linked observations. Literal prescription medication and instruction candidates require explicit review. A lab report or prescription may also produce a `documented_condition_candidate` only when the submitted document literally states the condition and the extraction cites that exact text and location. V1 never deduces a condition from a medication, measurement, reference range, symptom, or general medical association. A documented condition becomes trusted memory only after the account manager confirms or edits it.
+- Store literal lab measurements automatically as untrusted, source-linked observations outside medical memory. Require explicit review for document metadata and prescription memory. A `documented_condition_candidate` must cite an affirmative patient-condition statement in the source and requires confirmation or edit before trusted use; V1 never infers conditions.
 - Add a two-mode aggregate Feed ordered by upload date or report date and include only documents whose upload completed.
 - Add person-scoped dynamic Drive organization by month or condition, with date-sorted reports and rename support.
 - Add provider-neutral, profile-scoped Chat grounded in reviewed memory, with conversation history and external-source links when outside information is used.
@@ -20,11 +20,11 @@ The current user-journey drafts describe the application's tabs and a partial up
 Explicit non-goals for this change:
 
 - Separate login or direct self-upload access for family members; this remains a roadmap change.
-- Email and password registration, email verification, and the verification-pending state; Google is the only first-release sign-in method and email/password registration moves to the roadmap.
+- Email and password registration, email verification, and the verification-pending state; these move to the roadmap.
 - The interactive family-member → body-system → metric trend visualization; this change creates the observation contract needed by that future experience.
 - Post-creation AI-processing controls, family sharing, clinician access, public file links, arbitrary family-relationship graphs, chat-initiated actions or reminders, medical diagnosis, condition-severity classification, a condition allowlist, condition inference from medications, lab values, ranges, symptoms, or other implicit associations, selection of a Chat model provider, or document ingestion through email, Amazon SES, WhatsApp, or any other external connector. External connector ingestion requires a separate post-V1 change.
 
-This change affects medical-data privacy, AI trust, and account-creation terms. It retains owner isolation and private files, keeps automatically extracted measurements and unconfirmed documented-condition candidates out of trusted medical memory, requires explicit review for document metadata, prescription memory, and literally documented condition candidates, and restricts V1 storage and processing to `ap-south-1` Mumbai.
+This change affects medical-data privacy, AI trust, and account-creation terms. It preserves owner isolation and private files and restricts V1 storage and processing to `ap-south-1` Mumbai.
 
 ## Capabilities
 
@@ -41,8 +41,8 @@ This change affects medical-data privacy, AI trust, and account-creation terms. 
 - `access-control`: Extend private owner isolation to accounts, conversations, observations, organization views, and staged web uploads.
 - `family-profiles`: Automatically create `self`, capture age and unit-aware weight, accept user-attested conditions and medications, manage explicit full-name aliases, and support the single-manager family context.
 - `medical-records`: Remove per-record processing choices, support first-release input modes, stage safe patient assignment, and add download, rename, and delete behavior.
-- `document-extraction`: Use native PDF text or Amazon Textract plus Bedrock Mistral Large 3 to produce patient evidence, document-metadata candidates, deterministic observations, reviewable prescription-memory candidates, and documented-condition candidates copied only from condition text literally present in the submitted prescription or lab report with auditable references.
-- `reviewed-medical-memory`: Add preselected-but-explicit review of prescription medication and instruction candidates, require confirmation or edit before a literally documented condition becomes trusted, accept user-attested onboarding facts, and exclude unreviewed metric observations and unconfirmed documented-condition candidates.
+- `document-extraction`: Add deterministic native-text/OCR routing, four trust classes, and auditable source references under the selected production pipeline.
+- `reviewed-medical-memory`: Add subtype-specific candidate review, user-attested onboarding facts, and stable provenance under the trust boundaries above.
 
 ## Impact
 
