@@ -11,6 +11,7 @@ __pycache__/
 .env
 med_app.db
 .local_storage/
+.context/
 
 contracts/.api.check.ts
 
