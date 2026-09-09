@@ -20,7 +20,7 @@ This change does not add sharing, clinician access, public links, direct-to-stor
 
 ### New Capabilities
 
-- `production-data-boundary`: India-resident production Postgres, private object storage, protected transport metadata, and defense-in-depth account ownership.
+- `private-data-boundary`: India-resident production Postgres, private object storage, protected transport metadata, and defense-in-depth account ownership.
 
 ### Modified Capabilities
 
