@@ -1,14 +1,19 @@
 import json
+from dataclasses import asdict
 from datetime import UTC, date, datetime
+from hashlib import sha256
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app import models
-from app.ai.base import Extractor, SourceReferenceData
+from app.ai.base import DocumentPart, Extractor, SourceReferenceData
 from app.ai.condition_safety import enforce_condition_safety
 from app.ai.mock_provider import MockExtractor
+from app.ai.normalization import validate_extraction
+from app.ai.source_layout import ExtractionValidationError, native_layout
 from app.services.common import recalculate_review_state
+from app.services.ingestions import automatic_assignment, latest_successful_attempt
 from app.storage import LocalPrivateStorage
 
 
@@ -17,6 +22,8 @@ def create_extraction_job(
     *,
     ingestion: models.Ingestion,
 ) -> models.ExtractionJob:
+    if ingestion.upload_state != "complete":
+        raise ValueError("Extraction requires a complete logical document.")
     job = models.ExtractionJob(
         account_id=ingestion.account_id,
         ingestion_id=ingestion.id,
@@ -24,8 +31,8 @@ def create_extraction_job(
     )
     ingestion.extraction_state = "queued"
     db.add(job)
-    db.commit()
-    db.refresh(job)
+    # Receipt and its job must commit together; a worker cannot see half an upload.
+    db.flush()
     return job
 
 
@@ -76,13 +83,35 @@ def run_extraction_job(
     db.commit()
     db.refresh(attempt)
 
+    raw_key: str | None = None
     try:
-        file_bytes = b"\n".join(storage.read_bytes(part.object_key) for part in parts)
-        extraction = extractor.extract_document(
-            file_bytes=file_bytes,
-            filename=parts[0].original_filename,
-            mime_type=parts[0].detected_mime_type,
+        if (
+            ingestion.upload_state != "complete"
+            or ingestion.tombstoned_at is not None
+            or ingestion.account_id != job.account_id
+        ):
+            raise ExtractionValidationError("invalid_document_input")
+        document_parts = tuple(
+            DocumentPart(
+                ordinal=part.ordinal,
+                part_id=part.id,
+                file_bytes=storage.read_bytes(part.object_key),
+                filename=part.original_filename,
+                mime_type=part.detected_mime_type,
+            )
+            for part in parts
         )
+        if [part.ordinal for part in parts] != list(range(len(parts))) or any(
+            part.account_id != job.account_id
+            or len(source.file_bytes) != part.size_bytes
+            or sha256(source.file_bytes).hexdigest() != part.sha256
+            for part, source in zip(parts, document_parts, strict=True)
+        ):
+            raise ExtractionValidationError("invalid_document_input")
+        layout = native_layout(document_parts)
+        extraction = extractor.extract_with_layout(parts=document_parts, layout=layout)
+        if type(extractor) is MockExtractor:
+            extraction = validate_extraction(extraction, layout)
         extraction = enforce_condition_safety(
             extraction,
             allow_baseline_items=type(extractor) is MockExtractor,
@@ -92,7 +121,9 @@ def run_extraction_job(
             account_id=job.account_id,
             ingestion_id=ingestion.id,
             attempt_id=attempt.id,
-            payload=json.dumps(extraction.raw_output, sort_keys=True).encode(),
+            payload=json.dumps(
+                {**extraction.raw_output, "source_layout": asdict(layout)}, sort_keys=True
+            ).encode(),
         )
         attempt.raw_output_bucket = raw_bucket
         attempt.raw_output_object_key = raw_key
@@ -116,6 +147,8 @@ def run_extraction_job(
             part_by_ordinal=part_by_ordinal,
             extraction=extraction,
         )
+        db.flush()
+        automatic_assignment(db, ingestion=ingestion, attempt_id=attempt.id)
 
         finished_at = datetime.now(UTC)
         attempt.status = "ready"
@@ -128,8 +161,10 @@ def run_extraction_job(
         if ingestion.resolved_profile_id is None:
             ingestion.assignment_state = "needs_assignment"
         db.commit()
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
         db.rollback()
+        if raw_key is not None:
+            storage.delete_object(raw_key)
         job = db.query(models.ExtractionJob).filter(models.ExtractionJob.id == job_id).one()
         attempt = (
             db.query(models.ExtractionAttempt)
@@ -142,13 +177,22 @@ def run_extraction_job(
         ingestion = db.query(models.Ingestion).filter(models.Ingestion.id == job.ingestion_id).one()
         finished_at = datetime.now(UTC)
         attempt.status = "failed"
-        attempt.failure_code = "extraction_failed"
+        failure_code = (
+            exc.code if isinstance(exc, ExtractionValidationError) else "extraction_failed"
+        )
+        attempt.failure_code = failure_code
         attempt.finished_at = finished_at
         job.status = "failed"
         job.current_phase = None
-        job.failure_code = "extraction_failed"
+        job.failure_code = failure_code
         job.finished_at = finished_at
-        ingestion.extraction_state = "failed"
+        # A conflicting automatic match rejects the attempt, not the document. The rollback
+        # left the earlier resolved assignment and its published output in place, so the
+        # ingestion keeps reporting the state that output supports.
+        superseded = failure_code == "assignment_conflict" and latest_successful_attempt(
+            db, ingestion_id=ingestion.id
+        )
+        ingestion.extraction_state = "ready" if superseded else "failed"
         db.commit()
 
     db.refresh(job)
@@ -314,19 +358,11 @@ def _discard_unreviewed_prior_items(
 ) -> tuple[set[str], set[tuple[str, str]]]:
     """Clear an earlier attempt's unreviewed items so a retry cannot duplicate them.
 
-    Patient evidence is internal matching input, so only the newest attempt's evidence
-    survives. Candidates the owner already decided on are kept, and this attempt skips
-    re-proposing them, so a retry never replaces a review decision with a pending copy.
+    Patient evidence is retained for assignment audit. Candidates the owner already decided
+    on are kept, and this attempt skips re-proposing them, so a retry never replaces a review
+    decision with a pending copy.
     """
 
-    stale_evidence = (
-        db.query(models.PatientEvidence)
-        .filter(
-            models.PatientEvidence.ingestion_id == ingestion.id,
-            models.PatientEvidence.attempt_id != attempt_id,
-        )
-        .all()
-    )
     prior_metadata = (
         db.query(models.DocumentMetadataCandidate)
         .filter(
@@ -349,11 +385,11 @@ def _discard_unreviewed_prior_items(
 
     _delete_source_references(
         db,
-        patient_evidence_ids=[item.id for item in stale_evidence],
+        patient_evidence_ids=[],
         metadata_candidate_ids=[item.id for item in stale_metadata],
         memory_candidate_ids=[item.id for item in stale_memory],
     )
-    for item in (*stale_evidence, *stale_metadata, *stale_memory):
+    for item in (*stale_metadata, *stale_memory):
         db.delete(item)
     db.flush()
 

@@ -18,6 +18,42 @@ user-journeys/ First-release and roadmap journeys
 Native clients are planned for V2 at `apps/ios/` and `apps/android/`. They are documented but not
 scaffolded yet, so the repository does not contain empty native projects.
 
+## Run both apps
+
+With uv and Node.js/npm installed, set `SUPABASE_URL` and `SUPABASE_ANON_KEY` in the root
+`.env` (see [.env.example](.env.example)), then run from the repository root:
+
+```bash
+./dev
+```
+
+This starts the frontend and backend with automatic reload. In Conductor it uses the workspace's
+assigned port for the frontend and the next port for the backend. Outside Conductor, the defaults
+are http://localhost:55020 and http://localhost:55021/docs. Use `./dev --port 55030` to choose
+another pair of ports. Press Ctrl+C to stop both servers.
+
+The command installs missing frontend dependencies and applies database migrations. It uses Google
+sign-in through Supabase and stores local app data in `.context/verification.db` and uploaded files
+in `.context/verification-storage`, preserving them between runs. It overrides `DATABASE_URL` for
+these servers to use that local database. Use `./dev --install` to reinstall frontend dependencies.
+
+To keep both apps running after closing your terminal:
+
+```bash
+mkdir -p .context
+nohup ./dev > .context/dev.log 2>&1 &
+echo $! > .context/dev.pid
+```
+
+Read logs with `tail -f .context/dev.log`. Stop both apps with:
+
+```bash
+kill "$(cat .context/dev.pid)"
+```
+
+Run the command again after restarting your Mac. Stop an existing run before starting another on
+the same ports.
+
 ## Backend setup
 
 Run backend commands from the repository root. The root is a uv workspace and the existing Python

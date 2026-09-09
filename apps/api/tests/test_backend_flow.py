@@ -3,6 +3,7 @@ import re
 from datetime import date
 
 import pytest
+from document_fixtures import pdf_bytes
 from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 
@@ -53,7 +54,7 @@ def upload_document(
     response = client.post(
         "/ingestions/direct-file",
         headers=auth(user),
-        files={"uploads": (filename, content, "application/pdf")},
+        files={"uploads": (filename, pdf_bytes(content), "application/pdf")},
         data={"provisional_profile_id": profile_id},
     )
     assert response.status_code == 201, response.text
@@ -177,7 +178,7 @@ def test_extracted_date_of_birth_is_retained_as_patient_evidence(client, monkeyp
         reference = SourceReferenceData(
             part_ordinal=0,
             logical_page=1,
-            text_span="Date of birth: 1980-05-04",
+            text_span="Patient: Self\nDate of birth: 1980-05-04",
             bounding_polygon=[[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]],
         )
         return DocumentExtraction(
@@ -201,7 +202,7 @@ def test_extracted_date_of_birth_is_retained_as_patient_evidence(client, monkeyp
 
     record, extraction = ingest_and_assign(
         client,
-        content=b"Lab report for Self. Date of birth: 1980-05-04",
+        content=b"Lab report\nPatient: Self\nDate of birth: 1980-05-04",
         profile_id=profile["id"],
     )
 

@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app import models
@@ -11,6 +11,12 @@ from app.api.deps import get_extractor, get_storage
 from app.auth import get_current_user
 from app.config import Settings, get_settings
 from app.database import get_db
+from app.document_inputs import (
+    IMAGE_MIME_TYPES,
+    MAX_DOCUMENT_BYTES,
+    MAX_LOGICAL_PARTS,
+    UploadValidationError,
+)
 from app.schemas import (
     AccountRead,
     AppointmentCreate,
@@ -27,6 +33,8 @@ from app.schemas import (
     MedicalRecordRead,
     MemoryRead,
     OnboardingRead,
+    ProfileAliasesUpdate,
+    ProfileAliasRead,
     ProfileCreate,
     ProfileHealthContextCreate,
     ProfileHealthContextRead,
@@ -45,7 +53,7 @@ from app.services.common import (
 )
 from app.services.extraction import create_extraction_job, retry_extraction_job, run_extraction_job
 from app.services.health_context import latest_health_context
-from app.services.ingestions import resolve_ingestion_assignment
+from app.services.ingestions import latest_successful_attempt, resolve_ingestion_assignment
 from app.services.memory import apply_record_review
 from app.services.onboarding import (
     attested_facts,
@@ -54,14 +62,10 @@ from app.services.onboarding import (
     refresh_onboarding_status,
     self_profile,
 )
+from app.services.patient_matching import normalize_patient_name
 from app.storage import LocalPrivateStorage
 
 router = APIRouter()
-
-SUPPORTED_MIME_TYPES = {"application/pdf", "image/jpeg", "image/png"}
-IMAGE_MIME_TYPES = {"image/jpeg", "image/png"}
-MAX_LOGICAL_PARTS = 20
-MAX_IMAGE_BYTES = 10_000_000
 
 
 @router.get("/health")
@@ -161,6 +165,67 @@ def get_profile(
 ) -> models.Profile:
     account_id = _account_context(db, user=user, settings=settings).account.id
     return require_profile(db, account_id=account_id, profile_id=profile_id)
+
+
+@router.get("/profiles/{profile_id}/aliases", response_model=list[ProfileAliasRead])
+def get_profile_aliases(
+    profile_id: str,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+    settings: Settings = Depends(get_settings),
+) -> list[models.ProfileAlias]:
+    account_id = _account_context(db, user=user, settings=settings).account.id
+    require_profile(db, account_id=account_id, profile_id=profile_id)
+    return (
+        db.query(models.ProfileAlias)
+        .filter(
+            models.ProfileAlias.account_id == account_id,
+            models.ProfileAlias.profile_id == profile_id,
+        )
+        .order_by(models.ProfileAlias.normalized_name)
+        .all()
+    )
+
+
+@router.put("/profiles/{profile_id}/aliases", response_model=list[ProfileAliasRead])
+def put_profile_aliases(
+    profile_id: str,
+    payload: ProfileAliasesUpdate,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+    settings: Settings = Depends(get_settings),
+) -> list[models.ProfileAlias]:
+    context = _account_context(db, user=user, settings=settings)
+    require_profile(db, account_id=context.account.id, profile_id=profile_id)
+    db.query(models.Profile).filter(models.Profile.id == profile_id).with_for_update().one()
+    existing = (
+        db.query(models.ProfileAlias)
+        .filter(
+            models.ProfileAlias.account_id == context.account.id,
+            models.ProfileAlias.profile_id == profile_id,
+        )
+        .all()
+    )
+    requested = {normalize_patient_name(name): name for name in payload.aliases}
+    retained = {alias.normalized_name for alias in existing}
+    for alias in existing:
+        if alias.normalized_name not in requested:
+            db.delete(alias)
+        else:
+            alias.name = requested[alias.normalized_name]
+    for normalized, name in requested.items():
+        if normalized not in retained:
+            db.add(
+                models.ProfileAlias(
+                    account_id=context.account.id,
+                    profile_id=profile_id,
+                    name=name,
+                    normalized_name=normalized,
+                    created_by_identity_id=context.identity.id,
+                )
+            )
+    db.commit()
+    return get_profile_aliases(profile_id, db, user, settings)
 
 
 @router.post(
@@ -263,6 +328,7 @@ def declare_attested_medications(
     status_code=status.HTTP_201_CREATED,
 )
 async def upload_direct_file(
+    request: Request,
     uploads: list[UploadFile] = File(...),
     provisional_profile_id: str | None = Form(default=None),
     display_filename: str | None = Form(default=None),
@@ -274,6 +340,7 @@ async def upload_direct_file(
     extractor: Extractor = Depends(get_extractor),
 ) -> IngestionUploadResult:
     return await _receive_ingestion(
+        request=request,
         uploads=uploads,
         provisional_profile_id=provisional_profile_id,
         display_filename=display_filename,
@@ -293,6 +360,7 @@ async def upload_direct_file(
     status_code=status.HTTP_201_CREATED,
 )
 async def upload_camera_capture(
+    request: Request,
     uploads: list[UploadFile] = File(...),
     provisional_profile_id: str | None = Form(default=None),
     display_filename: str | None = Form(default=None),
@@ -304,6 +372,7 @@ async def upload_camera_capture(
     extractor: Extractor = Depends(get_extractor),
 ) -> IngestionUploadResult:
     return await _receive_ingestion(
+        request=request,
         uploads=uploads,
         provisional_profile_id=provisional_profile_id,
         display_filename=display_filename,
@@ -654,6 +723,7 @@ def _declare_attested_memory(
 
 async def _receive_ingestion(
     *,
+    request: Request,
     uploads: list[UploadFile],
     provisional_profile_id: str | None,
     display_filename: str | None,
@@ -665,26 +735,43 @@ async def _receive_ingestion(
     storage: LocalPrivateStorage,
     extractor: Extractor,
 ) -> IngestionUploadResult:
-    if not uploads or len(uploads) > MAX_LOGICAL_PARTS:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail="A logical document must contain between 1 and 20 source parts.",
-        )
-    allowed_mime_types = IMAGE_MIME_TYPES if source_channel == "camera" else SUPPORTED_MIME_TYPES
-    if any((upload.content_type or "") not in allowed_mime_types for upload in uploads):
-        raise HTTPException(
-            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail="Only unencrypted PDF, JPEG, and PNG documents are supported.",
-        )
-
     context = _account_context(db, user=user, settings=settings)
     if provisional_profile_id is not None:
         require_profile(db, account_id=context.account.id, profile_id=provisional_profile_id)
+    form = await request.form()
+    allowed_fields = {"uploads", "provisional_profile_id", "display_filename", "user_context"}
+    if (
+        set(form) - allowed_fields
+        or request.query_params
+        or any(len(form.getlist(key)) != 1 for key in form if key != "uploads")
+    ):
+        raise HTTPException(
+            422, "Upload fields are invalid. Source and account are set by the service."
+        )
+    if display_filename is not None:
+        display_filename = display_filename.strip()
+        if (
+            not display_filename
+            or len(display_filename) > 260
+            or any(ord(character) < 32 or ord(character) == 127 for character in display_filename)
+        ):
+            raise HTTPException(
+                422, "Use a report name between 1 and 260 characters without control characters."
+            )
+    if user_context is not None and len(user_context) > 4000:
+        raise HTTPException(422, "Keep the optional context to 4,000 characters or fewer.")
+    if not uploads or len(uploads) > MAX_LOGICAL_PARTS:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail="A logical document must contain between 1 and 20 source parts.",
+            headers={"X-Upload-Error-Code": "too_many_parts"},
+        )
     ingestion = models.Ingestion(
         account_id=context.account.id,
         provisional_profile_id=provisional_profile_id,
         source_channel=source_channel,
         display_filename=display_filename,
+        user_renamed=display_filename is not None,
         user_context=user_context,
     )
     db.add(ingestion)
@@ -704,10 +791,20 @@ async def _receive_ingestion(
             )
             stored_keys.append(stored.object_key)
             total_size += stored.size_bytes
-            if total_size > settings.max_upload_bytes or (
-                stored.mime_type in IMAGE_MIME_TYPES and stored.size_bytes > MAX_IMAGE_BYTES
+            if total_size > min(settings.max_upload_bytes, MAX_DOCUMENT_BYTES):
+                raise UploadValidationError(
+                    "document_too_large",
+                    "The report exceeds the upload size limit (at most 15 MB).",
+                    413,
+                )
+            if stored.mime_type not in IMAGE_MIME_TYPES and (
+                source_channel == "camera" or len(uploads) > 1
             ):
-                raise ValueError("Logical document exceeds the configured size limits.")
+                raise UploadValidationError(
+                    "invalid_document_group",
+                    "Upload one PDF or a set of JPEG/PNG pages for one report.",
+                    415,
+                )
             part = models.IngestionPart(
                 id=part_id,
                 account_id=context.account.id,
@@ -728,16 +825,20 @@ async def _receive_ingestion(
         ingestion.upload_state = "complete"
         ingestion.completed_at = datetime.now(UTC)
         ingestion.display_filename = ingestion.display_filename or parts[0].original_filename
+        job = create_extraction_job(db, ingestion=ingestion)
         db.commit()
-    except ValueError as exc:
+    except Exception as exc:
         db.rollback()
         for object_key in stored_keys:
             storage.delete_object(object_key)
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=str(exc)
-        ) from exc
+        if isinstance(exc, UploadValidationError):
+            raise HTTPException(
+                status_code=exc.status_code,
+                detail=str(exc),
+                headers={"X-Upload-Error-Code": exc.code},
+            ) from exc
+        raise HTTPException(503, "The report could not be saved. Try uploading it again.") from exc
 
-    job = create_extraction_job(db, ingestion=ingestion)
     if settings.extraction_run_inline:
         job = run_extraction_job(db, job_id=job.id, storage=storage, extractor=extractor)
 
@@ -748,7 +849,9 @@ async def _receive_ingestion(
         {
             "ingestion": ingestion,
             "parts": parts,
-            "record": None,
+            "record": db.query(models.MedicalRecord)
+            .filter(models.MedicalRecord.ingestion_id == ingestion.id)
+            .one_or_none(),
             "extraction_job": job,
         }
     )
@@ -775,9 +878,13 @@ def _extraction_read(db: Session, *, ingestion: models.Ingestion) -> ExtractionR
         if job_ids
         else []
     )
+    active_attempt = latest_successful_attempt(db, ingestion_id=ingestion.id)
     patient_evidence = (
         db.query(models.PatientEvidence)
-        .filter(models.PatientEvidence.ingestion_id == ingestion.id)
+        .filter(
+            models.PatientEvidence.ingestion_id == ingestion.id,
+            models.PatientEvidence.attempt_id == (active_attempt.id if active_attempt else None),
+        )
         .all()
     )
     metadata_candidates = (
@@ -798,12 +905,27 @@ def _extraction_read(db: Session, *, ingestion: models.Ingestion) -> ExtractionR
         .filter(models.MemoryCandidate.ingestion_id == ingestion.id)
         .all()
     )
-    source_references = (
-        db.query(models.SourceReference)
+    # Only cite items this response actually returns; a superseded attempt keeps its patient
+    # evidence for audit, so an unfiltered query hands back references to absent rows.
+    returned_ids = {
+        item.id
+        for group in (patient_evidence, metadata_candidates, observations, memory_candidates)
+        for item in group
+    }
+    source_references = [
+        reference
+        for reference in db.query(models.SourceReference)
         .join(models.IngestionPart, models.IngestionPart.id == models.SourceReference.part_id)
         .filter(models.IngestionPart.ingestion_id == ingestion.id)
         .all()
-    )
+        if {
+            reference.patient_evidence_id,
+            reference.metadata_candidate_id,
+            reference.metric_observation_id,
+            reference.memory_candidate_id,
+        }
+        & returned_ids
+    ]
     return ExtractionRead.model_validate(
         {
             "ingestion": ingestion,
@@ -815,5 +937,12 @@ def _extraction_read(db: Session, *, ingestion: models.Ingestion) -> ExtractionR
             "observations": observations,
             "memory_candidates": memory_candidates,
             "source_references": source_references,
+            "assignment_history": db.query(models.IngestionAssignment)
+            .filter(
+                models.IngestionAssignment.account_id == ingestion.account_id,
+                models.IngestionAssignment.ingestion_id == ingestion.id,
+            )
+            .order_by(models.IngestionAssignment.created_at, models.IngestionAssignment.id)
+            .all(),
         }
     )

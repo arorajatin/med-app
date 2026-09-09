@@ -1,16 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ApiError } from "../api/client";
 import { getHealthContext, getOnboarding } from "../api/onboarding";
 import type { OnboardingRead, OnboardingStep, ProfileHealthContextSummary } from "../api/types";
+import { AccountMenu } from "../components/AccountMenu";
+import { Wordmark } from "../components/BrandMark";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { StepIndicator } from "../components/StepIndicator";
 import { FamilySpace } from "../family/FamilySpace";
+import { AppShell } from "../navigation/AppShell";
 import { SummaryPanel } from "./SummaryPanel";
 import { AttestedMemoryStep } from "./steps/AttestedMemoryStep";
 import { HealthContextStep } from "./steps/HealthContextStep";
 import { SelfProfileStep } from "./steps/SelfProfileStep";
 
 interface OnboardingWizardProps {
+  /** The signed-in address, shown in the chrome around every state. */
+  email: string | null;
+  onSignOut: () => void;
   onUnauthenticated: () => void;
 }
 
@@ -35,7 +41,7 @@ async function loadState(): Promise<LoadedState> {
   return { onboarding, healthContext };
 }
 
-export function OnboardingWizard({ onUnauthenticated }: OnboardingWizardProps) {
+export function OnboardingWizard({ email, onSignOut, onUnauthenticated }: OnboardingWizardProps) {
   const [onboarding, setOnboarding] = useState<OnboardingRead | null>(null);
   const [activeStep, setActiveStep] = useState<OnboardingStep | null>(null);
   const [reviewing, setReviewing] = useState(false);
@@ -143,19 +149,29 @@ export function OnboardingWizard({ onUnauthenticated }: OnboardingWizardProps) {
   }
 
   if (loading) {
-    return <p className="muted">Loading your onboarding progress…</p>;
+    return (
+      <SetUpFrame email={email} onSignOut={onSignOut}>
+        <p className="muted">Loading your onboarding progress…</p>
+      </SetUpFrame>
+    );
   }
   if (onboarding === null) {
-    return <ErrorBanner message={error ?? LOAD_FAILED} />;
+    return (
+      <SetUpFrame email={email} onSignOut={onSignOut}>
+        <ErrorBanner message={error ?? LOAD_FAILED} />
+      </SetUpFrame>
+    );
   }
 
-  return (
-    <div className="wizard">
-      <StepIndicator
-        completedSteps={onboarding.completed_steps}
-        activeStep={activeStep}
-        onSelectStep={handleEditStep}
-      />
+  const wizard = (
+    <div className="flex flex-col gap-5">
+      {onboarding.status === "completed" ? null : (
+        <StepIndicator
+          completedSteps={onboarding.completed_steps}
+          activeStep={activeStep}
+          onSelectStep={handleEditStep}
+        />
+      )}
       <ErrorBanner message={error} />
       {renderStep(onboarding)}
       {onboarding.status === "completed" && activeStep === null ? (
@@ -173,6 +189,54 @@ export function OnboardingWizard({ onUnauthenticated }: OnboardingWizardProps) {
           {onboarding.status === "completed" ? "Back to summary" : "Back to current step"}
         </button>
       ) : null}
+    </div>
+  );
+  return onboarding.status === "completed" ? (
+    <AppShell
+      profile={wizard}
+      email={email}
+      onSignOut={onSignOut}
+      onUnauthenticated={onUnauthenticated}
+    />
+  ) : (
+    <SetUpFrame email={email} onSignOut={onSignOut}>
+      {wizard}
+    </SetUpFrame>
+  );
+}
+
+/**
+ * The chrome around setting up. Onboarding is the first thing anyone sees of
+ * FamCare, so it carries the brand rather than looking like a bare form.
+ */
+function SetUpFrame({
+  email,
+  onSignOut,
+  children,
+}: {
+  email: string | null;
+  onSignOut: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="bg-canvas min-h-dvh">
+      <header className="border-line bg-canvas/85 sticky top-0 z-10 border-b backdrop-blur-md">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+          <Wordmark size="small" />
+          <AccountMenu email={email} onSignOut={onSignOut} />
+        </div>
+      </header>
+      <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
+        <div className="mb-7">
+          <p className="eyebrow">Settling in</p>
+          <h1 className="mt-2 text-3xl sm:text-[2.5rem]">Let’s set up your home</h1>
+          <p className="muted mt-2.5 max-w-xl">
+            A few details about you first. Everything you add here stays private to this
+            account, and you can change any of it later.
+          </p>
+        </div>
+        {children}
+      </main>
     </div>
   );
 }

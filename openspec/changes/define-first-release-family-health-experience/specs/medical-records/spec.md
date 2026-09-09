@@ -128,6 +128,25 @@ The service SHALL treat the profile selected in Upload as provisional and SHALL 
 - **WHEN** the account manager assigns a pending document to an owned profile
 - **THEN** the service SHALL resolve the document and make its eligible derived data available under only that profile
 
+#### Scenario: Multiple patient names disagree
+- **WHEN** extracted names identify different profiles or any name has no unique exact match
+- **THEN** the service SHALL require manual assignment even if another name matches the provisional profile
+
+#### Scenario: Resolve before successful extraction
+- **WHEN** the manager attempts assignment before extraction succeeds or after the report is tombstoned
+- **THEN** the service SHALL reject the decision without publishing derived data
+
+#### Scenario: Repeat a resolved decision
+- **WHEN** the manager assigns an already resolved report to the same profile
+- **THEN** the service SHALL return the existing record without duplicate publication or audit events
+- **AND** a different profile SHALL be rejected until a separately implemented correction flow exists
+
+#### Scenario: Retry preserves assignment history
+- **WHEN** a later extraction processes the same immutable source
+- **THEN** a prior manual resolution SHALL remain authoritative
+- **AND** an automatic match that disagrees with a prior automatic resolution SHALL fail with `assignment_conflict` without replacing committed output
+- **AND** prior attempt evidence and assignment history SHALL remain available for audit
+
 ### Requirement: Manage an owned report file
 The account manager SHALL be able to download, rename, and delete a completed report they own without exposing internal private-storage paths.
 

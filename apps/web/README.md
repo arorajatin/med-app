@@ -1,8 +1,8 @@
 # Web Client
 
-The V1 web client. This first slice is the sign-up and onboarding journey: the one `self` profile,
-age and weight, and user-attested conditions and medications. A completed account then sees its
-family space, where family profiles are created and browsed.
+FamCare, the V1 web client, supports sign-up, onboarding, family profiles, and document upload. A
+completed account opens a five-tab interface: Feed, Chat, Upload, Drive, and Profile. Upload is the
+initial tab for this milestone; Profile keeps the existing health summary and family settings.
 
 ## Stack
 
@@ -10,12 +10,32 @@ React 19 with TypeScript, built by Vite, with `@supabase/supabase-js` for sign-i
 Testing Library cover the flow. There is no router or data-fetching library yet; the onboarding
 wizard is driven by the backend's own `GET /account/onboarding` state.
 
+## Look and feel
+
+FamCare should read as a home for a family's records rather than a medical console, so the interface
+is warm: paper and sand surfaces, a calm sage for anything you act on, terracotta for warmth, and
+Fraunces over Inter for type.
+
+Styling is Tailwind CSS v4, configured entirely in [src/styles.css](src/styles.css). The `@theme`
+block there defines *semantic* colours — `canvas`, `surface`, `line`, `ink`, `ink-soft`, `sage`,
+`clay`, `honey`, `plum`, `alarm` — rather than raw palette steps. The dark theme re-declares those
+same variables under `prefers-color-scheme`, which is why components carry no `dark:` variants:
+`bg-surface text-ink` is already correct in both themes. Reach for a literal colour only where an
+outside brand requires it, as the Google button does.
+
+A small component layer in the same file covers what repeats everywhere — `.panel`, `.button` and
+its variants, `.input`, `.field__*`, `.banner`, `.muted` — and layout stays in utilities on the
+element. Navigation is a single element that renders as a bottom tab bar on a phone and a sidebar
+from `lg` up, so no control is duplicated in the accessibility tree.
+
 ## Setup
 
-Run these from `apps/web`.
+Run these from `apps/web`. Use the Node version in the root `.nvmrc`; `nvm use` finds it
+from this directory too. Reinstall the locked dependencies after switching Node versions.
 
 ```bash
-npm install
+nvm use
+npm ci
 npm run dev
 ```
 
@@ -90,9 +110,33 @@ drift silently: `src/api/contract.ts` checks it against the generated types in `
 during `npm run typecheck`, and `npm run contracts:check` fails when `contracts/api.ts` was not
 regenerated from the backend's OpenAPI document. See [contracts/README.md](../../contracts/README.md).
 
+## Uploading a report
+
+Choose a family profile first, then select one PDF, one JPEG/PNG image, multiple images of one
+report, or capture pages with the camera. Image pages can be previewed, reordered, removed, and
+retaken before submission. File selection and camera capture use separate API routes so the
+service controls source provenance. Clear the document to switch between those input modes.
+
+The browser sends ordered multipart files to the authenticated API with a current access token.
+It never writes directly to storage. Progress measures transport; upload completion is shown
+only after the API confirms that every source part and its extraction job were saved together.
+The receipt shows upload, extraction, and assignment separately. When inline extraction matches
+another family member, it names that person and explains the changed assignment. The receipt is a
+snapshot; later background changes will be surfaced by the future Feed. Upload drafts survive tab
+switches but are not persisted across reloads or sign-out. Camera streams stop when capture
+closes, the tab is hidden, or the account signs out. Camera capture needs browser permission and
+a secure context (HTTPS or localhost); file selection remains available if capture is unavailable.
+
+Limits are 15,000,000 bytes per report, 20 PDF pages or image parts, 10,000,000 bytes per image,
+and 10,000 pixels per image dimension. The API detects the actual file format, parses PDFs and
+images, and rejects encrypted, empty, corrupt, unsupported, and oversized sources. Optional
+report names allow 260 characters and notes allow 4,000. Notes remain separate from source evidence.
+
 ## Known gaps
 
-- The Google redirect is unverified end to end. Everything either side of the provider exchange is
-  built and tested, but the target Supabase project still reports the Google provider disabled.
-- Feed, Upload, Drive, and Chat are not built here yet. A completed account lands on its onboarding
-  summary and its family space.
+- Google sign-in was enabled and verified end to end on 2026-09-07. The upload browser smoke
+  test uses a synthetic development identity; real-device camera permissions remain a release check.
+- Feed, Drive, and Chat show placeholders. Assignment and review screens belong to later milestones.
+- Exact patient-name and explicit-alias matching work with the local digital-PDF mock. Production
+  OCR remains pending; images produce no patient evidence yet. Alias management and pending
+  assignment are API-only. An upload receipt does not imply reviewed health information.

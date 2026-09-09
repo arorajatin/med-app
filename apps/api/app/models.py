@@ -10,6 +10,7 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Integer,
     Numeric,
@@ -52,6 +53,7 @@ class AuthIdentity(Base):
     __tablename__ = "auth_identities"
     __table_args__ = (
         UniqueConstraint("provider", "provider_subject", name="uq_auth_identity_provider_subject"),
+        Index("uq_auth_identities_id_account", "id", "account_id", unique=True),
     )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
@@ -72,6 +74,7 @@ class Profile(Base):
 
     __tablename__ = "profiles"
     __table_args__ = (
+        Index("uq_profiles_id_account", "id", "account_id", unique=True),
         Index(
             "uq_profiles_one_self_per_account",
             "account_id",
@@ -98,6 +101,28 @@ class Profile(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, onupdate=utcnow
     )
+
+
+class ProfileAlias(Base):
+    """An account manager's explicit alternate full name for a profile."""
+
+    __tablename__ = "profile_aliases"
+    __table_args__ = (
+        ForeignKeyConstraint(["profile_id", "account_id"], ["profiles.id", "profiles.account_id"]),
+        ForeignKeyConstraint(
+            ["created_by_identity_id", "account_id"],
+            ["auth_identities.id", "auth_identities.account_id"],
+        ),
+        UniqueConstraint("profile_id", "normalized_name", name="uq_profile_alias_name"),
+    )
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
+    account_id: Mapped[str] = mapped_column(ForeignKey("accounts.id"), index=True, nullable=False)
+    profile_id: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+    normalized_name: Mapped[str] = mapped_column(String(480), nullable=False)
+    created_by_identity_id: Mapped[str] = mapped_column(String, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class ProfileHealthContext(Base):
@@ -138,6 +163,7 @@ class Ingestion(Base):
 
     __tablename__ = "ingestions"
     __table_args__ = (
+        Index("uq_ingestions_id_account", "id", "account_id", unique=True),
         CheckConstraint(
             "source_channel IN ('direct_file', 'camera')", name="ck_ingestions_source_channel"
         ),
@@ -246,6 +272,7 @@ class ExtractionAttempt(Base):
 
     __tablename__ = "extraction_attempts"
     __table_args__ = (
+        Index("uq_extraction_attempts_id_account", "id", "account_id", unique=True),
         UniqueConstraint("job_id", "attempt_number", name="uq_extraction_attempt_number"),
     )
 
@@ -266,6 +293,39 @@ class ExtractionAttempt(Base):
     failure_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class IngestionAssignment(Base):
+    """Append-only match/resolution audit tied to the successful source attempt."""
+
+    __tablename__ = "ingestion_assignments"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["ingestion_id", "account_id"], ["ingestions.id", "ingestions.account_id"]
+        ),
+        ForeignKeyConstraint(
+            ["attempt_id", "account_id"],
+            ["extraction_attempts.id", "extraction_attempts.account_id"],
+        ),
+        ForeignKeyConstraint(["profile_id", "account_id"], ["profiles.id", "profiles.account_id"]),
+        ForeignKeyConstraint(
+            ["resolver_identity_id", "account_id"],
+            ["auth_identities.id", "auth_identities.account_id"],
+        ),
+        CheckConstraint("method IN ('automatic', 'manual')", name="ck_assignment_method"),
+    )
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
+    account_id: Mapped[str] = mapped_column(ForeignKey("accounts.id"), index=True, nullable=False)
+    ingestion_id: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    attempt_id: Mapped[str] = mapped_column(String, nullable=False)
+    profile_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    resolver_identity_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    method: Mapped[str] = mapped_column(String(20), nullable=False)
+    match_version: Mapped[str] = mapped_column(String(80), nullable=False)
+    evidence_ids: Mapped[list] = mapped_column(JSON, nullable=False)
+    candidate_profile_ids: Mapped[list] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class PatientEvidence(Base):

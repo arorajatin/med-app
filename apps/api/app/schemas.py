@@ -2,7 +2,9 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from app.services.patient_matching import normalize_patient_name
 
 
 class CurrentUser(BaseModel):
@@ -39,6 +41,35 @@ class ProfileRead(BaseModel):
     sex: str | None
     created_at: datetime
     updated_at: datetime
+
+
+class ProfileAliasesUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    aliases: list[str] = Field(max_length=20)
+
+    @field_validator("aliases")
+    @classmethod
+    def validate_aliases(cls, aliases: list[str]) -> list[str]:
+        cleaned = [name.strip() for name in aliases]
+        if any(
+            not name or len(name) > 160 or any(ord(char) < 32 or ord(char) == 127 for char in name)
+            for name in cleaned
+        ):
+            raise ValueError("Aliases must contain 1 to 160 characters without control characters.")
+        normalized = [normalize_patient_name(name) for name in cleaned]
+        if len(set(normalized)) != len(normalized):
+            raise ValueError("Each alias must be distinct after name normalization.")
+        return cleaned
+
+
+class ProfileAliasRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    profile_id: str
+    name: str
+    created_at: datetime
 
 
 class SelfProfileUpdate(BaseModel):
@@ -272,6 +303,19 @@ class IngestionUploadResult(BaseModel):
     extraction_job: ExtractionJobRead | None
 
 
+class IngestionAssignmentRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    attempt_id: str
+    profile_id: str | None
+    method: str
+    match_version: str
+    evidence_ids: list[str]
+    candidate_profile_ids: list[str]
+    created_at: datetime
+
+
 class ExtractionRead(BaseModel):
     ingestion: IngestionRead
     record: MedicalRecordRead | None
@@ -282,6 +326,7 @@ class ExtractionRead(BaseModel):
     observations: list[MetricObservationRead]
     memory_candidates: list[MemoryCandidateRead]
     source_references: list[SourceReferenceRead]
+    assignment_history: list[IngestionAssignmentRead]
 
 
 ReviewAction = Literal["confirm", "edit", "ignore"]

@@ -660,6 +660,13 @@
       },
       "ExtractionRead": {
         "properties": {
+          "assignment_history": {
+            "items": {
+              "$ref": "#/components/schemas/IngestionAssignmentRead"
+            },
+            "title": "Assignment History",
+            "type": "array"
+          },
           "attempts": {
             "items": {
               "$ref": "#/components/schemas/ExtractionAttemptRead"
@@ -732,7 +739,8 @@
           "metadata_candidates",
           "observations",
           "memory_candidates",
-          "source_references"
+          "source_references",
+          "assignment_history"
         ],
         "title": "ExtractionRead",
         "type": "object"
@@ -748,6 +756,68 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "IngestionAssignmentRead": {
+        "properties": {
+          "attempt_id": {
+            "title": "Attempt Id",
+            "type": "string"
+          },
+          "candidate_profile_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Candidate Profile Ids",
+            "type": "array"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "match_version": {
+            "title": "Match Version",
+            "type": "string"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "profile_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Id"
+          }
+        },
+        "required": [
+          "id",
+          "attempt_id",
+          "profile_id",
+          "method",
+          "match_version",
+          "evidence_ids",
+          "candidate_profile_ids",
+          "created_at"
+        ],
+        "title": "IngestionAssignmentRead",
         "type": "object"
       },
       "IngestionPartRead": {
@@ -1484,6 +1554,53 @@
           "confidence"
         ],
         "title": "PatientEvidenceRead",
+        "type": "object"
+      },
+      "ProfileAliasRead": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "profile_id": {
+            "title": "Profile Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "profile_id",
+          "name",
+          "created_at"
+        ],
+        "title": "ProfileAliasRead",
+        "type": "object"
+      },
+      "ProfileAliasesUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "aliases": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Aliases",
+            "type": "array"
+          }
+        },
+        "required": [
+          "aliases"
+        ],
+        "title": "ProfileAliasesUpdate",
         "type": "object"
       },
       "ProfileCreate": {
@@ -2730,6 +2847,100 @@
           }
         },
         "summary": "Get Profile"
+      }
+    },
+    "/profiles/{profile_id}/aliases": {
+      "get": {
+        "operationId": "get_profile_aliases_profiles__profile_id__aliases_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profile_id",
+            "required": true,
+            "schema": {
+              "title": "Profile Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProfileAliasRead"
+                  },
+                  "title": "Response Get Profile Aliases Profiles  Profile Id  Aliases Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Profile Aliases"
+      },
+      "put": {
+        "operationId": "put_profile_aliases_profiles__profile_id__aliases_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profile_id",
+            "required": true,
+            "schema": {
+              "title": "Profile Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileAliasesUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProfileAliasRead"
+                  },
+                  "title": "Response Put Profile Aliases Profiles  Profile Id  Aliases Put",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Profile Aliases"
       }
     },
     "/profiles/{profile_id}/appointments": {

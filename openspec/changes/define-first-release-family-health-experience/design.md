@@ -54,6 +54,10 @@ AI processing is inherent to the product. Creating an account authorizes documen
 
 ### Stage ingestion before creating a profile-bound report
 
+The document-upload milestone introduces the five-tab web shell in the order Feed, Chat, Upload, Drive, Profile. Completed onboarding and restored completed accounts open Upload while Feed is unimplemented. Feed, Chat, and Drive show placeholders; Profile retains the existing family settings and health-summary edits. Upload drafts remain in memory across tab changes and clear on reload or sign-out. Camera streams stop when capture closes or Upload is hidden. The later Feed milestone restores Feed as the launch destination.
+
+The existing baseline `Ingestion` and ordered `IngestionPart` rows jointly retain canonical source provenance; no additional source table or migration is needed for this slice. Source receipt and its queued extraction job commit in one transaction. File type is detected from validated content rather than the browser's MIME header. Optional user display names are bounded to 260 characters and descriptive context to 4,000 characters. Receipt validation returns a safe message and stable `X-Upload-Error-Code` for invalid source content.
+
 Do not make `profile_id` a prerequisite for receiving private content. Introduce an account-owned ingestion aggregate:
 
 ```text
@@ -86,6 +90,10 @@ Retain the provisional selection, extracted value, confidence, match version, re
 
 Fuzzy, scored, phonetic, or cross-account matching is not permitted in V1. Confidence is retained for audit and evaluation but cannot relax the exact-match rule.
 
+The phase-4 implementation requires every extracted patient name to resolve uniquely to the same owned profile. A matched name beside an unmatched or conflicting name requires manual assignment. Managers explicitly maintain aliases through an owned-profile API that replaces the complete set, allows at most 20 distinct names of 1–160 characters, and rejects normalized duplicates. Alias removal changes future matching without rewriting assignment history.
+
+Pending assignment can resolve only after a successful extraction. Repeating the same resolution is idempotent; selecting another profile after resolution returns a conflict until the later audited correction flow exists. A retry of the immutable source preserves a manual decision. An automatic retry must agree with its previous resolved profile or fail with `assignment_conflict`, preserving committed output. Assignment events retain the attempt, evidence IDs, candidate profiles, match version, and resolver; patient evidence from prior attempts is retained.
+
 ### Split extraction output into four trust classes
 
 Keep raw provider output and normalized source references, then classify normalized items as:
@@ -110,6 +118,8 @@ Use stable/versioned memory facts or explicit supersession instead of destructiv
 Every normalized item has at least one `SourceReference` containing source part, logical page, native word or Textract block identifiers, text span, and normalized bounding polygon. Each documented-condition candidate must cite the exact source span that contains the condition itself; a medication name, measurement, abnormal flag, symptom, or generic association is not a valid condition reference. Missing, fabricated, inferred, or unresolved condition text invalidates that candidate. Successful raw native/Textract output and Bedrock response are encrypted, hidden from routine APIs, and retained until report deletion for audit; provider staging copies are deleted promptly.
 
 The baseline gate remains in force until this structured contract, resolvable source-span validation, protected raw-output storage, negative fixtures, and reviewed enablement evidence all land together. The future candidate path must replace the gate atomically with the source-validating contract; widening the baseline field allowlist is prohibited. Generic `condition`, `diagnosis`, and other condition-shaped field types remain invalid.
+
+Phase 4 implements and tests this normalized contract with the local mock. The service independently parses PDF words and geometry, validates every reference against that layout, and verifies stored source checksums before processing. Lab labels, values, and units must share a cited source line. The condition validator is testable but disabled in runtime extraction; the baseline provider gate remains unchanged. The private local audit artifact contains source layout and a sanitized summary. Encrypted provider-output storage, the all-pages native gate, OCR, and production provider admission remain phase-6 work.
 
 ### Select the V1 document-processing path deterministically
 
@@ -176,11 +186,11 @@ Every new private table receives explicit account ownership, owner-aware foreign
 
 ## Migration Plan
 
-This change targets fresh installations only. Revision `20260721_0001` is the sole schema baseline for the current release. Databases produced by prototype builds are not supported inputs, and this change adds no row inventory, data import, historical transformation, or parallel historical-data path.
+This change targets fresh installations only. Revision `20260721_0001` is the only schema revision and includes owned aliases and assignment history. Until the first deployment, schema changes amend this baseline; new revisions are reserved for changes after deployment. Fresh installations apply the baseline explicitly before API or worker startup. Databases produced by prototype builds are not supported inputs, and this change adds no row inventory, data import, historical transformation, or parallel historical-data path.
 
 1. Provision an empty PostgreSQL database in `ap-south-1` and apply the current Alembic head before any API or worker starts.
 2. Reconcile the three active infrastructure changes with stable ingestion keys, logical-document jobs, classified extraction output, private download, and all new RLS tables.
-3. Add account, unique-`self`, profile health-context, and provenance structures through reviewed forward migrations from the sole baseline.
+3. Add account, unique-`self`, profile health-context, and provenance structures by amending the sole undeployed baseline.
 4. Create accounts, profiles, ingestions, and derived data only through the V1 application flows.
 5. Add staged ingestion and ordered parts as the only document-ingestion persistence path.
 6. Adapt private storage and queue dispatch to stable logical-document identity.

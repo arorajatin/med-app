@@ -2,7 +2,7 @@
 
 - [ ] 1.1 Provision disposable and target Supabase projects in `ap-south-1` with private Storage buckets, non-bypass workload roles, and recorded project/region attestations.
 - [ ] 1.2 Add fail-closed production configuration checks that reject a missing, unverifiable, or non-Mumbai project and prohibit SQLite, filesystem, alternate-project, and alternate-region fallback.
-- [ ] 1.3 Add reviewed forward migrations for account ownership, authenticated web-ingestion/source/provenance rows, extraction storage, object metadata, deletion jobs, failure envelopes, retention indexes, grants, and RLS policies.
+- [ ] 1.3 Amend the undeployed baseline for account ownership, authenticated web-ingestion/source/provenance rows, extraction storage, object metadata, deletion jobs, failure envelopes, retention indexes, grants, and RLS policies; add forward migrations only after the first deployment.
 - [ ] 1.4 Assign stable account/ingestion/part identifiers when each source is created and verify byte count and checksum before accepting its object reference.
 - [ ] 1.5 Test fresh bootstrap, current-head startup, and deployment rollback with representative newly created private rows and objects; prove rollback preserves the Mumbai boundary, RLS, queue-owned idempotency state, and deletion work.
 

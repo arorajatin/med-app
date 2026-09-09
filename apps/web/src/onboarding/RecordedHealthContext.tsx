@@ -38,5 +38,5 @@ export function RecordedHealthContext({ healthContext }: RecordedHealthContextPr
 }
 
 function RefreshNote({ noun }: { noun: string }) {
-  return <span className="muted"> · This {noun} is worth reporting again when you can.</span>;
+  return <span className="text-clay"> · This {noun} is worth reporting again when you can.</span>;
 }

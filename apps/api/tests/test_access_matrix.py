@@ -9,6 +9,7 @@ import re
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from document_fixtures import pdf_bytes
 from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 
@@ -57,7 +58,7 @@ def owner_world(client: TestClient) -> dict[str, str]:
         files={
             "uploads": (
                 "report.pdf",
-                b"Lab report for Asha\nHemoglobin 13.2 g/dL",
+                pdf_bytes(b"Lab report for Asha\nHemoglobin 13.2 g/dL"),
                 "application/pdf",
             )
         },
@@ -94,6 +95,13 @@ def owned_resource_cases(world: dict[str, str]) -> list[tuple[str, str, str, dic
     reported_at = datetime.now(UTC).isoformat()
     return [
         ("GET", "/profiles/{profile_id}", f"/profiles/{profile_id}", None),
+        ("GET", "/profiles/{profile_id}/aliases", f"/profiles/{profile_id}/aliases", None),
+        (
+            "PUT",
+            "/profiles/{profile_id}/aliases",
+            f"/profiles/{profile_id}/aliases",
+            {"aliases": ["Asha Test"]},
+        ),
         (
             "GET",
             "/profiles/{profile_id}/health-context",
@@ -279,7 +287,7 @@ def test_upload_provenance_is_route_controlled(client, owner_world):
     response = client.post(
         "/ingestions/direct-file",
         headers=auth(OWNER),
-        files={"uploads": ("report.pdf", b"Lab report", "application/pdf")},
+        files={"uploads": ("report.pdf", pdf_bytes(b"Lab report"), "application/pdf")},
         data={
             "provisional_profile_id": owner_world["profile_id"],
             "source_channel": "email",
@@ -287,18 +295,7 @@ def test_upload_provenance_is_route_controlled(client, owner_world):
         },
     )
 
-    assert response.status_code == 201, response.text
-    ingestion_id = response.json()["ingestion"]["id"]
-    with next(get_db()) as db:
-        ingestion = db.query(models.Ingestion).filter(models.Ingestion.id == ingestion_id).one()
-        owner_account_id = (
-            db.query(models.AuthIdentity)
-            .filter(models.AuthIdentity.provider_subject == OWNER)
-            .one()
-            .account_id
-        )
-        assert ingestion.source_channel == "direct_file"
-        assert ingestion.account_id == owner_account_id
+    assert response.status_code == 422, response.text
 
 
 def test_account_scoped_routes_return_only_the_callers_own_data(client, owner_world):

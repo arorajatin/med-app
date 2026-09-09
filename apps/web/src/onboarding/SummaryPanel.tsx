@@ -6,6 +6,7 @@ import type {
   ProfileHealthContextSummary,
   ProfileRead,
 } from "../api/types";
+import { Avatar } from "../components/Avatar";
 import { attestedTitles } from "./attestedMemory";
 import { RecordedHealthContext } from "./RecordedHealthContext";
 import { STEP_LABELS } from "./steps";
@@ -50,29 +51,38 @@ export function SummaryPanel({
 
   return (
     <section className="panel">
-      <h2>Onboarding complete</h2>
-      <p>Your account is set up.</p>
+      <div className="flex items-center gap-4">
+        <Avatar name={profile?.display_name ?? "You"} size="large" />
+        <div className="min-w-0">
+          <h2>Your health summary</h2>
+          <p className="muted text-sm">
+            What you told FamCare about yourself. Change any of it whenever it stops being true.
+          </p>
+        </div>
+      </div>
 
-      <SummaryRow
-        step="self_profile"
-        value={<ProfileSummary profile={profile} />}
-        onEditStep={onEditStep}
-      />
-      <SummaryRow
-        step="health_context"
-        value={<RecordedHealthContext healthContext={healthContext} />}
-        onEditStep={onEditStep}
-      />
-      <SummaryRow
-        step="conditions"
-        value={<AttestedSummary titles={attested?.condition} noun="conditions" />}
-        onEditStep={onEditStep}
-      />
-      <SummaryRow
-        step="medications"
-        value={<AttestedSummary titles={attested?.medication} noun="medications" />}
-        onEditStep={onEditStep}
-      />
+      <dl className="divide-line -mb-1 flex flex-col divide-y">
+        <SummaryRow
+          step="self_profile"
+          value={<ProfileSummary profile={profile} />}
+          onEditStep={onEditStep}
+        />
+        <SummaryRow
+          step="health_context"
+          value={<RecordedHealthContext healthContext={healthContext} />}
+          onEditStep={onEditStep}
+        />
+        <SummaryRow
+          step="conditions"
+          value={<AttestedSummary titles={attested?.condition} noun="conditions" />}
+          onEditStep={onEditStep}
+        />
+        <SummaryRow
+          step="medications"
+          value={<AttestedSummary titles={attested?.medication} noun="medications" />}
+          onEditStep={onEditStep}
+        />
+      </dl>
     </section>
   );
 }
@@ -85,12 +95,16 @@ interface SummaryRowProps {
 
 function SummaryRow({ step, value, onEditStep }: SummaryRowProps) {
   return (
-    <div className="summary-row">
-      <div>
-        <h3 className="summary-row__title">{STEP_LABELS[step]}</h3>
-        <div className="summary-row__value">{value}</div>
+    <div className="flex items-start justify-between gap-4 py-4 first:pt-0">
+      <div className="min-w-0">
+        <dt className="eyebrow mb-1.5">{STEP_LABELS[step]}</dt>
+        <dd className="m-0">{value}</dd>
       </div>
-      <button className="button button--quiet" type="button" onClick={() => onEditStep(step)}>
+      <button
+        className="button button--quiet min-h-0 flex-none px-3.5 py-1.5 text-sm"
+        type="button"
+        onClick={() => onEditStep(step)}
+      >
         Change
       </button>
     </div>

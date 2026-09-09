@@ -56,3 +56,20 @@ The account manager SHALL be able to create and browse multiple family profiles 
 - **WHEN** the account manager lists family profiles
 - **THEN** the system SHALL return `self` and all other profiles owned by the account
 - **AND** no profile SHALL imply a separate login in the first release
+
+### Requirement: Manage explicit patient-name aliases
+The account manager SHALL be able to read and replace an owned profile's explicit aliases. The set SHALL contain at most 20 names, each trimmed to 1–160 characters without control characters, and SHALL reject duplicate names after the same normalization used for patient matching. Aliases SHALL retain their creating identity and SHALL never be inferred from extraction.
+
+#### Scenario: Replace aliases
+- **WHEN** the manager submits a valid complete alias set for an owned profile
+- **THEN** the service SHALL replace that profile's aliases atomically
+- **AND** repeating the same set SHALL preserve the existing alias identities
+
+#### Scenario: Remove an alias
+- **WHEN** an alias is absent from the replacement set
+- **THEN** future matching SHALL stop using it
+- **AND** prior assignment evidence and history SHALL remain unchanged
+
+#### Scenario: Reject unavailable profiles or invalid aliases
+- **WHEN** the caller does not own the profile or the supplied aliases violate the limits
+- **THEN** the service SHALL reject the request without changing any aliases

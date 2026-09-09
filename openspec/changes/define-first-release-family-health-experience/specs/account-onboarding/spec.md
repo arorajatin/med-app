@@ -61,6 +61,24 @@ The system SHALL state during signup that AI processing is inherent to document 
 - **THEN** the account SHALL be eligible to use capabilities that require AI processing
 - **AND** onboarding SHALL begin with the `self` profile rather than a separate consent step
 
+### Requirement: Enter the tab interface after onboarding
+A completed account SHALL enter a persistent interface with Feed, Chat, Upload, Drive, and Profile in that order. During the document-upload milestone, Upload SHALL be the initial active tab, Feed/Chat/Drive SHALL identify themselves as coming soon, and Profile SHALL retain existing family settings and health-summary editing.
+
+#### Scenario: Finish or resume completed onboarding
+- **WHEN** the final required onboarding step completes or a completed account restores its session
+- **THEN** the client SHALL open Upload within the five-tab interface
+- **AND** an incomplete account SHALL continue to resume its required onboarding step
+
+#### Scenario: Switch away from an upload draft
+- **WHEN** the account manager switches tabs before submitting a report
+- **THEN** the client SHALL retain the selected profile, ordered files, and optional context in memory
+- **AND** it SHALL stop active camera access while Upload is hidden
+
+#### Scenario: End the session with an upload draft
+- **WHEN** the session ends
+- **THEN** the client SHALL discard private draft files and previews, stop camera access, and abort pending upload transport
+- **AND** the tab interface SHALL no longer be visible
+
 ### Requirement: One manager owns the first-release family space
 The first release SHALL allow only the authenticated account manager to create and manage profiles and reports in that account's family space.
 

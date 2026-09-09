@@ -35,8 +35,10 @@ tables. Test-only metadata bootstrapping remains guarded by `ENVIRONMENT=test`.
 
 ## Fresh-schema policy
 
-Revision `20260721_0001` is the only schema revision in this release. Create an empty database and
-run `alembic upgrade head` before starting the API or worker. Databases created by prototype builds
+Revision `20260721_0001` is the only schema revision and includes owned profile aliases and
+assignment history. Until the first deployment, schema changes amend this baseline; new revisions
+are reserved for changes after deployment. Create an empty database and run `alembic upgrade head`
+before starting the API or worker. Databases created by prototype builds
 are outside the supported contract; provision a new database instead of importing or transforming
 prototype rows.
 
@@ -78,11 +80,35 @@ existing one. `PUT /profiles/{id}/attested-conditions` and `PUT /profiles/{id}/a
 declare the complete current set; an empty list records that the account manager reported none.
 Declared entries become trusted memory facts with `user_attested` provenance.
 
+## Local extraction and patient assignment
+
+The local mock reads digital-PDF words with actual page geometry. Normalization checks every
+part, page, word identifier, text span, and polygon against that independently parsed source.
+Images have no extracted text until the production OCR adapter lands.
+
+Patient names must be explicitly labelled in the source. Matching uses Unicode NFKC, case-folding,
+and collapsed whitespace against full profile names and explicit aliases in the same account.
+Every name must identify the same single profile; missing, partial, unmatched, ambiguous, or
+conflicting evidence leaves the report in `needs_assignment`. Date of birth and upload notes are
+never matching inputs. An exact match can replace the upload's provisional profile selection.
+
+`GET /profiles/{id}/aliases` reads aliases; `PUT` replaces the complete set with
+`{"aliases": ["Alternate Full Name"]}`. The manager may supply up to 20 distinct names of 1–160
+characters. An empty list removes them. Removing an alias affects future matching, not prior audit.
+
+After successful extraction, `POST /ingestions/{id}/assignment/{profile_id}` resolves a pending
+report to an owned profile. The same decision is idempotent; changing an already resolved report
+returns 409. Extraction reads expose safe `assignment_history` alongside current patient evidence.
+Retries preserve manual decisions, prior evidence, and reviewed candidates. A conflicting automatic
+assignment or invalid result fails without replacing committed output or moving source files.
+
 ## Safety defaults
 
 - Uploaded files are never exposed through public URLs.
-- AI extraction remains untrusted until reviewed.
+- Observations remain `unreviewed_extracted`; pending metadata and memory candidates are untrusted.
 - Only confirmed or edited permitted fields enter the current baseline medical memory.
-- A condition the account manager typed is trusted; a condition derived from a document is not, and
-  stays hidden until literal source validation exists.
+- A condition the account manager typed is trusted. Documented-condition validation exists for
+  contract tests but runtime output stays disabled until protected raw storage, review, and rollout
+  evidence are ready. The local source layout and sanitized summary are private filesystem artifacts,
+  not the future encrypted production provider-output store.
 - The mock provider is restricted to development and tests by the future production-boundary work.

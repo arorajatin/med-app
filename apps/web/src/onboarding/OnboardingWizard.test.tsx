@@ -9,11 +9,45 @@ afterEach(() => {
 });
 
 function renderWizard(onUnauthenticated = vi.fn()) {
-  render(<OnboardingWizard onUnauthenticated={onUnauthenticated} />);
+  render(
+    <OnboardingWizard
+      email="asha@example.com"
+      onSignOut={vi.fn()}
+      onUnauthenticated={onUnauthenticated}
+    />,
+  );
   return onUnauthenticated;
 }
 
 describe("OnboardingWizard", () => {
+  it("redirects to Upload as soon as the final onboarding step is saved", async () => {
+    let complete = false;
+    mockApi({
+      "GET /account/onboarding": () => ({ body: onboardingState({
+        status: complete ? "completed" : "in_progress",
+        next_step: complete ? null : "medications",
+        completed_steps: complete
+          ? ["self_profile", "health_context", "conditions", "medications"]
+          : ["self_profile", "health_context", "conditions"],
+        self_profile: SELF_PROFILE,
+      }) }),
+      "GET /profiles/profile_1/health-context": healthContextSummary(),
+      "GET /profiles/profile_1/memory": { profile: SELF_PROFILE, facts: [] },
+      "PUT /profiles/profile_1/attested-medications": () => {
+        complete = true;
+        return { body: { category: "medication", facts: [] } };
+      },
+      "GET /profiles": [SELF_PROFILE],
+    });
+    renderWizard();
+    await screen.findByRole("heading", { name: "Current medications" });
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("checkbox", { name: /no medications/i }));
+    await userEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+    expect(await screen.findByRole("heading", { name: "Upload a report" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Upload" })).toHaveAttribute("aria-selected", "true");
+  });
+
   it("resumes at the first step the account has not finished", async () => {
     mockApi({
       "GET /profiles/profile_1/health-context": healthContextSummary(),
@@ -53,7 +87,7 @@ describe("OnboardingWizard", () => {
     await userEvent.click(screen.getByRole("button", { name: "Save and continue" }));
 
     expect(await screen.findByRole("heading", { name: "Age and weight" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Onboarding complete" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Your health summary" })).not.toBeInTheDocument();
   });
 
   it("returns to the next required step when cancelling an earlier edit", async () => {
@@ -73,7 +107,7 @@ describe("OnboardingWizard", () => {
     await userEvent.click(screen.getByRole("button", { name: "Back to current step" }));
 
     expect(screen.getByRole("heading", { name: "Age and weight" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Onboarding complete" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Your health summary" })).not.toBeInTheDocument();
   });
 
   it("keeps an invalid age on the step and sends nothing", async () => {
@@ -260,13 +294,14 @@ describe("OnboardingWizard", () => {
 
     renderWizard();
 
-    await screen.findByRole("heading", { name: "Onboarding complete" });
+    await userEvent.click(await screen.findByRole("tab", { name: "Profile" }));
+    await screen.findByRole("heading", { name: "Your health summary" });
     // The reported date is rendered in the runtime's locale, so match around it.
     expect(await screen.findByText(/34 years · reported .*2026/)).toBeInTheDocument();
     expect(screen.getByText(/61.5 kg · reported .*2026/)).toBeInTheDocument();
   });
 
-  it("shows the summary when every step is complete", async () => {
+  it("opens Upload when every step is complete and keeps the summary under Profile", async () => {
     mockApi({
       "GET /account/onboarding": onboardingState({
         status: "completed",
@@ -281,9 +316,13 @@ describe("OnboardingWizard", () => {
 
     renderWizard();
 
-    expect(await screen.findByRole("heading", { name: "Onboarding complete" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Upload a report" })).toBeInTheDocument();
+    expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Feed", "Chat", "Upload", "Drive", "Profile"]);
+    expect(screen.queryByRole("navigation", { name: "Onboarding steps" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: "Profile" }));
+    expect(await screen.findByRole("heading", { name: "Your health summary" })).toBeInTheDocument();
     expect(await screen.findByText("You reported no current conditions.")).toBeInTheDocument();
-    // The completed account lands on its family space.
+    // Profile keeps the existing family space available.
     expect(await screen.findByRole("heading", { name: "Your family" })).toBeInTheDocument();
   });
 
@@ -318,7 +357,7 @@ describe("OnboardingWizard", () => {
       failure === "network" ? "Could not reach the server" : "Could not load your health context",
     );
     expect(screen.queryByText("Not recorded yet.")).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Onboarding complete" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Your health summary" })).not.toBeInTheDocument();
     expect(onUnauthenticated).not.toHaveBeenCalled();
   });
 
@@ -358,8 +397,9 @@ describe("OnboardingWizard", () => {
 
     renderWizard();
 
-    await screen.findByRole("heading", { name: "Onboarding complete" });
-    await userEvent.click(screen.getByRole("button", { name: "Your name" }));
+    await userEvent.click(await screen.findByRole("tab", { name: "Profile" }));
+    await screen.findByRole("heading", { name: "Your health summary" });
+    await userEvent.click(screen.getAllByRole("button", { name: "Change" })[0]!);
     await userEvent.click(screen.getByRole("button", { name: "Save and continue" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Could not reload your health context.");

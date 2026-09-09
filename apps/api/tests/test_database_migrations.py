@@ -4,8 +4,11 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
+from alembic.script import ScriptDirectory
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 from app import models  # noqa: F401
 from app.config import get_settings
@@ -96,8 +99,13 @@ def assert_schema_matches_metadata(url: str) -> None:
 
 def test_upgrade_empty_database_to_head_matches_model_contract(tmp_path):
     url = database_url(tmp_path / "upgrade.db")
+    config = migration_config(url)
+    revisions = list(ScriptDirectory.from_config(config).walk_revisions())
+    assert [(revision.revision, revision.down_revision) for revision in revisions] == [
+        ("20260721_0001", None)
+    ]
 
-    command.upgrade(migration_config(url), "head")
+    command.upgrade(config, "head")
 
     assert current_revisions(url) == {"20260721_0001"}
     assert_schema_matches_metadata(url)
@@ -161,6 +169,78 @@ def test_downgrade_initial_revision_returns_database_to_base(tmp_path):
     finally:
         engine.dispose()
     assert current_revisions(url) == set()
+
+
+def test_fresh_schema_enforces_alias_ownership(tmp_path):
+    url = database_url(tmp_path / "alias-ownership.db")
+    config = migration_config(url)
+    command.upgrade(config, "head")
+    engine = create_engine(url)
+    with Session(engine) as db:
+        db.add_all([models.Account(id="owner"), models.Account(id="other")])
+        db.flush()
+        db.add(
+            models.Profile(
+                id="person", account_id="owner", display_name="Asha", relationship="self"
+            )
+        )
+        db.add(
+            models.AuthIdentity(
+                id="identity",
+                account_id="owner",
+                provider="test",
+                provider_subject="owner",
+                verified_at=models.utcnow(),
+            )
+        )
+        db.commit()
+    with engine.connect() as connection:
+        connection.execute(text("PRAGMA foreign_keys=ON"))
+        with Session(connection) as db:
+            assert db.query(models.Profile).one().display_name == "Asha"
+            db.add(
+                models.ProfileAlias(
+                    account_id="owner",
+                    profile_id="person",
+                    name="Asha Rao",
+                    normalized_name="asha rao",
+                    created_by_identity_id="identity",
+                )
+            )
+            db.commit()
+            db.add(
+                models.ProfileAlias(
+                    account_id="other",
+                    profile_id="person",
+                    name="Foreign",
+                    normalized_name="foreign",
+                    created_by_identity_id="identity",
+                )
+            )
+            with pytest.raises(IntegrityError):
+                db.commit()
+            db.rollback()
+    engine.dispose()
+
+
+def test_api_and_worker_reject_an_unknown_revision_without_mutating_it(tmp_path, monkeypatch):
+    url = database_url(tmp_path / "unknown-revision.db")
+    command.upgrade(migration_config(url), "head")
+    engine = create_engine(url)
+    with engine.begin() as connection:
+        connection.execute(text("UPDATE alembic_version SET version_num = 'unknown_revision'"))
+    engine.dispose()
+    monkeypatch.setenv("DATABASE_URL", url)
+    monkeypatch.setenv("ENVIRONMENT", "local")
+    get_settings.cache_clear()
+    message = "current: unknown_revision; expected: 20260721_0001"
+    with pytest.raises(RuntimeError, match=message):
+        with TestClient(create_app()):
+            pass
+    with pytest.raises(RuntimeError, match=message):
+        run_once()
+    assert current_revisions(url) == {"unknown_revision"}
+    get_settings.cache_clear()
 
 
 @pytest.mark.parametrize(
