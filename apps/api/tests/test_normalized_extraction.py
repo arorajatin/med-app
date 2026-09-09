@@ -341,3 +341,69 @@ def test_invalid_confidence_is_a_schema_failure(confidence):
     )
     with pytest.raises(ExtractionValidationError, match="invalid_extraction_schema"):
         validate_extraction(replace(result_for(layout), metadata_candidates=[candidate]), layout)
+
+
+@pytest.mark.parametrize("written", ["2026-09-01", "2026/09/01", "2026/9/1"])
+def test_record_date_matches_any_documented_date_format(written):
+    layout = layout_for(f"Lab report\nReport date: {written}\nHemoglobin 13.2 g/dL")
+    extraction = replace(
+        result_for(layout),
+        metadata_candidates=[
+            DocumentMetadataDatum(
+                "record_date",
+                {"date": "2026-09-01"},
+                0.9,
+                [reference_for_span(layout.pages[0], written)],
+            )
+        ],
+    )
+    assert [item.value for item in validate_extraction(extraction, layout).metadata_candidates] == [
+        {"date": "2026-09-01"}
+    ]
+
+
+def test_a_record_date_that_is_not_a_date_rejects_the_result():
+    layout = layout_for("Lab report\nReport date: last Tuesday")
+    extraction = replace(
+        result_for(layout),
+        metadata_candidates=[
+            DocumentMetadataDatum(
+                "record_date",
+                {"date": "last Tuesday"},
+                0.9,
+                [reference_for_span(layout.pages[0], "last Tuesday")],
+            )
+        ],
+    )
+    with pytest.raises(ExtractionValidationError, match="invalid_extraction_schema"):
+        validate_extraction(extraction, layout)
+
+
+def test_case_folding_that_changes_length_does_not_shift_source_spans():
+    # Folding "ss" yields "ss", one character longer, so an offset taken from the folded
+    # text addresses the wrong characters back in the document.
+    text = "Rußmann Diagnostics\nLab report\nHemoglobin: 13.2 g/dL"
+    extraction = MockExtractor().extract_document(
+        file_bytes=text.encode(), filename="", mime_type="application/pdf"
+    )
+    spans = [
+        reference.text_span
+        for item in (*extraction.metadata_candidates, *extraction.observations)
+        for reference in item.source_references
+    ]
+    assert spans == ["Lab report", "Hemoglobin: 13.2 g/dL"]
+    assert all(span in text for span in spans)
+
+
+def test_a_word_drawn_outside_the_page_box_is_clamped_rather_than_rejected():
+    part = DocumentPart(
+        0,
+        pdf_bytes(b"Lab report Hemoglobin 13.2 g/dL", media_box="0 0 200 792"),
+        "report.pdf",
+        "application/pdf",
+        "source-part",
+    )
+    page = native_layout((part,)).pages[0]
+    assert "Hemoglobin" in page.text
+    assert all(0 <= x <= 1 and 0 <= y <= 1 for word in page.words for x, y in word.polygon)
+    assert all(word.end > word.start for word in page.words)

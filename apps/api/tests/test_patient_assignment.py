@@ -216,6 +216,25 @@ def test_retry_keeps_assignment_audit_without_duplicate_active_results(client):
     with next(get_db()) as db:
         assert db.query(models.PatientEvidence).count() == 2
         assert db.query(models.MetricObservation).filter_by(is_active=True).count() == 1
+    # Retained superseded evidence is audit history, not something this response cites.
+    returned = {
+        item["id"]
+        for key in ("patient_evidence", "metadata_candidates", "observations", "memory_candidates")
+        for item in retried[key]
+    }
+    assert retried["source_references"]
+    for reference in retried["source_references"]:
+        owners = [
+            reference[key]
+            for key in (
+                "patient_evidence_id",
+                "metadata_candidate_id",
+                "metric_observation_id",
+                "memory_candidate_id",
+            )
+            if reference[key] is not None
+        ]
+        assert owners and set(owners) <= returned
 
 
 @pytest.mark.parametrize("manual", [False, True])
@@ -249,6 +268,10 @@ def test_retry_cannot_silently_change_a_resolved_patient(client, monkeypatch, ma
     after = details(client, result)
     assert after["ingestion"]["resolved_profile_id"] == first["id"]
     assert after["record"]["id"] == before["record"]["id"]
+    # The rejected attempt does not withdraw the committed output the document still serves.
+    assert after["ingestion"]["extraction_state"] == "ready"
+    if not manual:
+        assert after["observations"] == before["observations"]
     assert client.get(f"/profiles/{other['id']}/records", headers=AUTH).json() == []
 
 

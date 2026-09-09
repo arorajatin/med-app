@@ -72,7 +72,13 @@ def _literal(value: object, source: str) -> bool:
 
 def _date_literal(value: date, source: str) -> bool:
     return any(
-        _literal(rendered, source) for rendered in (value.isoformat(), value.strftime("%Y/%m/%d"))
+        _literal(rendered, source)
+        for rendered in (
+            value.isoformat(),
+            value.strftime("%Y/%m/%d"),
+            f"{value.year}-{value.month}-{value.day}",
+            f"{value.year}/{value.month}/{value.day}",
+        )
     )
 
 
@@ -185,6 +191,15 @@ def validate_extraction(
                 "prescription": ("prescription", "tablet", "capsule"),
             }
             supported = any(_literal(label, source) for label in labels.get(value, ()))
+        elif candidate.metadata_type == "record_date":
+            # The candidate carries an ISO date; the document may write it any accepted way.
+            if not isinstance(value, str):
+                raise schema_error
+            try:
+                parsed = date.fromisoformat(value)
+            except ValueError as error:
+                raise schema_error from error
+            supported = _date_literal(parsed, source)
         else:
             supported = _literal(value, source)
         if supported:

@@ -905,12 +905,27 @@ def _extraction_read(db: Session, *, ingestion: models.Ingestion) -> ExtractionR
         .filter(models.MemoryCandidate.ingestion_id == ingestion.id)
         .all()
     )
-    source_references = (
-        db.query(models.SourceReference)
+    # Only cite items this response actually returns; a superseded attempt keeps its patient
+    # evidence for audit, so an unfiltered query hands back references to absent rows.
+    returned_ids = {
+        item.id
+        for group in (patient_evidence, metadata_candidates, observations, memory_candidates)
+        for item in group
+    }
+    source_references = [
+        reference
+        for reference in db.query(models.SourceReference)
         .join(models.IngestionPart, models.IngestionPart.id == models.SourceReference.part_id)
         .filter(models.IngestionPart.ingestion_id == ingestion.id)
         .all()
-    )
+        if {
+            reference.patient_evidence_id,
+            reference.metadata_candidate_id,
+            reference.metric_observation_id,
+            reference.memory_candidate_id,
+        }
+        & returned_ids
+    ]
     return ExtractionRead.model_validate(
         {
             "ingestion": ingestion,

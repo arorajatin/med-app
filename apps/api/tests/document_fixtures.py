@@ -6,7 +6,9 @@ from textwrap import wrap
 from PIL import Image
 
 
-def pdf_bytes(text: bytes = b"Lab report", *, pages: int = 1) -> bytes:
+def pdf_bytes(
+    text: bytes = b"Lab report", *, pages: int = 1, media_box: str = "0 0 612 792"
+) -> bytes:
     lines = [
         line
         for source_line in text.decode("latin-1").splitlines()
@@ -30,8 +32,8 @@ def pdf_bytes(text: bytes = b"Lab report", *, pages: int = 1) -> bytes:
         f"<< /Length {len(stream)} >>\nstream\n".encode() + stream + b"\nendstream",
     ]
     objects.extend(
-        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
-        b"/Resources << /Font << /F1 3 0 R >> >> /Contents 4 0 R >>"
+        f"<< /Type /Page /Parent 2 0 R /MediaBox [{media_box}] "
+        "/Resources << /Font << /F1 3 0 R >> >> /Contents 4 0 R >>".encode()
         for _ in range(pages)
     )
     result = b"%PDF-1.4\n"

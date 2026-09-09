@@ -16,6 +16,10 @@ class ExtractionValidationError(ValueError):
         self.code = code
 
 
+def _clamp(value: float, limit: float) -> float:
+    return min(max(value, 0.0), limit)
+
+
 def native_layout(parts: tuple[DocumentPart, ...]) -> SourceLayout:
     """Read local PDF words; images have addressable pages but no invented OCR text.
 
@@ -38,8 +42,15 @@ def native_layout(parts: tuple[DocumentPart, ...]) -> SourceLayout:
                     left, top, right, bottom = (
                         float(word[key]) for key in ("x0", "top", "x1", "bottom")
                     )
-                    if not (0 <= left < right <= page.width and 0 <= top < bottom <= page.height):
+                    if not all(map(math.isfinite, (left, top, right, bottom))):
                         raise ExtractionValidationError("invalid_source_layout")
+                    # Real documents place glyphs slightly outside the page box, and rotated or
+                    # cropped pages report marks beyond it. Clamp our own parser's geometry to the
+                    # page rather than refusing the document; a mark with no area is unaddressable.
+                    left, right = _clamp(left, page.width), _clamp(right, page.width)
+                    top, bottom = _clamp(top, page.height), _clamp(bottom, page.height)
+                    if left >= right or top >= bottom:
+                        continue
                     if text:
                         text += (
                             "\n"

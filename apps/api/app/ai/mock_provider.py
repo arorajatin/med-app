@@ -16,7 +16,11 @@ from app.ai.base import (
     SourcePage,
     SourceReferenceData,
 )
-from app.ai.source_layout import native_layout, reference_for_span
+from app.ai.source_layout import (
+    ExtractionValidationError,
+    native_layout,
+    reference_for_span,
+)
 
 
 class MockExtractor(Extractor):
@@ -189,8 +193,12 @@ class MockExtractor(Extractor):
 
     @staticmethod
     def _reference(text: str, span: str) -> SourceReferenceData:
-        start = text.casefold().find(span.casefold())
-        end = start + len(span)
+        # Search the original text: case folding can change length, so an offset taken from
+        # the folded string does not address the same characters here.
+        match = re.search(re.escape(span), text, re.IGNORECASE)
+        if match is None:
+            raise ExtractionValidationError("invalid_source_reference")
+        start, end = match.span()
         return SourceReferenceData(
             part_ordinal=0,
             logical_page=1,
@@ -201,11 +209,10 @@ class MockExtractor(Extractor):
 
     @staticmethod
     def _first_present(text: str, candidates: tuple[str, ...]) -> str | None:
-        searchable = text.casefold()
         for candidate in candidates:
-            start = searchable.find(candidate)
-            if start >= 0:
-                return text[start : start + len(candidate)]
+            match = re.search(re.escape(candidate), text, re.IGNORECASE)
+            if match is not None:
+                return match.group(0)
         return None
 
     @staticmethod

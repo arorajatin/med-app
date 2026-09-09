@@ -13,7 +13,7 @@ from app.ai.mock_provider import MockExtractor
 from app.ai.normalization import validate_extraction
 from app.ai.source_layout import ExtractionValidationError, native_layout
 from app.services.common import recalculate_review_state
-from app.services.ingestions import automatic_assignment
+from app.services.ingestions import automatic_assignment, latest_successful_attempt
 from app.storage import LocalPrivateStorage
 
 
@@ -186,7 +186,13 @@ def run_extraction_job(
         job.current_phase = None
         job.failure_code = failure_code
         job.finished_at = finished_at
-        ingestion.extraction_state = "failed"
+        # A conflicting automatic match rejects the attempt, not the document. The rollback
+        # left the earlier resolved assignment and its published output in place, so the
+        # ingestion keeps reporting the state that output supports.
+        superseded = failure_code == "assignment_conflict" and latest_successful_attempt(
+            db, ingestion_id=ingestion.id
+        )
+        ingestion.extraction_state = "ready" if superseded else "failed"
         db.commit()
 
     db.refresh(job)
