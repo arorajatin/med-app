@@ -17,9 +17,9 @@ The checkbox definitions below are the canonical implementation checklist. Use t
 
 ## 1. Reconcile Active Change Boundaries
 
-- [ ] 1.1 Implement the reconciled Supabase boundary with `ap-south-1`, stable account-and-ingestion object keys, private download, and RLS for every web-upload source, extraction, and owner-scoped table.
-- [ ] 1.2 Implement the reconciled production-extraction contract with pdfplumber, Textract, Bedrock Mistral Large 3, four output classes, required source references, and zero-data-retention preflight.
-- [ ] 1.3 Implement the reconciled queue-worker contract so one claimed job targets one immutable logical document and atomic attempt, including ordered multi-image input and Textract callbacks.
+- [ ] 1.1 Implement and integrate the [Supabase data boundary](../adopt-supabase-data-boundary/tasks.md) for first-release tables, storage, and private downloads.
+- [ ] 1.2 Implement and integrate the [production extraction provider](../add-production-extraction-provider/tasks.md) against the first-release normalized contract.
+- [ ] 1.3 Implement and integrate the [queue worker](../add-queue-backed-extraction-worker/tasks.md) for immutable logical-document attempts and callbacks.
 - [x] 1.4 Enforce PDF/JPEG/PNG input, 15,000,000-byte logical-document, 20-page/part, 10,000,000-byte image, and 10,000-pixel image-dimension ceilings with stable safe failures.
 - [x] 1.5 Implement Unicode NFKC/case-folded exact full-name or explicit-alias matching with ambiguous-match blocking; do not match on date of birth and do not add fuzzy automatic matching.
 
@@ -48,22 +48,22 @@ The checkbox definitions below are the canonical implementation checklist. Use t
 
 - [x] 4.1 Extend the normalized extractor contract with `native_text`/`textract_ocr`, routing reason, patient evidence, document-metadata candidates, metric observations, prescription-memory candidates, literal `documented_condition_candidate` items, affirmative patient-subject assertion validation, and required `SourceReference` values.
 - [ ] 4.2 Implement the all-pages native PDF gate with pdfplumber, whole-document Textract fallback, Textract-only image processing, and schema-constrained Bedrock Mistral Large 3 normalization in Mumbai.
-- [ ] 4.3 Implement source-linked document-metadata review so confirmation/edit can drive report date, issuer, type, or generated display name, ignore leaves it untrusted, and an explicit rename always wins.
-- [ ] 4.4 Add migration-backed observations with original and normalized values/units, ranges, dates, optional body-system classification, source locations, attempt identity, confidence, and quality state.
+- [ ] 4.3 Implement [document-metadata review](specs/document-extraction/spec.md#requirement-review-document-metadata-before-trusted-use), including audit provenance and explicit-rename precedence.
+- [ ] 4.4 Add migration-backed observations with every field in the [observation contract](specs/metric-observations/spec.md#requirement-store-deterministic-measurements-automatically) and the design's quality state.
 - [ ] 4.5 Implement automatic observation publication only after successful extraction and resolved assignment, with retry supersession that prevents duplicate active values.
 - [ ] 4.6 Implement observation correction, exclusion, source-report reads, and longitudinal profile/metric queries.
-- [ ] 4.7 Replace field-wide review with explicit prescription candidate-memory review in which default selection has no trust effect until submit, selected items confirm, edits preserve provenance, and unchecked items become ignored.
-- [ ] 4.8 Implement documented-condition review with the label `Condition written in this document — verify before saving`, exact source text/page display, and mandatory `confirm`, `edit`, or `ignore`; preserve original and replacement provenance and never preselect the candidate.
-- [ ] 4.9 Update memory generation to include reviewed prescription candidates, confirmed or edited documented conditions, and user-attested facts; exclude observations and pending or ignored conditions; and preserve stable or superseded Chat, Drive, and appointment citations when decisions change.
-- [ ] 4.10 Update record-review completion so only pending candidate-memory items block completion and metric observations never do.
-- [ ] 4.11 Add native-gate, whole-PDF fallback, provider-region, ZDR, patient-evidence, four-class output, source-reference, atomic-result, transient/terminal retry, retention/deletion, metadata/observation/memory review, citation, and cross-account tests, including proof that medications, dosages, lab values/ranges/flags, symptoms, optional upload context, general medical associations, negation, rule-out, screening, uncertainty, family history, and non-patient statements cannot create a condition candidate.
-- [ ] 4.12 Build approved de-identified English digital-PDF, scan, photo, multi-page-lab, and prescription fixtures; gate rollout on zero false assignments, 99.5% exact lab tuple precision, 99.5% source-page accuracy, zero unanchored published values, 95% prescription-candidate precision, and zero documented-condition candidates whose cited source text does not literally name the condition.
+- [ ] 4.7 Replace field-wide review with the [prescription-candidate submission rules](specs/reviewed-medical-memory/spec.md#requirement-review-every-candidate-memory-item-explicitly).
+- [ ] 4.8 Implement the same contract's documented-condition label, source text/page display, explicit decisions, and audit provenance; never preselect a condition candidate.
+- [ ] 4.9 Generate memory under the [trusted-field and supersession rules](specs/reviewed-medical-memory/spec.md#requirement-build-memory-only-from-trusted-fields), preserving Chat, Drive, and appointment citations.
+- [ ] 4.10 Apply the [memory-review completion rule](specs/reviewed-medical-memory/spec.md#requirement-complete-record-review).
+- [ ] 4.11 Test every [extraction](specs/document-extraction/spec.md), [observation](specs/metric-observations/spec.md), and [memory-review](specs/reviewed-medical-memory/spec.md) requirement, including all no-inference and patient-subject negatives, optional upload-context misuse, atomic failure, transient/terminal retry, retention/deletion, citations, provider-region/ZDR, and cross-account isolation.
+- [ ] 4.12 Build the approved de-identified English fixtures and verify every [production precision and provenance gate](../add-production-extraction-provider/design.md#gate-rollout-on-precision-and-provenance).
 
 ## 5. Feed, Drive, and Report Management
 
 - [ ] 5.1 Implement account-wide Feed queries for upload-complete records, including resolved and attention-required items plus processing state.
 - [ ] 5.2 Implement stable newest-first upload-date and trusted-report-date ordering, undated placement, tie-breaking, and cursor pagination.
-- [ ] 5.3 Implement Drive profile selection and virtual month, undated, trusted-condition, and uncategorized projections without duplicating files; condition groups SHALL use only report-linked user-attested conditions or confirmed or edited documented-condition candidates.
+- [ ] 5.3 Implement Drive profile selection and virtual month, undated, trusted-condition, and uncategorized projections under the [organization contract](specs/record-organization/spec.md), without duplicating files.
 - [ ] 5.4 Implement user display-name rename while preserving original filename and object identity.
 - [ ] 5.5 Implement authorized private download without public URLs or storage-key disclosure.
 - [ ] 5.6 Implement immediate report tombstoning, work cancellation, derived-data invalidation, idempotent private-object purge, and non-PHI citation tombstones.
@@ -73,7 +73,7 @@ The checkbox definitions below are the canonical implementation checklist. Use t
 
 - [ ] 6.1 Add migration-backed profile-scoped conversations, ordered messages, lifecycle state, personal citations, fetched-web citations, and provider/model snapshots with RLS.
 - [ ] 6.2 Define independent provider-neutral conversational-model and external-retrieval interfaces with fail-closed configuration.
-- [ ] 6.3 Implement immutable explicitly selected profile scope and retrieval of only reviewed or user-attested memory, excluding pending or ignored documented conditions, all other pending candidates, and unreviewed observations.
+- [ ] 6.3 Implement immutable selected-profile scope and the [trusted-memory retrieval boundary](specs/conversational-assistant/spec.md#requirement-ground-personal-answers-only-in-trusted-memory).
 - [ ] 6.4 Implement external retrieval with minimized identifiers, clear personal-versus-external attribution, persisted fetched links, and no fabricated citations.
 - [ ] 6.5 Implement retained history, safe generation failure/retry, and source-unavailable behavior after report deletion.
 - [ ] 6.6 Add selected-profile, cross-profile denial, no-evidence, pending/ignored-evidence, external attribution, de-identification, provider failure, history, deletion-citation, and two-account isolation tests for every conversational-assistant requirement.

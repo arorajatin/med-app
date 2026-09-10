@@ -60,11 +60,11 @@ Retained raw extraction objects use the same stable account/ingestion boundary w
 
 Retry and supersession create new attempt identifiers without changing source-part keys.
 
-The database stores only the bucket and opaque object key. All production buckets remain private. After an application ownership check, the backend may issue a single-object signed read URL valid for at most 60 seconds. Signed URLs are bearer secrets: they are never persisted, returned in list/feed payloads, or written to logs, traces, analytics, or queue messages. Uploads remain API-mediated: `apps/web` sends file or camera data to an authenticated `apps/api` route; the backend validates ownership, MIME type, product limits, and upload completeness, stamps `direct_file` or `camera`, and writes the object through its workload role. The client never chooses an object key or receives Storage write credentials.
+The database stores only the bucket and opaque object key. All production buckets remain private. After an application ownership check, the backend may issue a single-object signed read URL valid for at most 60 seconds. Signed URLs are bearer secrets: they are never persisted, returned in list/feed payloads, or written to logs, traces, analytics, or queue messages.
 
 ### Keep web uploads behind the authenticated API
 
-The V1 client never writes directly to a Supabase Storage endpoint. `apps/api` maps the verified Supabase subject to the owning account, validates the staged logical document, assigns opaque account/ingestion/part identifiers, and performs the private object write. Storage policies deny normal client roles the ability to list buckets or create, replace, sign, or delete arbitrary objects. This keeps route-stamped provenance, validation, and account ownership under one server-enforced contract while still allowing users to upload through `apps/web`.
+`apps/web` sends file or camera data to authenticated `apps/api` routes. The API maps the verified Supabase subject to the owning account, validates MIME type, product limits, and upload completeness, stamps `direct_file` or `camera`, assigns opaque account/ingestion/part identifiers, and writes through its workload role. Clients never choose object keys or receive Storage write credentials. Storage policies deny normal clients direct bucket listing and object creation, replacement, signing, or deletion. This keeps provenance, validation, and ownership under one server-enforced upload contract.
 
 ### Separate durable storage from transient AWS processing
 
@@ -88,7 +88,6 @@ Production persistence/private storage and production extraction have independen
 - Worker context functions are security-sensitive -> accept only opaque persisted work IDs, derive account ownership internally, lock `search_path`, restrict execution grants, and test forged identifiers.
 - Storage and database writes are not one transaction -> record an outbox cleanup action, delete on metadata failure, and reconcile orphaned objects.
 - Signed URLs are temporary bearer credentials -> keep their lifetime at 60 seconds, scope them to one object, and prohibit persistence or logging.
-- Direct-to-storage client writes would bypass route provenance and server validation -> deny client Storage writes and keep V1 upload writes behind authenticated `apps/api` routes.
 - Cross-service deletion can partially fail -> revoke synchronously, make cleanup idempotent, and alert until durable and transient copies are purged.
 - Local and production adapters can drift -> run shared storage/lifecycle contracts plus disposable Supabase and AWS integration suites.
 
@@ -98,13 +97,6 @@ Production persistence/private storage and production extraction have independen
 2. Amend the undeployed baseline for account ownership, web-ingestion/provenance tables, RLS policies, stable object metadata, deletion jobs, and retention indexes; add forward migrations only after the first deployment.
 3. Create every source with account and ingestion identifiers; write files to stable keys and verify byte counts and checksums before storing references.
 4. Exercise two-account request and worker access, authenticated API-mediated uploads, signed reads, forward/rollback migrations, provider staging, and deletion reconciliation in non-production.
-5. Enable the base data boundary, then extraction after its additional gates pass.
-6. Enable each capability only after its schema, isolation, storage, and deletion gates pass.
+5. Enable the base data boundary, then extraction, only after their respective [capability gates](#gate-rollout-by-capability) pass.
 
 Rollback disables new entry points and provider dispatch but preserves the Mumbai Supabase data boundary and continues deletion cleanup. Once production data exists in Supabase, rollback must not return to SQLite/local files, relax RLS, reuse profile-bearing keys, or restore purged content.
-
-## Resolved Questions
-
-- Direct SQLAlchemy sessions use transaction-local verified claims and an RLS-subject role; workers use task-specific non-bypass roles and account context derived from opaque persisted work IDs.
-- Owned downloads use backend-issued, single-object signed URLs valid for at most 60 seconds.
-- Successful raw extraction output lives until report deletion; safe failure envelopes live 30 days; the queue worker owns any bounded non-PHI job/idempotency tombstone; AWS transient objects are deleted immediately with a 24-hour lifecycle backstop.

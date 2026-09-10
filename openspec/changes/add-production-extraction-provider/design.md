@@ -81,13 +81,13 @@ The adapter omits unavailable or unsupported values instead of inferring them. I
 
 ### Keep identity resolution deterministic and local
 
-The provider returns source-linked `patient_evidence`; a local service performs assignment only against profiles and explicit aliases owned by the same account. V1 normalization uses Unicode NFKC, surrounding and repeated whitespace normalization, and case folding. Automatic assignment requires exactly one exact full-name or explicit-alias match. No match or multiple matches becomes `needs_assignment`. Fuzzy, phonetic, confidence-only, and cross-account matching are prohibited.
+The provider returns source-linked `patient_evidence` to the first-release [account-local assignment service](../define-first-release-family-health-experience/design.md#treat-direct-upload-selection-as-provisional-patient-context). Keeping matching outside the provider prevents model confidence or unrelated account context from overriding the exact-match and manual-resolution rules.
 
 ### Commit one complete attempt or nothing
 
 Native/Textract output, Mistral output, normalized items, source references, component provenance, attempt status, and record status are staged and validated as one result. A transaction publishes the complete set and success status together. Any reading, provider, schema, citation, normalization, or commit failure publishes no new result set and leaves previously committed or reviewed output unchanged.
 
-The queue-worker change owns the canonical retry classification. It permits at most three total numbered attempts, with persisted jitter around 30 seconds and two minutes, for provider/network timeouts, throttling or HTTP 429, provider/AWS 5xx or temporary unavailability, transient S3/SQS/SNS/KMS transport failures, interrupted claims, retryable Textract failures, and the bounded Textract callback timeout. Invalid input, unsupported document family, malformed schema, invalid source references, deterministic normalization failure, region/ZDR/authentication/authorization/credential/key/role/policy/configuration failure, and exhausted transient attempts are terminal. Each retry creates the next numbered attempt against the same immutable logical-document manifest; it cannot append partial output from a prior attempt.
+Use the queue worker's [canonical retry policy](../add-queue-backed-extraction-worker/design.md#apply-one-exact-automatic-retry-policy) for failure classification, attempt limits, and scheduling. Each retry processes the same immutable manifest as a new numbered attempt; it cannot append partial output from a prior attempt.
 
 ### Retain audit output while deleting provider staging promptly
 
