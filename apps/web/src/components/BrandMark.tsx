@@ -1,5 +1,5 @@
 /**
- * FamCare's mark: a house whose walls hold a heart. The house says the records
+ * MediTrail's mark: a house whose walls hold a heart. The house says the records
  * live somewhere settled; the heart says whose they are.
  */
 export function BrandMark({ className = "h-9 w-9" }: { className?: string }) {
@@ -43,7 +43,7 @@ export function Wordmark({
       <BrandMark className={mark} />
       <span className="flex flex-col">
         <span className={`font-display font-semibold tracking-tight ${name}`}>
-          Fam<span className="text-sage">Care</span>
+          Medi<span className="text-sage">Trail</span>
         </span>
         {tagline ? (
           <span className="text-ink-soft text-xs">A home for your family’s health</span>

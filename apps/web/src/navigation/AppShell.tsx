@@ -19,7 +19,7 @@ const SECTIONS: Record<Tab, { title: string; lead: string }> = {
     lead: "What has arrived recently, across everyone you look after.",
   },
   Chat: {
-    title: "Ask FamCare",
+    title: "Ask MediTrail",
     lead: "Questions about a person’s records, answered from their own reports.",
   },
   Upload: {
@@ -107,7 +107,7 @@ export function AppShell({
         </div>
         <div
           role="tablist"
-          aria-label="FamCare"
+          aria-label="MediTrail"
           className="grid grid-cols-5 gap-1 lg:flex lg:flex-col lg:gap-1"
         >
           {TABS.map((tab, index) => (

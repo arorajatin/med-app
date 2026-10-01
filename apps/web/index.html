@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>FamCare — a home for your family's health</title>
+    <title>MediTrail — a home for your family's health</title>
     <meta
       name="description"
-      content="FamCare keeps your family's health reports in one calm, private place."
+      content="MediTrail keeps your family's health reports in one calm, private place."
     />
     <meta name="theme-color" content="#fbf6ef" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#17130f" media="(prefers-color-scheme: dark)" />
@@ -24,7 +24,7 @@
       // Applied before first paint so the page never flashes the wrong palette.
       (function () {
         try {
-          var stored = localStorage.getItem("famcare-theme");
+          var stored = localStorage.getItem("meditrail-theme");
           var dark = stored
             ? stored === "dark"
             : window.matchMedia("(prefers-color-scheme: dark)").matches;

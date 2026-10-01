@@ -1,6 +1,6 @@
 # Web Client
 
-FamCare, the V1 web client, supports sign-up, onboarding, family profiles, and document upload. A
+MediTrail, the V1 web client, supports sign-up, onboarding, family profiles, and document upload. A
 completed account opens a five-tab interface: Feed, Chat, Upload, Drive, and Profile. Upload is the
 initial tab for this milestone; Profile keeps the existing health summary and family settings.
 
@@ -12,7 +12,7 @@ wizard is driven by the backend's own `GET /account/onboarding` state.
 
 ## Look and feel
 
-FamCare should read as a home for a family's records rather than a medical console, so the interface
+MediTrail should read as a home for a family's records rather than a medical console, so the interface
 is warm: paper and sand surfaces, a calm sage for anything you act on, terracotta for warmth, and
 Fraunces over Inter for type.
 

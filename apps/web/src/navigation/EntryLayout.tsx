@@ -37,7 +37,7 @@ const PROMISES = [
 ];
 
 /**
- * The way into FamCare: a warm welcome panel beside whatever the account needs
+ * The way into MediTrail: a warm welcome panel beside whatever the account needs
  * to do next, whether that is signing in or waiting for a session to restore.
  */
 export function EntryLayout({ children }: { children: ReactNode }) {

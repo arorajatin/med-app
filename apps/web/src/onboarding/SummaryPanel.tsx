@@ -56,7 +56,7 @@ export function SummaryPanel({
         <div className="min-w-0">
           <h2>Your health summary</h2>
           <p className="muted text-sm">
-            What you told FamCare about yourself. Change any of it whenever it stops being true.
+            What you told MediTrail about yourself. Change any of it whenever it stops being true.
           </p>
         </div>
       </div>
