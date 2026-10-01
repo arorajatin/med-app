@@ -4,7 +4,7 @@
 @source "./**/*.{ts,tsx}";
 
 /*
- * FamCare's palette is warm rather than clinical: paper and sand for surfaces,
+ * MediTrail's palette is warm rather than clinical: paper and sand for surfaces,
  * a calm sage for anything the person acts on, and terracotta for warmth.
  * Every colour below is semantic, so the dark theme is a single override of
  * these variables rather than a `dark:` variant on each element.

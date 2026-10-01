@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 export type Theme = "light" | "dark";
 
 /** Shared with the inline script in index.html, which applies the theme before paint. */
-export const THEME_STORAGE_KEY = "famcare-theme";
+export const THEME_STORAGE_KEY = "meditrail-theme";
 
 function systemTheme(): Theme {
   return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";

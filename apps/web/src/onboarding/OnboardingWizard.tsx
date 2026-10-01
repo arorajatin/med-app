@@ -207,7 +207,7 @@ export function OnboardingWizard({ email, onSignOut, onUnauthenticated }: Onboar
 
 /**
  * The chrome around setting up. Onboarding is the first thing anyone sees of
- * FamCare, so it carries the brand rather than looking like a bare form.
+ * MediTrail, so it carries the brand rather than looking like a bare form.
  */
 function SetUpFrame({
   email,
