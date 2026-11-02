@@ -265,6 +265,67 @@ def test_stable_pagination_with_ties_undated_reports_and_new_uploads(make_client
         assert actual == expected
 
 
+def test_cursor_keeps_its_place_when_the_last_item_changes_date(make_client):
+    client = make_client(EXTRACTION_RUN_INLINE="false")
+    profile = client.post("/profiles", headers=AUTH, json={"display_name": "Asha"}).json()
+    receipts = [upload(client) for _ in range(4)]
+    with next(get_db()) as db:
+        for index, receipt in enumerate(receipts):
+            ingestion = db.get(models.Ingestion, receipt["ingestion"]["id"])
+            ingestion.completed_at = datetime(2026, 9, 1, tzinfo=UTC) + timedelta(days=index)
+            db.add(
+                models.MedicalRecord(
+                    account_id=ingestion.account_id,
+                    profile_id=profile["id"],
+                    ingestion_id=ingestion.id,
+                    display_filename=f"Report {index}",
+                    record_date=date(2026, 8, 4 - index),
+                )
+            )
+        db.commit()
+    ids = [receipt["ingestion"]["id"] for receipt in receipts]
+    first = feed(client, order="report_date", limit=2)
+    assert [item["id"] for item in first["items"]] == ids[:2]
+    with next(get_db()) as db:
+        db.query(models.MedicalRecord).filter_by(ingestion_id=ids[1]).one().record_date = date(
+            2026, 9, 1
+        )
+        db.commit()
+    rest = feed(client, order="report_date", limit=2, cursor=first["next_cursor"])
+    assert [item["id"] for item in rest["items"]] == ids[2:]
+
+
+@pytest.mark.parametrize("change", ["reassigned", "deleted"])
+def test_member_cursor_survives_the_last_item_leaving_the_view(make_client, change):
+    client = make_client(EXTRACTION_RUN_INLINE="false")
+    asha, ravi = (
+        client.post(
+            "/profiles", headers=AUTH, json={"display_name": name, "relationship": relationship}
+        ).json()
+        for name, relationship in (("Asha", "self"), ("Ravi", "father"))
+    )
+    receipts = [upload(client) for _ in range(3)]
+    with next(get_db()) as db:
+        for index, receipt in enumerate(receipts):
+            ingestion = db.get(models.Ingestion, receipt["ingestion"]["id"])
+            ingestion.completed_at = datetime(2026, 9, 3 - index, tzinfo=UTC)
+            ingestion.assignment_state = "resolved"
+            ingestion.resolved_profile_id = asha["id"]
+        db.commit()
+    ids = [receipt["ingestion"]["id"] for receipt in receipts]
+    first = feed(client, profile_id=asha["id"], limit=2)
+    assert [item["id"] for item in first["items"]] == ids[:2]
+    with next(get_db()) as db:
+        anchor = db.get(models.Ingestion, ids[1])
+        if change == "reassigned":
+            anchor.resolved_profile_id = ravi["id"]
+        else:
+            anchor.tombstoned_at = datetime(2026, 9, 4, tzinfo=UTC)
+        db.commit()
+    rest = feed(client, profile_id=asha["id"], limit=2, cursor=first["next_cursor"])
+    assert [item["id"] for item in rest["items"]] == ids[2:]
+
+
 def test_extracted_date_stays_undated_until_review_and_current_name_is_used(client):
     profile = client.post("/profiles", headers=AUTH, json={"display_name": "Asha"}).json()
     receipt = upload(client, text=b"Patient: Asha\nLab report\nDate: 2026-08-15")
