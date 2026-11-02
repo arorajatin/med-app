@@ -1,26 +1,33 @@
 ## Purpose
 
-Define a dynamic, person-scoped Drive view that projects completed reports into month or reviewed-condition groups without duplicating source files.
+Define a dynamic Drive (Folder) view that projects completed, assigned reports for All Family or one family member into month or reviewed-condition groups without duplicating source files.
 
 ## ADDED Requirements
 
-### Requirement: Select a family profile for Drive
-Drive SHALL operate on one owned family profile at a time and SHALL require profile selection when the account contains profiles in addition to `self`.
+### Requirement: Select All Family or one family member for Drive
+Drive SHALL provide the same All Family and owned-family-member choices as Feed. All Family SHALL be the default even when `self` is the only profile.
 
-#### Scenario: Account has only self
-- **WHEN** the account manager opens Drive and `self` is the only profile
-- **THEN** Drive SHALL select `self` automatically
+#### Scenario: Open All Family
+- **WHEN** the account manager opens Drive
+- **THEN** Drive SHALL group completed reports with resolved assignment across all owned family profiles
+- **AND** each report SHALL identify its assigned family member
 
-#### Scenario: Account has multiple profiles
-- **WHEN** the account manager opens Drive with more than one owned profile
-- **THEN** the system SHALL require or restore an explicit owned-profile selection before listing report groups
+#### Scenario: Select a family member
+- **WHEN** the account manager selects an owned family member
+- **THEN** Drive SHALL group only completed reports whose assignment is resolved to that person
+- **AND** switching the family view SHALL retain the month or condition organization choice and clear the previous group's results
+
+#### Scenario: Upload is incomplete or assignment is unresolved
+- **WHEN** an upload is incomplete or lacks resolved assignment
+- **THEN** it SHALL NOT appear in either All Family or an individual member's Drive
+- **AND** completed uploads awaiting assignment SHALL remain accessible in Feed's All Family view
 
 #### Scenario: Select an unavailable profile
 - **WHEN** a user selects a missing or foreign profile
 - **THEN** the service SHALL respond as though that profile was not found
 
 ### Requirement: Organize completed reports by month
-Drive SHALL be able to project the selected profile's completed uploads into month groups and sort reports within each group by report date descending.
+Drive SHALL be able to project completed, assigned uploads in the selected family view into month groups and sort reports within each group by report date descending.
 
 #### Scenario: Group reports with known dates
 - **WHEN** the account manager selects month organization
@@ -32,7 +39,7 @@ Drive SHALL be able to project the selected profile's completed uploads into mon
 - **AND** order it by upload completion time relative to other undated reports
 
 ### Requirement: Organize completed reports by condition
-Drive SHALL be able to project the selected profile's completed uploads into groups derived only from trusted condition links. A trusted condition link SHALL use either a user-attested condition explicitly linked to the report or a confirmed or edited `documented_condition_candidate` extracted from that report. Drive SHALL NOT infer a condition link from medication details, lab observations, symptoms, or general medical knowledge.
+Drive SHALL be able to project completed, assigned uploads in the selected family view into groups derived only from trusted condition links. A trusted condition link SHALL use either a user-attested condition explicitly linked to the report or a confirmed or edited `documented_condition_candidate` extracted from that report. Drive SHALL NOT infer a condition link from medication details, lab observations, symptoms, or general medical knowledge.
 
 #### Scenario: Report has trusted condition links
 - **WHEN** a completed report is linked to one or more user-attested conditions or confirmed or edited documented-condition candidates

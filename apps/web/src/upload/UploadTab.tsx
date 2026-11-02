@@ -20,9 +20,11 @@ interface Page {
 export function UploadTab({
   active,
   onUnauthenticated,
+  onUploaded,
 }: {
   active: boolean;
   onUnauthenticated: () => void;
+  onUploaded?: (ingestionId: string) => void;
 }) {
   const [profiles, setProfiles] = useState<ProfileRead[] | null>(null);
   const [profileId, setProfileId] = useState("");
@@ -203,10 +205,14 @@ export function UploadTab({
         controller.signal,
       );
       if (!mounted.current) return;
-      setResult(uploaded);
       clearPages();
       setDisplayFilename("");
       setContext("");
+      // Feed takes over as the receipt when it can, so keep no second copy of
+      // one here: a stale receipt would greet the next visit to Upload in place
+      // of the form.
+      if (onUploaded) onUploaded(uploaded.ingestion.id);
+      else setResult(uploaded);
     } catch (cause) {
       if (!mounted.current || controller.signal.aborted) return;
       if (cause instanceof ApiError && cause.status === 401)

@@ -177,6 +177,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Feed */
+        get: operations["get_feed_feed_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -719,6 +736,50 @@ export interface components {
             record: components["schemas"]["MedicalRecordRead"] | null;
             /** Source References */
             source_references: components["schemas"]["SourceReferenceRead"][];
+        };
+        /** FeedItemRead */
+        FeedItemRead: {
+            /** Assignment State */
+            assignment_state: string;
+            /** Attention Required */
+            attention_required: boolean;
+            /**
+             * Completed At
+             * Format: date-time
+             */
+            completed_at: string;
+            /** Display Filename */
+            display_filename: string;
+            /** Extraction State */
+            extraction_state: string;
+            /** Id */
+            id: string;
+            /** Metadata Review Pending */
+            metadata_review_pending: boolean;
+            profile: components["schemas"]["ProfileRead"] | null;
+            /** Record Id */
+            record_id: string | null;
+            /** Report Date */
+            report_date: string | null;
+            /** Review State */
+            review_state: string;
+            /**
+             * Source Channel
+             * @enum {string}
+             */
+            source_channel: "direct_file" | "camera";
+            /**
+             * Source Label
+             * @enum {string}
+             */
+            source_label: "File upload" | "Camera capture";
+        };
+        /** FeedRead */
+        FeedRead: {
+            /** Items */
+            items: components["schemas"]["FeedItemRead"][];
+            /** Next Cursor */
+            next_cursor: string | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1446,6 +1507,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ExtractionJobRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_feed_feed_get: {
+        parameters: {
+            query?: {
+                order?: "upload_date" | "report_date";
+                profile_id?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedRead"];
                 };
             };
             /** @description Validation Error */

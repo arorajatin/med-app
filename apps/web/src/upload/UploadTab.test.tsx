@@ -160,6 +160,7 @@ describe("UploadTab", () => {
         onUnauthenticated={vi.fn()}
       />,
     );
+    await userEvent.click(screen.getByRole("tab", { name: "Upload" }));
     await selectProfile();
     await selectFiles(photo("page.png"));
     await screen.findByRole("img");
@@ -315,6 +316,7 @@ describe("UploadTab", () => {
         onUnauthenticated={vi.fn()}
       />,
     );
+    await userEvent.click(screen.getByRole("tab", { name: "Upload" }));
     await selectProfile();
     await userEvent.click(screen.getByRole("button", { name: "Use camera" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(

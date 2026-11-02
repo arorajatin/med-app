@@ -7,12 +7,12 @@ Browse upload-complete reports through dynamic person, month, and trusted-condit
 ## Journey
 
 1. The account manager opens Drive.
-2. If `self` is the only profile, Drive selects it automatically.
-3. If multiple profiles exist, the account manager first selects one person.
-4. Within that person, the account manager chooses:
+2. Drive defaults to All Family, including completed reports with resolved assignment across every owned family profile.
+3. The account manager can select one family member, using the same All Family/member choices as Feed.
+4. Within the selected family view, the account manager chooses:
    - organize by month; or
    - organize by condition.
-5. Opening a group lists reports sorted by trusted report date descending.
+5. Opening a group lists reports sorted by trusted report date descending, with each report identifying its family member. Changing the family view preserves the organization choice and clears the previous group’s results.
 6. Opening a report leads to its detail, observations, review, download, rename, and delete actions as available.
 
 ## Dynamic groups
@@ -31,4 +31,4 @@ Drive shows the current report display filename. A user rename takes precedence 
 
 ## Exclusions
 
-Incomplete uploads and reports needing profile assignment do not appear in a profile's Drive.
+Incomplete uploads and reports without resolved assignment do not appear in either All Family or an individual member’s Drive. Completed uploads awaiting assignment remain accessible in Feed’s All Family view.

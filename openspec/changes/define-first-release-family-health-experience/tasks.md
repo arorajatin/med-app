@@ -61,13 +61,13 @@ The checkbox definitions below are the canonical implementation checklist. Use t
 
 ## 5. Feed, Drive, and Report Management
 
-- [ ] 5.1 Implement account-wide Feed queries for upload-complete records, including resolved and attention-required items plus processing state.
-- [ ] 5.2 Implement stable newest-first upload-date and trusted-report-date ordering, undated placement, tie-breaking, and cursor pagination.
-- [ ] 5.3 Implement Drive profile selection and virtual month, undated, trusted-condition, and uncategorized projections under the [organization contract](specs/record-organization/spec.md), without duplicating files.
+- [x] 5.1 Implement All Family and owned-family-member Feed queries for upload-complete records, including processing state and attention-required items, with unresolved assignments visible in All Family only.
+- [x] 5.2 Implement stable newest-first upload-date and trusted-report-date ordering, undated placement, tie-breaking, and cursor pagination bound to the selected family view and date order.
+- [ ] 5.3 Implement Drive All Family and owned-family-member selection and virtual month, undated, trusted-condition, and uncategorized projections under the [organization contract](specs/record-organization/spec.md), without duplicating files.
 - [ ] 5.4 Implement user display-name rename while preserving original filename and object identity.
 - [ ] 5.5 Implement authorized private download without public URLs or storage-key disclosure.
 - [ ] 5.6 Implement immediate report tombstoning, work cancellation, derived-data invalidation, idempotent private-object purge, and non-PHI citation tombstones.
-- [ ] 5.7 Add Feed inclusion/order/pagination, Drive grouping, rename, download, delete, cleanup retry, citation tombstone, and two-account isolation tests for every Feed, organization, and report-management requirement.
+- [ ] 5.7 Add Feed inclusion/family-view/order/pagination, Drive family-view/grouping, rename, download, delete, cleanup retry, citation tombstone, and two-account isolation tests for every Feed, organization, and report-management requirement.
 
 ## 6. Provider-Neutral Conversational Assistant
 
@@ -113,7 +113,7 @@ The checkbox definitions below are the canonical implementation checklist. Use t
 - [x] 10.7 Add a profile health-context read endpoint and show the latest recorded age and weight with their reported dates on a resumed session, including the non-blocking refresh prompt.
 - [x] 10.8 Implement family-profile creation and browsing screens.
 - [x] 10.9 Implement every upload mode and its error states, including direct file, camera capture, ordered multi-image documents, and size and type rejections.
-- [ ] 10.10 Implement Feed, pending-assignment resolution, and processing state.
+- [x] 10.10 Implement Feed with All Family and individual member views, pagination reset on view changes, upload handoff to All Family, pending-assignment resolution, and processing state.
 - [ ] 10.11 Implement the review screens with exact source display, including document metadata, prescription candidates, and documented-condition `confirm`, `edit`, or `ignore`.
 - [ ] 10.12 Implement observation retrieval and correction, Drive projections, and report rename, download, and delete.
 - [ ] 10.13 Implement Chat with retained history, personal and external citation attribution, and profile selection.

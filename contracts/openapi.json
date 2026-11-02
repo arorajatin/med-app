@@ -745,6 +745,137 @@
         "title": "ExtractionRead",
         "type": "object"
       },
+      "FeedItemRead": {
+        "properties": {
+          "assignment_state": {
+            "title": "Assignment State",
+            "type": "string"
+          },
+          "attention_required": {
+            "title": "Attention Required",
+            "type": "boolean"
+          },
+          "completed_at": {
+            "format": "date-time",
+            "title": "Completed At",
+            "type": "string"
+          },
+          "display_filename": {
+            "title": "Display Filename",
+            "type": "string"
+          },
+          "extraction_state": {
+            "title": "Extraction State",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "metadata_review_pending": {
+            "title": "Metadata Review Pending",
+            "type": "boolean"
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProfileRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Id"
+          },
+          "report_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Report Date"
+          },
+          "review_state": {
+            "title": "Review State",
+            "type": "string"
+          },
+          "source_channel": {
+            "enum": [
+              "direct_file",
+              "camera"
+            ],
+            "title": "Source Channel",
+            "type": "string"
+          },
+          "source_label": {
+            "enum": [
+              "File upload",
+              "Camera capture"
+            ],
+            "title": "Source Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "record_id",
+          "profile",
+          "display_filename",
+          "source_channel",
+          "source_label",
+          "completed_at",
+          "report_date",
+          "assignment_state",
+          "extraction_state",
+          "review_state",
+          "metadata_review_pending",
+          "attention_required"
+        ],
+        "title": "FeedItemRead",
+        "type": "object"
+      },
+      "FeedRead": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/FeedItemRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "FeedRead",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -2565,6 +2696,97 @@
           }
         },
         "summary": "Run Job"
+      }
+    },
+    "/feed": {
+      "get": {
+        "operationId": "get_feed_feed_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "order",
+            "required": false,
+            "schema": {
+              "default": "upload_date",
+              "enum": [
+                "upload_date",
+                "report_date"
+              ],
+              "title": "Order",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "profile_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Profile Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Feed"
       }
     },
     "/health": {
