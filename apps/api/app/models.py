@@ -598,3 +598,48 @@ class AppointmentReview(Base):
     )
     stars: Mapped[int] = mapped_column(Integer, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class StorageCleanupIntent(Base):
+    """Durable compensation recorded before an external upload can create an object."""
+
+    __tablename__ = "storage_cleanup_intents"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
+    account_id: Mapped[str] = mapped_column(ForeignKey("accounts.id"), index=True, nullable=False)
+    object_key: Mapped[str] = mapped_column(String(700), unique=True, nullable=False)
+    storage_bucket: Mapped[str] = mapped_column(String(120), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    reconcile_after: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    state: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
+
+
+# Every account-bearing parent link must agree with the child's account_id.
+# RLS checks who owns the child; these constraints also prevent a child from
+# pointing at another account's profile, source, evidence, or review row.
+for _table in Base.metadata.tables.values():
+    if "account_id" not in _table.c:
+        continue
+    if not any(tuple(index.columns.keys()) == ("id", "account_id") for index in _table.indexes):
+        Index(f"uq_{_table.name}_id_account", _table.c.id, _table.c.account_id, unique=True)
+    for _foreign_key in list(_table.foreign_keys):
+        _parent = _foreign_key.column.table
+        _column = _foreign_key.parent.name
+        if (
+            "account_id" not in _parent.c
+            or _foreign_key.constraint is None
+            or len(_foreign_key.constraint.columns) != 1
+        ):
+            continue
+        if any(
+            tuple(constraint.columns.keys()) == (_column, "account_id")
+            for constraint in _table.foreign_key_constraints
+        ):
+            continue
+        _table.append_constraint(
+            ForeignKeyConstraint(
+                [_column, "account_id"],
+                [f"{_parent.name}.id", f"{_parent.name}.account_id"],
+                name=f"fk_owner_{_table.name}_{_column}"[:63],
+            )
+        )

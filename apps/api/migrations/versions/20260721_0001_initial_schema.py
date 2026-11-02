@@ -6,6 +6,7 @@ Create Date: 2026-07-21
 """
 
 from collections.abc import Sequence
+from pathlib import Path
 
 import sqlalchemy as sa
 from alembic import op
@@ -14,6 +15,231 @@ revision: str = "20260721_0001"
 down_revision: str | Sequence[str] | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
+
+
+# Frozen ownership graph for this undeployed baseline.
+ACCOUNT_TABLES = (
+    "appointment_checklist_items",
+    "appointment_reviews",
+    "appointments",
+    "auth_identities",
+    "document_metadata_candidates",
+    "document_metadata_reviews",
+    "extraction_attempts",
+    "extraction_jobs",
+    "ingestion_assignments",
+    "ingestion_parts",
+    "ingestions",
+    "medical_records",
+    "memory_candidate_reviews",
+    "memory_candidates",
+    "memory_facts",
+    "metric_observations",
+    "patient_evidence",
+    "profile_aliases",
+    "profile_health_context",
+    "profiles",
+    "source_references",
+    "storage_cleanup_intents",
+)
+OWNERSHIP_LINKS = (
+    (
+        "appointment_checklist_items",
+        "fk_owner_appointment_checklist_items_appointment_id",
+        "appointment_id",
+        "appointments",
+    ),
+    (
+        "appointment_checklist_items",
+        "fk_owner_appointment_checklist_items_profile_id",
+        "profile_id",
+        "profiles",
+    ),
+    (
+        "appointment_checklist_items",
+        "fk_owner_appointment_checklist_items_source_fact_id",
+        "source_fact_id",
+        "memory_facts",
+    ),
+    (
+        "appointment_reviews",
+        "fk_owner_appointment_reviews_appointment_id",
+        "appointment_id",
+        "appointments",
+    ),
+    ("appointment_reviews", "fk_owner_appointment_reviews_profile_id", "profile_id", "profiles"),
+    ("appointments", "fk_owner_appointments_profile_id", "profile_id", "profiles"),
+    (
+        "document_metadata_candidates",
+        "fk_owner_document_metadata_candidates_attempt_id",
+        "attempt_id",
+        "extraction_attempts",
+    ),
+    (
+        "document_metadata_candidates",
+        "fk_owner_document_metadata_candidates_ingestion_id",
+        "ingestion_id",
+        "ingestions",
+    ),
+    (
+        "document_metadata_candidates",
+        "fk_owner_document_metadata_candidates_profile_id",
+        "profile_id",
+        "profiles",
+    ),
+    (
+        "document_metadata_candidates",
+        "fk_owner_document_metadata_candidates_record_id",
+        "record_id",
+        "medical_records",
+    ),
+    (
+        "document_metadata_reviews",
+        "fk_owner_document_metadata_reviews_candidate_id",
+        "candidate_id",
+        "document_metadata_candidates",
+    ),
+    (
+        "document_metadata_reviews",
+        "fk_owner_document_metadata_reviews_reviewer_identity_id",
+        "reviewer_identity_id",
+        "auth_identities",
+    ),
+    ("extraction_attempts", "fk_owner_extraction_attempts_job_id", "job_id", "extraction_jobs"),
+    ("extraction_jobs", "fk_owner_extraction_jobs_ingestion_id", "ingestion_id", "ingestions"),
+    (
+        "ingestion_parts",
+        "fk_owner_ingestion_parts_actor_identity_id",
+        "actor_identity_id",
+        "auth_identities",
+    ),
+    ("ingestion_parts", "fk_owner_ingestion_parts_ingestion_id", "ingestion_id", "ingestions"),
+    (
+        "ingestions",
+        "fk_owner_ingestions_provisional_profile_id",
+        "provisional_profile_id",
+        "profiles",
+    ),
+    (
+        "ingestions",
+        "fk_owner_ingestions_resolved_by_identity_id",
+        "resolved_by_identity_id",
+        "auth_identities",
+    ),
+    ("ingestions", "fk_owner_ingestions_resolved_profile_id", "resolved_profile_id", "profiles"),
+    ("medical_records", "fk_owner_medical_records_ingestion_id", "ingestion_id", "ingestions"),
+    ("medical_records", "fk_owner_medical_records_profile_id", "profile_id", "profiles"),
+    (
+        "memory_candidate_reviews",
+        "fk_owner_memory_candidate_reviews_candidate_id",
+        "candidate_id",
+        "memory_candidates",
+    ),
+    (
+        "memory_candidate_reviews",
+        "fk_owner_memory_candidate_reviews_reviewer_identity_id",
+        "reviewer_identity_id",
+        "auth_identities",
+    ),
+    (
+        "memory_candidates",
+        "fk_owner_memory_candidates_attempt_id",
+        "attempt_id",
+        "extraction_attempts",
+    ),
+    ("memory_candidates", "fk_owner_memory_candidates_ingestion_id", "ingestion_id", "ingestions"),
+    ("memory_candidates", "fk_owner_memory_candidates_profile_id", "profile_id", "profiles"),
+    ("memory_candidates", "fk_owner_memory_candidates_record_id", "record_id", "medical_records"),
+    (
+        "memory_facts",
+        "fk_owner_memory_facts_attested_by_identity_id",
+        "attested_by_identity_id",
+        "auth_identities",
+    ),
+    ("memory_facts", "fk_owner_memory_facts_profile_id", "profile_id", "profiles"),
+    (
+        "memory_facts",
+        "fk_owner_memory_facts_source_candidate_id",
+        "source_candidate_id",
+        "memory_candidates",
+    ),
+    (
+        "memory_facts",
+        "fk_owner_memory_facts_source_record_id",
+        "source_record_id",
+        "medical_records",
+    ),
+    (
+        "memory_facts",
+        "fk_owner_memory_facts_source_reference_id",
+        "source_reference_id",
+        "source_references",
+    ),
+    ("memory_facts", "fk_owner_memory_facts_superseded_by_id", "superseded_by_id", "memory_facts"),
+    (
+        "metric_observations",
+        "fk_owner_metric_observations_attempt_id",
+        "attempt_id",
+        "extraction_attempts",
+    ),
+    (
+        "metric_observations",
+        "fk_owner_metric_observations_ingestion_id",
+        "ingestion_id",
+        "ingestions",
+    ),
+    ("metric_observations", "fk_owner_metric_observations_profile_id", "profile_id", "profiles"),
+    (
+        "metric_observations",
+        "fk_owner_metric_observations_record_id",
+        "record_id",
+        "medical_records",
+    ),
+    (
+        "metric_observations",
+        "fk_owner_metric_observations_superseded_by_id",
+        "superseded_by_id",
+        "metric_observations",
+    ),
+    (
+        "patient_evidence",
+        "fk_owner_patient_evidence_attempt_id",
+        "attempt_id",
+        "extraction_attempts",
+    ),
+    ("patient_evidence", "fk_owner_patient_evidence_ingestion_id", "ingestion_id", "ingestions"),
+    (
+        "profile_health_context",
+        "fk_owner_profile_health_context_profile_id",
+        "profile_id",
+        "profiles",
+    ),
+    (
+        "source_references",
+        "fk_owner_source_references_memory_candidate_id",
+        "memory_candidate_id",
+        "memory_candidates",
+    ),
+    (
+        "source_references",
+        "fk_owner_source_references_metadata_candidate_id",
+        "metadata_candidate_id",
+        "document_metadata_candidates",
+    ),
+    (
+        "source_references",
+        "fk_owner_source_references_metric_observation_id",
+        "metric_observation_id",
+        "metric_observations",
+    ),
+    ("source_references", "fk_owner_source_references_part_id", "part_id", "ingestion_parts"),
+    (
+        "source_references",
+        "fk_owner_source_references_patient_evidence_id",
+        "patient_evidence_id",
+        "patient_evidence",
+    ),
+)
 
 
 def upgrade() -> None:
@@ -931,10 +1157,46 @@ def upgrade() -> None:
     op.create_index(
         "ix_ingestion_assignments_ingestion_id", "ingestion_assignments", ["ingestion_id"]
     )
+    op.create_table(
+        "storage_cleanup_intents",
+        sa.Column("id", sa.String(), primary_key=True),
+        sa.Column("account_id", sa.String(), sa.ForeignKey("accounts.id"), nullable=False),
+        sa.Column("object_key", sa.String(700), nullable=False, unique=True),
+        sa.Column("storage_bucket", sa.String(120), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("reconcile_after", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("state", sa.String(20), nullable=False),
+    )
+    op.create_index(
+        "ix_storage_cleanup_intents_account_id", "storage_cleanup_intents", ["account_id"]
+    )
+    op.create_index(
+        "ix_storage_cleanup_intents_reconcile_after", "storage_cleanup_intents", ["reconcile_after"]
+    )
+    for table in ACCOUNT_TABLES:
+        if table not in ("profiles", "auth_identities", "ingestions", "extraction_attempts"):
+            op.create_index(f"uq_{table}_id_account", table, ["id", "account_id"], unique=True)
+    for table, name, column, parent in OWNERSHIP_LINKS:
+        with op.batch_alter_table(table) as batch:
+            batch.create_foreign_key(name, parent, [column, "account_id"], ["id", "account_id"])
+    if op.get_context().dialect.name == "postgresql":
+        boundary_sql = (
+            Path(__file__).resolve().parent.parent / "sql" / "20260721_private_boundary.sql"
+        )
+        op.execute(boundary_sql.read_text())
     # ### end Alembic commands ###
 
 
 def downgrade() -> None:
+    if op.get_context().dialect.name == "postgresql":
+        op.execute("DROP SCHEMA IF EXISTS med_app_private CASCADE")
+    for table, name, _column, _parent in reversed(OWNERSHIP_LINKS):
+        with op.batch_alter_table(table) as batch:
+            batch.drop_constraint(name, type_="foreignkey")
+    for table in ACCOUNT_TABLES:
+        if table not in ("profiles", "auth_identities", "ingestions", "extraction_attempts"):
+            op.drop_index(f"uq_{table}_id_account", table_name=table)
+    op.drop_table("storage_cleanup_intents")
     # ### commands auto generated by Alembic - please adjust! ###
     op.drop_table("ingestion_assignments")
     op.drop_table("profile_aliases")

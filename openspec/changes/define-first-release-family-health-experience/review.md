@@ -30,7 +30,7 @@ Feed review: working-tree changes against exact commit `cb664196041ab958a8c59b5e
 
 ## Resume From
 
-- Continue with observations, review, records, and Drive: tasks 4.3-4.10, 5.3-5.7, 7.2, and 10.11-10.12. Feed tasks 5.1, 5.2, and 10.10 are complete; pending metadata and medical-memory review are displayed separately while review editing remains outstanding. The application has not been deployed: amend the sole `20260721_0001` baseline for schema changes until the first deployment, and bootstrap an empty database before startup.
+- Continue with observations, review, records, and Drive: tasks 4.3-4.10, 5.3-5.7, 7.2, and 10.11-10.12. Feed tasks 5.1, 5.2, and 10.10 are complete; pending metadata and medical-memory review are displayed separately while review editing remains outstanding. Baseline `20260721_0001` was deployed to the hosted Supabase project on 2026-09-18 and is now frozen: add forward migrations for all further schema changes, and bootstrap an empty database before startup.
 - Hosted CI and GitHub billing are excluded at the user's request. The previously recorded account lock remains outstanding release evidence; no hosted run was requested for this milestone.
 - Note that `on.push` is limited to `master`, so pushing a feature branch runs nothing. Use `gh workflow run ci.yml --ref <branch>` or open a pull request.
 - Disable the email provider in the Supabase project as defence in depth. The API already refuses every upstream method except Google with a 403 before an account exists, so this is hardening rather than a correctness gap.

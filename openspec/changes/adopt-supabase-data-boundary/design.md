@@ -1,12 +1,12 @@
 ## Context
 
-The current service verifies Supabase JWTs but uses a process-wide SQLAlchemy session factory and `LocalPrivateStorage`. Application queries filter by `user_id`, which is necessary but does not protect against a missed filter or direct database access. The first-release plan adds account-owned authenticated web-upload, provenance, extraction, and deletion records plus transient AWS OCR objects. All of those paths need a single production boundary with an explicit India-residency and lifecycle contract.
+The current service verifies Supabase JWTs but uses a process-wide SQLAlchemy session factory and `LocalPrivateStorage`. Application queries filter by `user_id`, which is necessary but does not protect against a missed filter or direct database access. The first-release plan adds account-owned authenticated web-upload, provenance, extraction, and deletion records plus transient AWS OCR objects. All of those paths need a single production boundary with an explicit Singapore Supabase residency and lifecycle contract.
 
 ## Goals / Non-Goals
 
 **Goals:**
 
-- Use Supabase Postgres and private Storage in `ap-south-1` (Mumbai) for all application-controlled production medical data.
+- Use Supabase Postgres and private Storage in `ap-southeast-1` (Singapore) for all application-controlled production medical data.
 - Enforce account ownership at both application and data layers for user requests and background work.
 - Keep storage keys stable across patient assignment and reassignment.
 - Protect authenticated web-upload ownership, workload credentials, provider identifiers, and signed object access.
@@ -22,11 +22,11 @@ The current service verifies Supabase JWTs but uses a process-wide SQLAlchemy se
 
 ## Decisions
 
-### Pin production data services to Mumbai
+### Pin production data services to Singapore
 
-The production Supabase project and every private Storage bucket used by the application must be provisioned in `ap-south-1` (Mumbai). Deployment configuration records the expected project reference and region; startup and deployment preflight fail closed if either is missing, mismatched, or unverifiable. Production must not fall back to SQLite, local files, a different Supabase project, or another region.
+The production Supabase project and every private Storage bucket used by the application must be provisioned in `ap-southeast-1` (Singapore). Deployment configuration records the expected project reference and region; startup and deployment preflight fail closed if either is missing, mismatched, or unverifiable. Production must not fall back to SQLite, local files, a different Supabase project, or another region.
 
-Textract input/output, SNS topics, and SQS queues also reside in AWS `ap-south-1`. S3 buckets block public access, require TLS, use customer-managed KMS keys, and reject access outside named workload roles. SNS/SQS encryption uses customer-managed keys, and messages contain only opaque internal IDs and object references—never document bytes, extracted text, account contact data, or patient data.
+The existing extraction plan places Textract input/output, SNS topics, and SQS queues in AWS `ap-south-1`. S3 buckets block public access, require TLS, use customer-managed KMS keys, and reject access outside named workload roles. SNS/SQS encryption uses customer-managed keys, and messages contain only opaque internal IDs and object references—never document bytes, extracted text, account contact data, or patient data.
 
 ### Build on versioned migrations
 
@@ -80,7 +80,7 @@ After purge, the queue worker may retain only its bounded non-PHI job/idempotenc
 
 ### Gate rollout by capability
 
-Production persistence/private storage and production extraction have independent deployment-readiness gates. The base data path cannot deploy until migrations are current, the Supabase region/project attestation passes, RLS and storage isolation tests pass, encryption keys are configured, and backup/restore and deletion reconciliation are verified. Extraction additionally requires Mumbai staging/queues, provider privacy approval, and Bedrock zero-data-retention eligibility. A failed preflight blocks the affected deployment rather than routing to a local, mock, cross-region, direct-to-storage, or privileged fallback.
+Production persistence/private storage and production extraction have independent deployment-readiness gates. The base data path cannot deploy until migrations are current, the Supabase region/project attestation passes, RLS and storage isolation tests pass, encryption keys are configured, and backup/restore and deletion reconciliation are verified. Extraction additionally requires a reviewed staging/queue region, provider privacy approval, and Bedrock zero-data-retention eligibility. A failed preflight blocks the affected deployment rather than routing to a local, mock, cross-region, direct-to-storage, or privileged fallback.
 
 ## Risks / Trade-offs
 
@@ -93,10 +93,14 @@ Production persistence/private storage and production extraction have independen
 
 ## Migration Plan
 
-1. Provision disposable and production Supabase projects in Mumbai plus private buckets, non-bypass roles, KMS keys, and Mumbai Textract staging resources.
-2. Amend the undeployed baseline for account ownership, web-ingestion/provenance tables, RLS policies, stable object metadata, deletion jobs, and retention indexes; add forward migrations only after the first deployment.
+1. Provision disposable and production Supabase projects in Singapore plus private buckets and non-bypass roles; separately review AWS extraction region and KMS/staging resources before enabling extraction.
+2. Add account ownership, web-ingestion/provenance tables, RLS policies, stable object metadata, deletion jobs, and retention indexes. The upload/storage baseline was deployed on 2026-09-18; the remaining items use forward migrations.
 3. Create every source with account and ingestion identifiers; write files to stable keys and verify byte counts and checksums before storing references.
 4. Exercise two-account request and worker access, authenticated API-mediated uploads, signed reads, forward/rollback migrations, provider staging, and deletion reconciliation in non-production.
 5. Enable the base data boundary, then extraction, only after their respective [capability gates](#gate-rollout-by-capability) pass.
 
-Rollback disables new entry points and provider dispatch but preserves the Mumbai Supabase data boundary and continues deletion cleanup. Once production data exists in Supabase, rollback must not return to SQLite/local files, relax RLS, reuse profile-bearing keys, or restore purged content.
+Rollback disables new entry points and provider dispatch but preserves the Singapore Supabase data boundary and continues deletion cleanup. Once production data exists in Supabase, rollback must not return to SQLite/local files, relax RLS, reuse profile-bearing keys, or restore purged content.
+
+## 2026-09-18 upload test scope
+
+The user selected the existing Singapore (`ap-southeast-1`) Supabase project for durable DB and Storage. This supersedes the earlier Mumbai Supabase requirement. Production extraction remains disabled; its Mumbai-only AWS/provider assumptions require a separate review before any document is sent for extraction. Hosted verification uses synthetic fixtures and must not fabricate production backup/restore or encryption evidence.

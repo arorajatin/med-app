@@ -49,6 +49,12 @@ Start the backend first, from the repository root:
 uv run --package med-app-backend uvicorn app.main:app --reload
 ```
 
+To test hosted DB and Storage with the local web client, follow
+[the Supabase setup guide](../../infra/supabase/README.md), then run
+`uv run --frozen --package med-app-backend python scripts/dev.py --hosted-data --env-file .context/supabase/runtime/runtime.env`
+from the root. This mode checks the hosted boundary before starting and never runs hosted migrations.
+Saved uploads appear in All Family as queued; production extraction is a separate release.
+
 Useful checks:
 
 ```bash

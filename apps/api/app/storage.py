@@ -2,6 +2,7 @@ import re
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
+from typing import Protocol
 from uuid import uuid4
 
 from fastapi import UploadFile
@@ -19,6 +20,20 @@ class StoredFile:
     mime_type: str
     filename: str
     sha256: str
+
+
+class PrivateStorage(Protocol):
+    async def save_upload(
+        self, *, account_id: str, ingestion_id: str, part_id: str, upload: UploadFile
+    ) -> StoredFile: ...
+
+    def save_raw_output(
+        self, *, account_id: str, ingestion_id: str, attempt_id: str, payload: bytes
+    ) -> tuple[str, str]: ...
+
+    def read_bytes(self, object_key: str) -> bytes: ...
+
+    def delete_object(self, object_key: str) -> None: ...
 
 
 class LocalPrivateStorage:

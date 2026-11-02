@@ -14,7 +14,7 @@ from app.ai.normalization import validate_extraction
 from app.ai.source_layout import ExtractionValidationError, native_layout
 from app.services.common import recalculate_review_state
 from app.services.ingestions import automatic_assignment, latest_successful_attempt
-from app.storage import LocalPrivateStorage
+from app.storage import PrivateStorage
 
 
 def create_extraction_job(
@@ -40,7 +40,7 @@ def run_extraction_job(
     db: Session,
     *,
     job_id: str,
-    storage: LocalPrivateStorage,
+    storage: PrivateStorage,
     extractor: Extractor,
 ) -> models.ExtractionJob:
     job = db.query(models.ExtractionJob).filter(models.ExtractionJob.id == job_id).one_or_none()
@@ -203,7 +203,7 @@ def retry_extraction_job(
     db: Session,
     *,
     job: models.ExtractionJob,
-    storage: LocalPrivateStorage,
+    storage: PrivateStorage,
     extractor: Extractor,
 ) -> models.ExtractionJob:
     job.status = "queued"

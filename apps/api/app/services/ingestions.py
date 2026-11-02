@@ -65,7 +65,7 @@ def resolve_ingestion_assignment(
 def latest_successful_attempt(db: Session, *, ingestion_id: str) -> models.ExtractionAttempt | None:
     return (
         db.query(models.ExtractionAttempt)
-        .join(models.ExtractionJob)
+        .join(models.ExtractionJob, models.ExtractionAttempt.job_id == models.ExtractionJob.id)
         .filter(
             models.ExtractionJob.ingestion_id == ingestion_id,
             models.ExtractionAttempt.status == "ready",

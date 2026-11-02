@@ -7,7 +7,9 @@ from app.main import create_app
 
 DEFAULT_TEST_ENV = {
     "ENVIRONMENT": "test",
+    "DATA_BACKEND": "local",
     "DEV_AUTH_ENABLED": "true",
+    "EXTRACTION_PROVIDER": "mock",
     "EXTRACTION_RUN_INLINE": "true",
 }
 
