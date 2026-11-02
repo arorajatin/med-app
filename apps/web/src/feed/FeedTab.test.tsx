@@ -682,6 +682,46 @@ describe("Feed", () => {
     expect(screen.queryByText("Report uploaded")).not.toBeInTheDocument();
   });
 
+  it("stays on the current tab when an upload finishes in the background", async () => {
+    mockApi({
+      "GET /profiles": [SELF_PROFILE],
+      "GET /feed?order=upload_date&limit=20&profile_id=profile_1": {
+        items: [], next_cursor: null,
+      },
+      "GET /feed?order=upload_date&limit=20": { items: [ITEM], next_cursor: null },
+    });
+    const xhrs = await uploadFromShell();
+    await userEvent.click(screen.getByRole("tab", { name: "Drive" }));
+    await act(async () => xhrs[0]!.respond());
+    expect(screen.getByRole("tab", { name: "Drive" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await userEvent.click(screen.getByRole("tab", { name: "Upload" }));
+    expect(await screen.findByText("Report uploaded")).toBeInTheDocument();
+  });
+
+  it("keeps an open report when an upload finishes in the background", async () => {
+    mockApi({
+      "GET /profiles": [SELF_PROFILE],
+      "GET /feed?order=upload_date&limit=20&profile_id=profile_1": {
+        items: [ITEM], next_cursor: null,
+      },
+      "GET /feed?order=upload_date&limit=20": { items: [ITEM], next_cursor: null },
+      "GET /ingestions/ingestion_1/extraction": extraction(),
+    });
+    const xhrs = await uploadFromShell();
+    await userEvent.click(screen.getByRole("tab", { name: "Feed" }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Open report.pdf" }),
+    );
+    await screen.findByRole("button", { name: "← Back to Feed" });
+    await act(async () => xhrs[0]!.respond());
+    expect(
+      screen.getByRole("button", { name: "← Back to Feed" }),
+    ).toBeInTheDocument();
+  });
+
   it("asks for an assignment only once the patient match has settled", async () => {
     mockApi({
       "GET /profiles": [SELF_PROFILE],
