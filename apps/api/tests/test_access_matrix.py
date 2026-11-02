@@ -31,6 +31,7 @@ UPLOAD_ROUTES = {
 }
 
 ACCOUNT_SCOPED_ROUTES = {
+    ("GET", "/feed"),
     ("GET", "/account"),
     ("GET", "/account/onboarding"),
     ("PUT", "/account/onboarding/self-profile"),
@@ -309,6 +310,7 @@ def test_account_scoped_routes_return_only_the_callers_own_data(client, owner_wo
 
     listed = client.get("/profiles", headers=auth(INTRUDER)).json()
     assert [profile["id"] for profile in listed] == [intruder_profile["id"]]
+    assert client.get("/feed", headers=auth(INTRUDER)).json()["items"] == []
 
     onboarding = client.get("/account/onboarding", headers=auth(INTRUDER)).json()
     assert onboarding["self_profile"]["id"] == intruder_profile["id"]

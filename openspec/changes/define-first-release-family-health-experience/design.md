@@ -1,6 +1,6 @@
 ## Context
 
-The backend resides in `apps/api`, while the V1 user interface resides in `apps/web`. It maps authenticated identities to application accounts, derives onboarding progress from account-owned profile data, stages authenticated logical-document uploads, creates extraction jobs, and rebuilds memory from trusted facts. Aggregate Feed, dynamic Drive, conversations, private download, and record deletion remain pending. Native clients are deferred to separate V2 changes and their future `apps/ios` and `apps/android` homes are not scaffolded in V1.
+The backend resides in `apps/api`, while the V1 user interface resides in `apps/web`. It maps authenticated identities to application accounts, derives onboarding progress from account-owned profile data, stages authenticated logical-document uploads, creates extraction jobs, and rebuilds memory from trusted facts. Feed with All Family and individual family-member views and pending-assignment screens are implemented; dynamic Drive, conversations, private download, and record deletion remain pending. Native clients are deferred to separate V2 changes and their future `apps/ios` and `apps/android` homes are not scaffolded in V1.
 
 Baseline commit `8a1e0bd662cc231532c5b91248819e9294c4f8cb` adds a fail-closed condition-safety boundary. The built-in mock may persist only the closed set of baseline non-condition fields; every condition-shaped or unknown field, every field from another extractor implementation, and unrestricted provider raw output are omitted before persistence. Extraction, review, memory, and appointment reads expose only that permitted baseline. This is the current safety boundary, not the source-cited `documented_condition_candidate` contract designed below.
 
@@ -54,7 +54,7 @@ AI processing is inherent to the product. Creating an account authorizes documen
 
 ### Stage ingestion before creating a profile-bound report
 
-The document-upload milestone introduces the five-tab web shell in the order Feed, Chat, Upload, Drive, Profile. Completed onboarding and restored completed accounts open Upload while Feed is unimplemented. Feed, Chat, and Drive show placeholders; Profile retains the existing family settings and health-summary edits. Upload drafts remain in memory across tab changes and clear on reload or sign-out. Camera streams stop when capture closes or Upload is hidden. The later Feed milestone restores Feed as the launch destination.
+The five-tab web shell uses the order Feed, Chat, Upload, Drive, Profile. Completed onboarding and restored completed accounts open Feed. Chat and Drive show placeholders; Profile retains the existing family settings and health-summary edits. Upload drafts remain in memory across tab changes and clear on reload or sign-out. Camera streams stop when capture closes or Upload is hidden. A successful upload receipt opens Feed in All Family with upload-date order and highlights the saved report.
 
 The existing baseline `Ingestion` and ordered `IngestionPart` rows jointly retain canonical source provenance; no additional source table or migration is needed for this slice. Source receipt and its queued extraction job commit in one transaction. File type is detected from validated content rather than the browser's MIME header. Optional user display names are bounded to 260 characters and descriptive context to 4,000 characters. Receipt validation returns a safe message and stable `X-Upload-Error-Code` for invalid source content.
 
@@ -73,7 +73,7 @@ Each `IngestionSource` retains account, channel, receipt time, authenticated act
 
 Feed and owned report detail expose the route-stamped source channel. An original upload filename is never treated as the document issuer: issuer, report date, and display-name suggestions are review-required document metadata extracted from the source itself.
 
-Feed eligibility depends only on upload completion. Profile-scoped Drive, observations, memory, and Chat evidence require resolved assignment. This avoids overloading one record status with independent state dimensions.
+All Family Feed eligibility depends only on upload completion. Individual member Feed views, Drive in either family view, observations, memory, and Chat evidence require resolved assignment. This avoids overloading one record status with independent state dimensions.
 
 Use stable account plus ingestion/record object keys, not provisional profile IDs. `adopt-supabase-data-boundary` uses the same stable key contract so assignment and reassignment never move a private object.
 
@@ -135,14 +135,16 @@ The [queue-worker design](../add-queue-backed-extraction-worker/design.md) owns 
 
 ### Build Feed and Drive as account-owned query projections
 
-Feed queries all upload-complete ingestions for the account. It supports:
+Feed and Drive provide the same All Family and owned-family-member selector, defaulting to All Family even for accounts containing only `self`. Feed queries all upload-complete ingestions for the account by default; a member view includes only ingestions resolved to that profile, never provisional upload hints. Both Feed views support:
 
 - upload completion descending; or
 - trusted report date descending, followed by undated items.
 
-Stable IDs break timestamp ties. A completed `needs_assignment` item appears in Feed with an attention state but nowhere profile-scoped.
+Stable IDs break timestamp ties. A completed `needs_assignment` item appears in All Family Feed with an attention state but nowhere profile-scoped or in Drive.
 
-Drive first resolves one profile when the account has multiple profiles, then computes virtual month or trusted-condition groups. It does not create or move storage folders. A condition group uses only a user-attested condition explicitly linked to the report or a confirmed or edited `documented_condition_candidate` extracted from that report. Pending or ignored candidates and conditions merely associated with medication details, lab observations, symptoms, or general knowledge create no group. A report may appear in multiple trusted groups while the source file remains singular.
+`GET /feed` joins completed, available ingestions to owned resolved records and profiles. Optional `profile_id` is checked against account ownership and limits results to resolved assignments to that profile; missing or foreign profiles return the same not-found response. It reads dates and display names from the trusted record projection and exposes pending metadata review separately from memory review. Pagination uses a cursor bound to both order and family view that carries the last item's `(report_date, completed_at, id)` or `(completed_at, id)` position, so a later date change, reassignment, or removal of that item cannot repeat or skip other items or break the next page; malformed cursors and cursors whose item is not an upload owned by the caller return a safe error. Default pages contain 20 items, bounded to 100. Feed and detail refresh every five seconds while visible, discard stale responses, and stop when left. Loaded pages refresh together; returning from detail retains the selected family view, order, and page count. Switching family view resets pagination and clears results from the previous view while preserving date ordering. Member-list failures leave All Family usable with a retry action; an empty member view points to All Family for uploads still awaiting assignment. No new schema or storage path is required.
+
+Drive computes virtual month or trusted-condition groups across resolved reports in the selected family view. All Family includes assigned reports for every owned profile; an individual member view includes only that person’s reports. Each report identifies its family member. Incomplete and unresolved uploads are excluded from both Drive views. Switching family view preserves the organization choice and clears the previous group’s results. It does not create or move storage folders. A condition group uses only a user-attested condition explicitly linked to the report or a confirmed or edited `documented_condition_candidate` extracted from that report. Pending or ignored candidates and conditions merely associated with medication details, lab observations, symptoms, or general knowledge create no group. A report may appear in multiple trusted groups while the source file remains singular.
 
 ### Separate original identity from display naming
 

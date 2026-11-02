@@ -1,7 +1,18 @@
 from datetime import UTC, datetime
 from decimal import Decimal
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+    status,
+)
 from sqlalchemy.orm import Session
 
 from app import models
@@ -29,6 +40,7 @@ from app.schemas import (
     CurrentUser,
     ExtractionJobRead,
     ExtractionRead,
+    FeedRead,
     IngestionUploadResult,
     MedicalRecordRead,
     MemoryRead,
@@ -52,6 +64,7 @@ from app.services.common import (
     require_record,
 )
 from app.services.extraction import create_extraction_job, retry_extraction_job, run_extraction_job
+from app.services.feed import FeedOrder, list_feed
 from app.services.health_context import latest_health_context
 from app.services.ingestions import latest_successful_attempt, resolve_ingestion_assignment
 from app.services.memory import apply_record_review
@@ -383,6 +396,27 @@ async def upload_camera_capture(
         settings=settings,
         storage=storage,
         extractor=extractor,
+    )
+
+
+@router.get("/feed", response_model=FeedRead)
+def get_feed(
+    request: Request,
+    order: FeedOrder = "upload_date",
+    profile_id: Annotated[str | None, Query(min_length=1, max_length=100)] = None,
+    cursor: Annotated[str | None, Query(max_length=500)] = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+    settings: Settings = Depends(get_settings),
+) -> FeedRead:
+    account_id = _account_context(db, user=user, settings=settings).account.id
+    if set(request.query_params) - {"order", "profile_id", "cursor", "limit"}:
+        raise HTTPException(
+            422, "Feed accepts only family view, ordering, and pagination parameters."
+        )
+    return list_feed(
+        db, account_id=account_id, order=order, cursor=cursor, limit=limit, profile_id=profile_id
     )
 
 

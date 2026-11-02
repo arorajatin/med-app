@@ -10,8 +10,8 @@ The current user-journey drafts describe the application's tabs and a partial up
 - Deliver the V1 client from `apps/web` against the backend in `apps/api`; reserve unscaffolded `apps/ios` and `apps/android` homes for separate V2 native-client changes.
 - Require Upload and Chat to begin with a selected family profile while allowing exactly matched extracted patient evidence to select a different existing profile. Ambiguous or unmatched identity remains pending and cannot update metrics or memory.
 - Store literal lab measurements automatically as untrusted, source-linked observations outside medical memory. Require explicit review for document metadata and prescription memory. A `documented_condition_candidate` must cite an affirmative patient-condition statement in the source and requires confirmation or edit before trusted use; V1 never infers conditions.
-- Add a two-mode aggregate Feed ordered by upload date or report date and include only documents whose upload completed.
-- Add person-scoped dynamic Drive organization by month or condition, with date-sorted reports and rename support.
+- Add a Feed with All Family and individual family-member views ordered by upload date or report date and include only documents whose upload completed.
+- Add dynamic Drive (Folder) organization with the same All Family and individual family-member views by month or condition, with date-sorted reports and rename support.
 - Add provider-neutral, profile-scoped Chat grounded in reviewed memory, with conversation history and external-source links when outside information is used.
 - Add authenticated download, display-name rename, and cascading deletion for owned reports and their derived data.
 - Add complete user-journey documents for the first-release app shell and each primary flow.
@@ -32,8 +32,8 @@ This change affects medical-data privacy, AI trust, and account-creation terms. 
 
 - `account-onboarding`: Google signup, account creation, and first-run health context.
 - `metric-observations`: Automatic, auditable storage and retrieval of deterministic report measurements without treating them as reviewed medical memory.
-- `record-feed`: Account-wide completed-upload browsing with upload-date and report-date ordering.
-- `record-organization`: Person-scoped dynamic organization of reports by month or reviewed condition.
+- `record-feed`: All Family and individual family-member completed-upload browsing with upload-date and report-date ordering.
+- `record-organization`: Dynamic organization of assigned reports by month or reviewed condition in All Family or an individual family-member view.
 - `conversational-assistant`: Provider-neutral, profile-scoped conversations grounded in reviewed memory with external-source attribution and retained history.
 
 ### Modified Capabilities

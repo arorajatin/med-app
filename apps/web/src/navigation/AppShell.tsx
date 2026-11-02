@@ -7,6 +7,7 @@ import {
 } from "react";
 import { AccountMenu } from "../components/AccountMenu";
 import { Wordmark } from "../components/BrandMark";
+import { FeedTab } from "../feed/FeedTab";
 import { UploadTab } from "../upload/UploadTab";
 
 const TABS = ["Feed", "Chat", "Upload", "Drive", "Profile"] as const;
@@ -36,12 +37,8 @@ const SECTIONS: Record<Tab, { title: string; lead: string }> = {
   },
 };
 
-/** The three areas whose milestones are still ahead of the upload release. */
-const COMING: Record<"Feed" | "Chat" | "Drive", { headline: string; body: string }> = {
-  Feed: {
-    headline: "The family’s story, as it arrives",
-    body: "Reports will land here the moment they finish uploading, newest first, with whatever still needs a look from you gently marked.",
-  },
+/** Areas whose milestones are still ahead of the Feed release. */
+const COMING: Record<"Chat" | "Drive", { headline: string; body: string }> = {
   Chat: {
     headline: "Ask about one person’s records",
     body: "Pick a family member and ask in plain words. Answers will cite the report they came from, and never mix one person’s history into another’s.",
@@ -63,11 +60,12 @@ export function AppShell({
   onSignOut: () => void;
   onUnauthenticated: () => void;
 }) {
-  const [active, setActive] = useState<Tab>("Upload");
+  const [active, setActive] = useState<Tab>("Feed");
+  const [uploadedId, setUploadedId] = useState<string | null>(null);
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
 
   useEffect(() => {
-    tabs.current[2]?.focus();
+    tabs.current[0]?.focus();
   }, []);
 
   function navigate(event: KeyboardEvent, index: number) {
@@ -81,13 +79,21 @@ export function AppShell({
     event.preventDefault();
     const tab = TABS[next];
     if (!tab) return;
+    setUploadedId(null);
     setActive(tab);
     tabs.current[next]?.focus();
   }
 
   function openUpload() {
+    setUploadedId(null);
     setActive("Upload");
     tabs.current[2]?.focus();
+  }
+
+  function openUploadedReport(ingestionId: string) {
+    setUploadedId(ingestionId);
+    setActive("Feed");
+    tabs.current[0]?.focus();
   }
 
   const section = SECTIONS[active];
@@ -123,7 +129,10 @@ export function AppShell({
               aria-controls={`panel-${tab}`}
               tabIndex={active === tab ? 0 : -1}
               className="text-ink-soft aria-selected:bg-sage-soft aria-selected:text-sage flex cursor-pointer flex-col items-center gap-1 rounded-2xl px-1 py-1.5 text-[0.72rem] font-medium transition-colors hover:text-ink aria-selected:font-semibold lg:flex-row lg:gap-3 lg:rounded-full lg:px-3 lg:py-2 lg:text-[0.95rem]"
-              onClick={() => setActive(tab)}
+              onClick={() => {
+                setUploadedId(null);
+                setActive(tab);
+              }}
               onKeyDown={(event) => navigate(event, index)}
             >
               <span
@@ -167,7 +176,17 @@ export function AppShell({
                 <UploadTab
                   active={active === tab}
                   onUnauthenticated={onUnauthenticated}
+                  onUploaded={openUploadedReport}
                 />
+              ) : tab === "Feed" ? (
+                active === tab ? (
+                  <FeedTab
+                    key={uploadedId}
+                    onOpenUpload={openUpload}
+                    onUnauthenticated={onUnauthenticated}
+                    uploadedId={uploadedId}
+                  />
+                ) : null
               ) : tab === "Profile" ? (
                 active === tab ? (
                   profile
@@ -187,7 +206,7 @@ function Placeholder({
   tab,
   onOpenUpload,
 }: {
-  tab: "Feed" | "Chat" | "Drive";
+  tab: "Chat" | "Drive";
   onOpenUpload: () => void;
 }) {
   const copy = COMING[tab];

@@ -20,9 +20,10 @@ function renderWizard(onUnauthenticated = vi.fn()) {
 }
 
 describe("OnboardingWizard", () => {
-  it("redirects to Upload as soon as the final onboarding step is saved", async () => {
+  it("redirects to Feed as soon as the final onboarding step is saved", async () => {
     let complete = false;
     mockApi({
+      "GET /feed?order=upload_date&limit=20": { items: [], next_cursor: null },
       "GET /account/onboarding": () => ({ body: onboardingState({
         status: complete ? "completed" : "in_progress",
         next_step: complete ? null : "medications",
@@ -44,8 +45,8 @@ describe("OnboardingWizard", () => {
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("checkbox", { name: /no medications/i }));
     await userEvent.click(screen.getByRole("button", { name: "Save and continue" }));
-    expect(await screen.findByRole("heading", { name: "Upload a report" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Upload" })).toHaveAttribute("aria-selected", "true");
+    expect(await screen.findByRole("heading", { name: "Your family’s reports" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Feed" })).toHaveAttribute("aria-selected", "true");
   });
 
   it("resumes at the first step the account has not finished", async () => {
@@ -301,8 +302,9 @@ describe("OnboardingWizard", () => {
     expect(screen.getByText(/61.5 kg · reported .*2026/)).toBeInTheDocument();
   });
 
-  it("opens Upload when every step is complete and keeps the summary under Profile", async () => {
+  it("opens Feed when every step is complete and keeps the summary under Profile", async () => {
     mockApi({
+      "GET /feed?order=upload_date&limit=20": { items: [], next_cursor: null },
       "GET /account/onboarding": onboardingState({
         status: "completed",
         next_step: null,
@@ -316,7 +318,7 @@ describe("OnboardingWizard", () => {
 
     renderWizard();
 
-    expect(await screen.findByRole("heading", { name: "Upload a report" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Your family’s reports" })).toBeInTheDocument();
     expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Feed", "Chat", "Upload", "Drive", "Profile"]);
     expect(screen.queryByRole("navigation", { name: "Onboarding steps" })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("tab", { name: "Profile" }));

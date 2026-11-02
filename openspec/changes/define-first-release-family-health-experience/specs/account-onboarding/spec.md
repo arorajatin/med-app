@@ -62,11 +62,11 @@ The system SHALL state during signup that AI processing is inherent to document 
 - **AND** onboarding SHALL begin with the `self` profile rather than a separate consent step
 
 ### Requirement: Enter the tab interface after onboarding
-A completed account SHALL enter a persistent interface with Feed, Chat, Upload, Drive, and Profile in that order. During the document-upload milestone, Upload SHALL be the initial active tab, Feed/Chat/Drive SHALL identify themselves as coming soon, and Profile SHALL retain existing family settings and health-summary editing.
+A completed account SHALL enter a persistent interface with Feed, Chat, Upload, Drive, and Profile in that order. Feed SHALL be the initial active tab. Chat and Drive SHALL identify themselves as coming soon until their milestones are implemented, and Profile SHALL retain existing family settings and health-summary editing.
 
 #### Scenario: Finish or resume completed onboarding
 - **WHEN** the final required onboarding step completes or a completed account restores its session
-- **THEN** the client SHALL open Upload within the five-tab interface
+- **THEN** the client SHALL open Feed within the five-tab interface
 - **AND** an incomplete account SHALL continue to resume its required onboarding step
 
 #### Scenario: Switch away from an upload draft

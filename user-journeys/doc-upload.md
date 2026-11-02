@@ -20,7 +20,7 @@ Capture one medical report through the authenticated V1 web app, store it privat
 8. The service verifies the account and selected profile, validates the content and product limits, and stamps immutable `direct_file` or `camera` provenance.
 9. The service privately stores every validated source part, and the web app displays upload progress using safe report metadata.
 10. The report becomes upload complete only after every part is durable.
-11. The completed upload becomes eligible for Feed.
+11. The completed upload becomes eligible for Feed; the app opens Feed in All Family with upload-date ordering and highlights the saved report after the API receipt arrives. If the account manager has moved to another tab, the app stays there and Upload shows the receipt on the next visit.
 12. One logical-document extraction begins in the background under the account authorization established at creation, without a per-document processing choice.
 
 Direct-to-storage client uploads are prohibited; authenticated API-mediated web uploads are the supported V1 upload path. Email, inbound aliases, external connectors, and other non-web ingestion paths are outside V1.

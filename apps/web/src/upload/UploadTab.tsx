@@ -20,9 +20,11 @@ interface Page {
 export function UploadTab({
   active,
   onUnauthenticated,
+  onUploaded,
 }: {
   active: boolean;
   onUnauthenticated: () => void;
+  onUploaded?: (ingestionId: string) => void;
 }) {
   const [profiles, setProfiles] = useState<ProfileRead[] | null>(null);
   const [profileId, setProfileId] = useState("");
@@ -44,6 +46,7 @@ export function UploadTab({
   const request = useRef<AbortController | null>(null);
   const previewUrls = useRef(new Set<string>());
   const mounted = useRef(false);
+  const visible = useRef(active);
   const busy = checking || progress !== null;
 
   useEffect(() => {
@@ -56,6 +59,10 @@ export function UploadTab({
       urls.clear();
     };
   }, []);
+
+  useEffect(() => {
+    visible.current = active;
+  }, [active]);
 
   useEffect(() => {
     if (!active) return;
@@ -203,10 +210,14 @@ export function UploadTab({
         controller.signal,
       );
       if (!mounted.current) return;
-      setResult(uploaded);
       clearPages();
       setDisplayFilename("");
       setContext("");
+      // Feed takes over as the receipt only while the person is still watching
+      // the upload. Once they have moved to another tab, pulling them away
+      // would discard what they are doing there, so the receipt waits here.
+      if (onUploaded && visible.current) onUploaded(uploaded.ingestion.id);
+      else setResult(uploaded);
     } catch (cause) {
       if (!mounted.current || controller.signal.aborted) return;
       if (cause instanceof ApiError && cause.status === 401)

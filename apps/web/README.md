@@ -1,8 +1,8 @@
 # Web Client
 
-MediTrail, the V1 web client, supports sign-up, onboarding, family profiles, and document upload. A
-completed account opens a five-tab interface: Feed, Chat, Upload, Drive, and Profile. Upload is the
-initial tab for this milestone; Profile keeps the existing health summary and family settings.
+MediTrail, the V1 web client, supports sign-up, onboarding, family profiles, document upload, and Feed. A
+completed account opens a five-tab interface: Feed, Chat, Upload, Drive, and Profile. Feed is the
+initial tab; Profile keeps the existing health summary and family settings.
 
 ## Stack
 
@@ -120,10 +120,11 @@ service controls source provenance. Clear the document to switch between those i
 The browser sends ordered multipart files to the authenticated API with a current access token.
 It never writes directly to storage. Progress measures transport; upload completion is shown
 only after the API confirms that every source part and its extraction job were saved together.
-The receipt shows upload, extraction, and assignment separately. When inline extraction matches
-another family member, it names that person and explains the changed assignment. The receipt is a
-snapshot; later background changes will be surfaced by the future Feed. Upload drafts survive tab
-switches but are not persisted across reloads or sign-out. Camera streams stop when capture
+The receipt opens Feed in All Family with upload-date ordering and highlights the saved report.
+If the person has already moved to another tab, the app stays put and the receipt waits on Upload.
+Feed shows extraction, assignment, metadata review, and medical-memory review separately. Report
+details explain when assignment differs from the provisional upload profile. Feed and details
+refresh every five seconds while visible. Upload drafts survive tab switches but are not persisted across reloads or sign-out. Camera streams stop when capture
 closes, the tab is hidden, or the account signs out. Camera capture needs browser permission and
 a secure context (HTTPS or localhost); file selection remains available if capture is unavailable.
 
@@ -132,11 +133,27 @@ and 10,000 pixels per image dimension. The API detects the actual file format, p
 images, and rejects encrypted, empty, corrupt, unsupported, and oversized sources. Optional
 report names allow 260 characters and notes allow 4,000. Notes remain separate from source evidence.
 
+## Feed
+
+`GET /feed` lists only completed, available uploads owned by the signed-in account, including
+queued, processing, failed, and unassigned reports in the default All Family view. Choose an
+individual family member to see reports with resolved assignment to that person (`profile_id`);
+provisional upload hints do not place reports in member views. Choose newest-first upload date or
+trusted report date; undated reports appear last in report-date mode. Load more uses a cursor bound
+to both date order and family view. Switching family views resets pagination and keeps date ordering.
+Feed refreshes every loaded page together and stops polling when hidden or signed out.
+
+Open a report to see its processing state, safe source label, upload note, and available patient
+evidence. After successful extraction, an unresolved report requires an explicit family-member
+selection. Assignment alone never confirms medical information. Resolved reports can display
+source-linked unreviewed measurements. Generic extraction failures offer a manual retry; validation
+failures retain their failed state. Metadata and medical-memory review editing remain later work.
+
 ## Known gaps
 
 - Google sign-in was enabled and verified end to end on 2026-09-07. The upload browser smoke
   test uses a synthetic development identity; real-device camera permissions remain a release check.
-- Feed, Drive, and Chat show placeholders. Assignment and review screens belong to later milestones.
+- Drive and Chat show placeholders. Review editing belongs to a later milestone.
 - Exact patient-name and explicit-alias matching work with the local digital-PDF mock. Production
-  OCR remains pending; images produce no patient evidence yet. Alias management and pending
-  assignment are API-only. An upload receipt does not imply reviewed health information.
+  OCR remains pending; images produce no patient evidence yet. Alias management remains API-only.
+  An upload receipt does not imply reviewed health information.

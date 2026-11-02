@@ -201,6 +201,27 @@ class ExtractionJobRead(BaseModel):
     finished_at: datetime | None
 
 
+class FeedItemRead(BaseModel):
+    id: str
+    record_id: str | None
+    profile: ProfileRead | None
+    display_filename: str
+    source_channel: Literal["direct_file", "camera"]
+    source_label: Literal["File upload", "Camera capture"]
+    completed_at: datetime
+    report_date: date | None
+    assignment_state: str
+    extraction_state: str
+    review_state: str
+    metadata_review_pending: bool
+    attention_required: bool
+
+
+class FeedRead(BaseModel):
+    items: list[FeedItemRead]
+    next_cursor: str | None
+
+
 class ExtractionAttemptRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
