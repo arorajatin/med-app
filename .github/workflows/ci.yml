@@ -21,21 +21,18 @@ env:
 jobs:
   backend-quality:
     name: Backend quality
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, macOS, ARM64, med-app]
     steps:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
-      - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
       - name: Set up uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           version: ${{ env.UV_VERSION }}
-          enable-cache: true
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: false
       - name: Verify dependency lock is current
         run: uv lock --check
       - name: Install frozen dependencies
@@ -58,19 +55,16 @@ jobs:
 
   sqlite-migrations:
     name: SQLite migration round trip
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, macOS, ARM64, med-app]
     steps:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
       - name: Set up uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           version: ${{ env.UV_VERSION }}
-          enable-cache: true
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: false
       - name: Verify dependency lock is current
         run: uv lock --check
       - name: Install frozen dependencies
@@ -87,36 +81,38 @@ jobs:
 
   postgres-migrations:
     name: PostgreSQL runtime and migration smoke
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_DB: med_app_test
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_USER: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d med_app_test"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    runs-on: [self-hosted, macOS, ARM64, med-app]
+    # Service containers need a Linux runner, so the job starts PostgreSQL itself
+    # on a free local port and removes it afterwards.
     env:
-      DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5432/med_app_test
       ENVIRONMENT: ci
+      POSTGRES_CONTAINER: med-app-ci-postgres-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
+      - name: Start PostgreSQL
+        run: |
+          docker run --detach --name "$POSTGRES_CONTAINER" \
+            --env POSTGRES_DB=med_app_test \
+            --env POSTGRES_PASSWORD=postgres \
+            --env POSTGRES_USER=postgres \
+            --publish 127.0.0.1::5432 \
+            postgres:15-alpine
+          for attempt in $(seq 30); do
+            docker exec "$POSTGRES_CONTAINER" \
+              pg_isready -h 127.0.0.1 -U postgres -d med_app_test && break
+            if [ "$attempt" = 30 ]; then exit 1; fi
+            sleep 2
+          done
+          port=$(docker port "$POSTGRES_CONTAINER" 5432/tcp | head -n 1 | cut -d: -f2)
+          echo "DATABASE_URL=postgresql+psycopg://postgres:postgres@127.0.0.1:$port/med_app_test" \
+            >> "$GITHUB_ENV"
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
       - name: Set up uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           version: ${{ env.UV_VERSION }}
-          enable-cache: true
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: false
       - name: Verify dependency lock is current
         run: uv lock --check
       - name: Install frozen dependencies
@@ -142,10 +138,13 @@ jobs:
               raise RuntimeError("PostgreSQL worker startup returned an invalid result.")
           PY
           uv run --frozen --package med-app-backend alembic -c apps/api/alembic.ini downgrade base
+      - name: Remove PostgreSQL
+        if: always()
+        run: docker rm --force "$POSTGRES_CONTAINER"
 
   web-quality:
     name: Web quality
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, macOS, ARM64, med-app]
     defaults:
       run:
         working-directory: apps/web
@@ -156,8 +155,7 @@ jobs:
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: apps/web/package-lock.json
+          package-manager-cache: false
       - name: Install locked dependencies
         run: npm ci
       - name: TypeScript
@@ -173,7 +171,7 @@ jobs:
 
   openspec:
     name: OpenSpec strict validation
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, macOS, ARM64, med-app]
     steps:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
