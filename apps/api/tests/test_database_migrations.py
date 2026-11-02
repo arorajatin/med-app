@@ -111,11 +111,11 @@ def test_upgrade_empty_database_to_head_matches_model_contract(tmp_path):
     assert_schema_matches_metadata(url)
 
 
-def test_production_api_and_worker_start_at_head_without_metadata_creation(tmp_path, monkeypatch):
+def test_local_api_and_worker_start_at_head_without_metadata_creation(tmp_path, monkeypatch):
     url = database_url(tmp_path / "production.db")
     command.upgrade(migration_config(url), "head")
 
-    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv("ENVIRONMENT", "local")
     monkeypatch.setenv("DATABASE_URL", url)
     get_settings.cache_clear()
 
@@ -134,7 +134,7 @@ def test_production_api_and_worker_start_at_head_without_metadata_creation(tmp_p
 
 def test_runtime_startup_rejects_an_unmigrated_database(tmp_path, monkeypatch):
     url = database_url(tmp_path / "unmigrated.db")
-    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv("ENVIRONMENT", "local")
     monkeypatch.setenv("DATABASE_URL", url)
     get_settings.cache_clear()
 

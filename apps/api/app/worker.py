@@ -10,6 +10,8 @@ from app.storage import LocalPrivateStorage
 
 def run_once() -> int:
     settings = get_settings()
+    if settings.data_backend != "local" or settings.environment not in {"local", "test", "ci"}:
+        raise RuntimeError("The local extraction worker cannot run against hosted data.")
     configure_database(settings.database_url)
     if settings.environment != "test":
         require_current_database_schema()

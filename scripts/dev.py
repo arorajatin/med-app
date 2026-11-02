@@ -33,11 +33,17 @@ def main() -> int:
         action="store_true",
         help="reinstall the frontend's locked dependencies",
     )
+    parser.add_argument(
+        "--hosted-data",
+        action="store_true",
+        help="use the attested Supabase DB and Storage; never run hosted migrations",
+    )
+    parser.add_argument("--env-file", type=Path, default=ROOT / ".env")
     args = parser.parse_args()
     if not 1024 <= args.port <= 65534:
         parser.error("--port must be between 1024 and 65534")
 
-    settings = {**dotenv_values(ROOT / ".env"), **os.environ}
+    settings = {**dotenv_values(args.env_file), **os.environ}
     missing = [
         key for key in ("SUPABASE_URL", "SUPABASE_ANON_KEY") if not settings.get(key)
     ]
@@ -63,11 +69,38 @@ def main() -> int:
     backend_env = {
         **os.environ,
         "DATABASE_URL": f"sqlite:///{context / 'verification.db'}",
+        "DATA_BACKEND": "local",
+        "ENVIRONMENT": "local",
         "LOCAL_STORAGE_ROOT": str(context / "verification-storage"),
         "DEV_AUTH_ENABLED": "false",
         "SUPABASE_URL": settings["SUPABASE_URL"],
         "PYTHONUNBUFFERED": "1",
     }
+    if args.hosted_data:
+        from app.config import Settings
+        from app.data_boundary import validate_data_settings, verify_database_boundary
+        from app.database import configure_database, get_engine, require_current_database_schema
+
+        hosted = Settings(
+            _env_file=args.env_file,
+            data_backend="supabase",
+            environment="production",
+            dev_auth_enabled=False,
+            extraction_provider="disabled",
+            extraction_run_inline=False,
+        )
+        try:
+            validate_data_settings(hosted)
+            configure_database(hosted.database_url)
+            require_current_database_schema()
+            verify_database_boundary(get_engine(), hosted)
+        except Exception:
+            parser.error("Hosted data preflight failed. Follow infra/supabase/README.md; no servers were started.")
+        backend_env.update({key: value for key, value in settings.items() if value is not None})
+        backend_env.update({
+            "DATA_BACKEND": "supabase", "ENVIRONMENT": "production", "DEV_AUTH_ENABLED": "false",
+            "EXTRACTION_PROVIDER": "disabled", "EXTRACTION_RUN_INLINE": "false",
+        })
     frontend_env = {
         **os.environ,
         "VITE_SUPABASE_URL": settings["SUPABASE_URL"],
@@ -83,24 +116,26 @@ def main() -> int:
         if args.install or not (WEB / "node_modules" / ".package-lock.json").exists():
             subprocess.run([npm, "ci"], cwd=WEB, check=True)
         # Only the workspace-local SQLite database is migrated by this command.
-        subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "alembic",
-                "-c",
-                "apps/api/alembic.ini",
-                "upgrade",
-                "head",
-            ],
-            cwd=ROOT,
-            env=backend_env,
-            check=True,
-        )
+        if not args.hosted_data:
+            subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "alembic",
+                    "-c",
+                    "apps/api/alembic.ini",
+                    "upgrade",
+                    "head",
+                ],
+                cwd=ROOT,
+                env=backend_env,
+                check=True,
+            )
         print(f"Frontend: http://localhost:{args.port}", flush=True)
         print(f"Backend:  http://localhost:{args.port + 1}/docs", flush=True)
         print(
-            "Using .context/verification.db. Press Ctrl+C to stop both servers.",
+            ("Using private Supabase DB and Storage." if args.hosted_data
+             else "Using .context/verification.db.") + " Press Ctrl+C to stop both servers.",
             flush=True,
         )
         # Keep both servers in our process group so Conductor can stop the entire run.

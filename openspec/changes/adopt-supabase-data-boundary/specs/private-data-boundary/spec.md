@@ -1,11 +1,11 @@
 ## ADDED Requirements
 
-### Requirement: India-resident managed production persistence
-The production service SHALL persist all application-controlled relational medical data in a Supabase Postgres project provisioned in `ap-south-1` (Mumbai) through the versioned schema, and SHALL NOT route that data to another region.
+### Requirement: Singapore-resident managed production persistence
+The production service SHALL persist all application-controlled relational medical data in a Supabase Postgres project provisioned in `ap-southeast-1` (Singapore) through the versioned schema, and SHALL NOT route that data to another region.
 
 #### Scenario: Production write
 - **WHEN** an authenticated production request or authorized background worker creates or updates a supported resource
-- **THEN** the resource SHALL be committed to the configured Mumbai Supabase Postgres project
+- **THEN** the resource SHALL be committed to the configured Singapore Supabase Postgres project
 - **AND** a subsequent service instance SHALL be able to read it subject to account ownership rules
 
 #### Scenario: Missing or unverifiable production database boundary
@@ -75,7 +75,7 @@ Production report files SHALL be stored in non-public Supabase Storage buckets u
 - **THEN** application authorization and storage policy SHALL deny the operation
 
 #### Scenario: Missing production storage configuration
-- **WHEN** the Mumbai private bucket or required storage policy is unavailable or unverifiable
+- **WHEN** the Singapore private bucket or required storage policy is unavailable or unverifiable
 - **THEN** production storage operations SHALL fail closed
 - **AND** they SHALL NOT write to a public bucket, local filesystem, or another region
 
@@ -129,7 +129,7 @@ Production capabilities SHALL remain disabled until their migrations, region con
 
 #### Scenario: Enable the base production boundary
 - **WHEN** an operator enables production Postgres and private Storage
-- **THEN** the schema revision, Mumbai project attestation, RLS policies, storage policies, encryption keys, deletion reconciliation, backup/restore check, and two-account isolation suite SHALL all be current and passing
+- **THEN** the schema revision, Singapore project attestation, RLS policies, storage policies, encryption keys, deletion reconciliation, backup/restore check, and two-account isolation suite SHALL all be current and passing
 - **AND** a failed check SHALL block production deployment
 
 #### Scenario: Deploy production extraction
@@ -140,7 +140,7 @@ Production capabilities SHALL remain disabled until their migrations, region con
 #### Scenario: Exercise fresh-schema migration
 - **WHEN** an empty database is upgraded to the declared head and representative private data is created through current application flows
 - **THEN** checksums and row counts SHALL verify that source objects and protected rows are neither lost nor exposed
-- **AND** deployment rollback SHALL preserve the Mumbai Supabase boundary, RLS, tombstones, and in-progress deletion cleanup
+- **AND** deployment rollback SHALL preserve the Singapore Supabase boundary, RLS, tombstones, and in-progress deletion cleanup
 
 ### Requirement: Local adapter parity
 Local development and tests SHALL retain adapters that implement the same application-facing persistence, private-storage, authorization, stable-key, signed-access, and lifecycle contracts without claiming production residency or provider guarantees.

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -22,6 +23,24 @@ def resolve_account_context(
     email: str | None = None,
 ) -> AccountContext:
     """Resolve a verified identity, creating its application account idempotently."""
+
+    if db.info.get("supabase_rls"):
+        if provider != "supabase" or provider_subject != db.info.get("verified_subject"):
+            raise ValueError("Account identity does not match the verified session.")
+        db.execute(text("SELECT med_app_private.ensure_account(:email)"), {"email": email})
+        db.commit()
+        hosted_identity = (
+            db.query(models.AuthIdentity)
+            .filter(
+                models.AuthIdentity.provider == provider,
+                models.AuthIdentity.provider_subject == provider_subject,
+            )
+            .one()
+        )
+        account = (
+            db.query(models.Account).filter(models.Account.id == hosted_identity.account_id).one()
+        )
+        return AccountContext(account=account, identity=hosted_identity)
 
     identity = (
         db.query(models.AuthIdentity)

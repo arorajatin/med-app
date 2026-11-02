@@ -19,9 +19,9 @@ from app import models
 from app.ai.base import Extractor
 from app.ai.condition_safety import is_permitted_memory_fact
 from app.api.deps import get_extractor, get_storage
+from app.api.deps import get_request_db as get_db
 from app.auth import get_current_user
 from app.config import Settings, get_settings
-from app.database import get_db
 from app.document_inputs import (
     IMAGE_MIME_TYPES,
     MAX_DOCUMENT_BYTES,
@@ -76,7 +76,7 @@ from app.services.onboarding import (
     self_profile,
 )
 from app.services.patient_matching import normalize_patient_name
-from app.storage import LocalPrivateStorage
+from app.storage import PrivateStorage
 
 router = APIRouter()
 
@@ -349,8 +349,8 @@ async def upload_direct_file(
     db: Session = Depends(get_db),
     user: CurrentUser = Depends(get_current_user),
     settings: Settings = Depends(get_settings),
-    storage: LocalPrivateStorage = Depends(get_storage),
-    extractor: Extractor = Depends(get_extractor),
+    storage: PrivateStorage = Depends(get_storage),
+    extractor: Extractor | None = Depends(get_extractor),
 ) -> IngestionUploadResult:
     return await _receive_ingestion(
         request=request,
@@ -381,8 +381,8 @@ async def upload_camera_capture(
     db: Session = Depends(get_db),
     user: CurrentUser = Depends(get_current_user),
     settings: Settings = Depends(get_settings),
-    storage: LocalPrivateStorage = Depends(get_storage),
-    extractor: Extractor = Depends(get_extractor),
+    storage: PrivateStorage = Depends(get_storage),
+    extractor: Extractor | None = Depends(get_extractor),
 ) -> IngestionUploadResult:
     return await _receive_ingestion(
         request=request,
@@ -546,10 +546,12 @@ def run_job(
     db: Session = Depends(get_db),
     user: CurrentUser = Depends(get_current_user),
     settings: Settings = Depends(get_settings),
-    storage: LocalPrivateStorage = Depends(get_storage),
-    extractor: Extractor = Depends(get_extractor),
+    storage: PrivateStorage = Depends(get_storage),
+    extractor: Extractor | None = Depends(get_extractor),
 ) -> models.ExtractionJob:
     job = get_extraction_job(job_id, db, user, settings)
+    if extractor is None:
+        raise HTTPException(503, "Extraction is not enabled for the hosted upload test yet.")
     if job.status not in {"queued", "failed"}:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -564,10 +566,12 @@ def retry_job(
     db: Session = Depends(get_db),
     user: CurrentUser = Depends(get_current_user),
     settings: Settings = Depends(get_settings),
-    storage: LocalPrivateStorage = Depends(get_storage),
-    extractor: Extractor = Depends(get_extractor),
+    storage: PrivateStorage = Depends(get_storage),
+    extractor: Extractor | None = Depends(get_extractor),
 ) -> models.ExtractionJob:
     job = get_extraction_job(job_id, db, user, settings)
+    if extractor is None:
+        raise HTTPException(503, "Extraction is not enabled for the hosted upload test yet.")
     return retry_extraction_job(db, job=job, storage=storage, extractor=extractor)
 
 
@@ -766,8 +770,8 @@ async def _receive_ingestion(
     db: Session,
     user: CurrentUser,
     settings: Settings,
-    storage: LocalPrivateStorage,
-    extractor: Extractor,
+    storage: PrivateStorage,
+    extractor: Extractor | None,
 ) -> IngestionUploadResult:
     context = _account_context(db, user=user, settings=settings)
     if provisional_profile_id is not None:
@@ -860,11 +864,33 @@ async def _receive_ingestion(
         ingestion.completed_at = datetime.now(UTC)
         ingestion.display_filename = ingestion.display_filename or parts[0].original_filename
         job = create_extraction_job(db, ingestion=ingestion)
+        if settings.data_backend == "supabase":
+            intents = (
+                db.query(models.StorageCleanupIntent)
+                .filter(
+                    models.StorageCleanupIntent.account_id == context.account.id,
+                    models.StorageCleanupIntent.object_key.in_(stored_keys),
+                )
+                .order_by(models.StorageCleanupIntent.id)
+                .with_for_update()
+                .all()
+            )
+            if len(intents) != len(stored_keys) or any(
+                intent.state != "pending" for intent in intents
+            ):
+                raise RuntimeError("Upload expired before completion.")
+            for intent in intents:
+                db.delete(intent)
         db.commit()
     except Exception as exc:
         db.rollback()
         for object_key in stored_keys:
-            storage.delete_object(object_key)
+            try:
+                storage.delete_object(object_key)
+            except Exception:
+                if settings.data_backend != "supabase":
+                    raise
+                # The pre-write cleanup intent survives this failed compensation.
         if isinstance(exc, UploadValidationError):
             raise HTTPException(
                 status_code=exc.status_code,
@@ -873,7 +899,7 @@ async def _receive_ingestion(
             ) from exc
         raise HTTPException(503, "The report could not be saved. Try uploading it again.") from exc
 
-    if settings.extraction_run_inline:
+    if settings.extraction_run_inline and extractor is not None:
         job = run_extraction_job(db, job_id=job.id, storage=storage, extractor=extractor)
 
     for part in parts:

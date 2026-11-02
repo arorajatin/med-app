@@ -142,6 +142,10 @@ jobs:
               raise RuntimeError("PostgreSQL worker startup returned an invalid result.")
           PY
           uv run --frozen --package med-app-backend alembic -c apps/api/alembic.ini downgrade base
+      - name: Exercise account and Storage policies with non-bypass roles
+        env:
+          BOUNDARY_TEST_ADMIN_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5432/med_app_test
+        run: uv run --frozen --package med-app-backend pytest apps/api/tests/test_postgres_boundary.py
 
   web-quality:
     name: Web quality
