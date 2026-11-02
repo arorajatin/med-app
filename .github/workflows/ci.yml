@@ -27,15 +27,12 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
-      - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
       - name: Set up uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           version: ${{ env.UV_VERSION }}
-          enable-cache: true
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: false
       - name: Verify dependency lock is current
         run: uv lock --check
       - name: Install frozen dependencies
@@ -62,15 +59,12 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
       - name: Set up uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           version: ${{ env.UV_VERSION }}
-          enable-cache: true
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: false
       - name: Verify dependency lock is current
         run: uv lock --check
       - name: Install frozen dependencies
@@ -113,15 +107,12 @@ jobs:
             >> "$GITHUB_ENV"
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
       - name: Set up uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           version: ${{ env.UV_VERSION }}
-          enable-cache: true
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: false
       - name: Verify dependency lock is current
         run: uv lock --check
       - name: Install frozen dependencies
@@ -164,8 +155,7 @@ jobs:
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: apps/web/package-lock.json
+          package-manager-cache: false
       - name: Install locked dependencies
         run: npm ci
       - name: TypeScript
