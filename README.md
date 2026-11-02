@@ -86,6 +86,11 @@ npx --yes @fission-ai/openspec@1.6.0 validate --all --strict
 Regenerate `contracts/openapi.json` with the export command above whenever a route or response model
 changes, then run `npm run contracts:generate` in `apps/web`. CI fails if either file is stale.
 
+CI runs on a self-hosted runner on the maintainer's Mac (labels `self-hosted`, `macOS`, `ARM64`,
+`med-app`), installed in `~/actions-runner` as a login service. Jobs wait in the queue while that
+Mac is off or asleep. The PostgreSQL job needs Docker running there. Workflows from outside
+contributors need approval before they run.
+
 ## Web setup
 
 Run web commands from `apps/web`. The dev server proxies `/api` to a backend running on port 8000.
