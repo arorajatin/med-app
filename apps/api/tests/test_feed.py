@@ -154,10 +154,7 @@ def test_member_pagination_is_bound_to_family_view(client, order):
             ).status_code
             == 400
         )
-    # Even an All Family cursor whose anchor belongs to this member cannot be reused.
-    all_cursor = base64.urlsafe_b64encode(
-        json.dumps([2, order, None, expected[0]["id"]]).encode()
-    ).decode()
+    all_cursor = feed(client, order=order, limit=1)["next_cursor"]
     assert (
         client.get(
             "/feed",
@@ -381,6 +378,12 @@ def test_foreign_and_wrong_order_cursors_are_denied(make_client):
         "W10=",
         base64.b64encode(json.dumps([1, "upload_date", "absent"]).encode()).decode(),
         base64.b64encode(json.dumps([2, "upload_date", None, "absent"]).encode()).decode(),
+        base64.b64encode(
+            json.dumps([3, "upload_date", None, "absent", "2026-09-01T00:00:00", None]).encode()
+        ).decode(),
+        base64.b64encode(
+            json.dumps([3, "report_date", None, "absent", "yesterday", None]).encode()
+        ).decode(),
     ],
 )
 def test_malformed_or_unavailable_cursor_returns_safe_error(client, cursor):

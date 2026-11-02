@@ -1,7 +1,7 @@
 import base64
 import binascii
 import json
-from datetime import UTC
+from datetime import UTC, date, datetime
 from typing import Literal
 
 from fastapi import HTTPException
@@ -64,29 +64,36 @@ def list_feed(
             ingestion.resolved_profile_id == profile_id,
         )
     if cursor is not None:
-        # The cursor is a position, never authorization. Resolve its anchor only
-        # through the same owned, available upload query used for the results.
+        # The cursor carries the last item's sort keys, so later edits to that item
+        # cannot move the page boundary. Its id must still be one of this account's
+        # uploads, which keeps another account's cursor from being accepted.
         try:
             decoded = json.loads(base64.b64decode(cursor, altchars=b"-_", validate=True))
             if (
                 not isinstance(decoded, list)
-                or len(decoded) != 4
-                or decoded[:3] != [2, order, profile_id]
-                or not isinstance(decoded[3], str)
+                or len(decoded) != 6
+                or decoded[:3] != [3, order, profile_id]
+                or not all(isinstance(value, str) for value in decoded[3:5])
+                or not isinstance(decoded[5], str | None)
             ):
                 raise ValueError
+            previous_id = decoded[3]
+            previous_completed_at = datetime.fromisoformat(decoded[4])
+            previous_date = date.fromisoformat(decoded[5]) if decoded[5] else None
         except (ValueError, UnicodeDecodeError, binascii.Error) as exc:
             raise HTTPException(400, "Invalid Feed cursor. Refresh the Feed.") from exc
-        anchor = query.filter(ingestion.id == decoded[3]).one_or_none()
-        if anchor is None:
+        owned = db.query(
+            db.query(ingestion.id)
+            .filter(ingestion.id == previous_id, ingestion.account_id == account_id)
+            .exists()
+        ).scalar()
+        if not owned:
             raise HTTPException(400, "Invalid Feed cursor. Refresh the Feed.")
-        previous, previous_record, _, _ = anchor
         after_upload = or_(
-            ingestion.completed_at < previous.completed_at,
-            and_(ingestion.completed_at == previous.completed_at, ingestion.id < previous.id),
+            ingestion.completed_at < previous_completed_at,
+            and_(ingestion.completed_at == previous_completed_at, ingestion.id < previous_id),
         )
         if order == "report_date":
-            previous_date = previous_record.record_date if previous_record else None
             query = query.filter(
                 or_(
                     record.record_date < previous_date,
@@ -138,7 +145,18 @@ def list_feed(
         )
     next_cursor = None
     if len(rows) > limit:
+        last, last_report, _, _ = rows[limit - 1]
+        last_date = last_report.record_date if last_report else None
         next_cursor = base64.urlsafe_b64encode(
-            json.dumps([2, order, profile_id, items[-1].id]).encode()
+            json.dumps(
+                [
+                    3,
+                    order,
+                    profile_id,
+                    last.id,
+                    last.completed_at.isoformat(),
+                    last_date.isoformat() if last_date else None,
+                ]
+            ).encode()
         ).decode()
     return FeedRead(items=items, next_cursor=next_cursor)
