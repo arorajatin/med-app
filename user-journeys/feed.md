@@ -18,7 +18,7 @@ Provide one chronological stream of family reports successfully uploaded through
 5. Ordering is newest first.
 6. Opening an item leads to assignment, processing status, review, observations, or report details as appropriate.
 
-After a successful upload receipt, the app opens Feed in All Family with upload-date order and highlights the new report. Feed and report details refresh current states every five seconds while visible. Failed reads show an error and a refresh action; they do not imply an empty family history. Leaving Feed stops polling, and sign-out clears its private state.
+After a successful upload receipt, the app opens Feed in All Family with upload-date order and highlights the new report. If the account manager has already moved to another tab, the app stays there and Upload shows the receipt on the next visit. Feed and report details refresh current states every five seconds while visible. Failed reads show an error and a refresh action; they do not imply an empty family history. Leaving Feed stops polling, and sign-out clears its private state.
 
 The current Feed milestone includes pending assignment, processing details, and source-linked unreviewed measurements. Review editing remains a later milestone; pending metadata and medical-memory review are shown separately.
 

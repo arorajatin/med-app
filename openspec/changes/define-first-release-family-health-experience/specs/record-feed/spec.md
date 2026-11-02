@@ -77,6 +77,11 @@ The web client SHALL open Feed after a successful upload receipt, highlight the 
 - **THEN** the client SHALL open All Family with upload-date ordering and highlight the uploaded report
 - **AND** transport progress alone SHALL NOT trigger this transition
 
+#### Scenario: Upload receipt arrives after leaving Upload
+- **WHEN** the API confirms upload completion after the account manager has moved to another tab
+- **THEN** the client SHALL stay on the current tab and keep its state, including an open report
+- **AND** the Upload tab SHALL show the upload receipt on the next visit
+
 #### Scenario: Processing changes in the background
 - **WHEN** extraction, assignment, or review changes while Feed or report details are visible
 - **THEN** the client SHALL refresh those states without requiring a reload

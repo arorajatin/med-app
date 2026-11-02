@@ -121,6 +121,7 @@ The browser sends ordered multipart files to the authenticated API with a curren
 It never writes directly to storage. Progress measures transport; upload completion is shown
 only after the API confirms that every source part and its extraction job were saved together.
 The receipt opens Feed in All Family with upload-date ordering and highlights the saved report.
+If the person has already moved to another tab, the app stays put and the receipt waits on Upload.
 Feed shows extraction, assignment, metadata review, and medical-memory review separately. Report
 details explain when assignment differs from the provisional upload profile. Feed and details
 refresh every five seconds while visible. Upload drafts survive tab switches but are not persisted across reloads or sign-out. Camera streams stop when capture
